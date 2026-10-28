@@ -1,0 +1,122 @@
+[
+  {
+    "number": "01",
+    "name": "Tài khoản và danh mục",
+    "branch": "sprint-01-tai-khoan-danh-muc",
+    "depends_on": "Commit nền đã chạy test, MySQL và frontend build.",
+    "estimate": "6 đến 8 ngày công",
+    "tables": "users, roles, permissions, role_user, permission_role, warehouses, warehouse_user, shops, shop_bank_accounts, pickup_addresses, areas, fee_versions, fee_rules, audit_logs",
+    "tasks": [
+      {"fr":"FR-01","work":"Đăng nhập email hoặc điện thoại bằng session; chỉ tài khoản active; giới hạn thử sai; đăng xuất POST và tạo lại session.","accept":"Đúng mật khẩu vào được; sai/khóa bị từ chối; rate limit trả 429 và đăng xuất vô hiệu phiên."},
+      {"fr":"FR-02","work":"Form Request hồ sơ và đổi mật khẩu; kiểm tra mật khẩu hiện tại, xác nhận mật khẩu mới, email/phone unique.","accept":"Không thể sửa hồ sơ người khác; mật khẩu lưu hash; lỗi validation giữ dữ liệu hợp lệ."},
+      {"fr":"FR-03","work":"CRUD tài khoản nội bộ; vai trò và phạm vi kho; Policy ở server; khóa tài khoản phải ảnh hưởng phiên đang dùng.","accept":"Mỗi vai trò chỉ truy cập đúng chức năng/kho; không cho tự khóa tài khoản admin cuối cùng."},
+      {"fr":"FR-04","work":"Shop đăng ký/cập nhật hồ sơ; pending, approved, rejected, suspended; liên kết chủ shop.","accept":"Shop chỉ thấy hồ sơ của mình; shop chưa approved chưa được gửi vận đơn."},
+      {"fr":"FR-05","work":"Duyệt/từ chối shop có lý do; xác minh tài khoản nhận COD; lưu phiên bản tài khoản đã xác minh.","accept":"Thay đổi ngân hàng phải xác minh lại; hồ sơ cũ vẫn truy vết được khi đối soát."},
+      {"fr":"FR-06","work":"CRUD địa chỉ lấy hàng thuộc shop; một địa chỉ mặc định; kiểm tra khu vực hoạt động; ngừng dùng thay vì xóa địa chỉ đã sử dụng.","accept":"Không có hai mặc định sau thao tác đồng thời; địa chỉ ngừng dùng không xuất hiện khi tạo đơn mới."},
+      {"fr":"FR-07","work":"Khu vực và bậc cân, mức phí, COD tối đa; version biểu phí có ngày hiệu lực, không chồng khoảng quy tắc.","accept":"Kiểm tra đúng ranh giới cân/COD; sửa phiên bản mới không thay đổi phí đã chốt của đơn cũ."}
+    ],
+    "demo":"Admin tạo điều phối/kho/shipper/kế toán, duyệt shop; shop tạo địa chỉ; công bố biểu phí; mở lịch sử duyệt.",
+    "defense":"Vì sao quyền phải kiểm tra cả role và phạm vi dữ liệu? Vì sao biểu phí cần version?"
+  },
+  {
+    "number":"02","name":"Quản lý vận đơn","branch":"sprint-02-quan-ly-van-don",
+    "depends_on":"Sprint 01 hoàn thành tài khoản, shop, địa chỉ và biểu phí.","estimate":"7 đến 9 ngày công",
+    "tables":"orders, order_items, order_status_histories, order_change_requests; snapshots địa chỉ, biểu phí và khoản phí trên orders",
+    "tasks":[
+      {"fr":"FR-08","work":"Nháp, xem trước, gửi đơn; kiểm tra shop/địa chỉ; tracking_code unique; địa chỉ gửi nhận lưu snapshot.","accept":"Nháp thiếu thông tin được lưu; gửi đơn bắt buộc đủ trường; hai request đồng thời không trùng mã."},
+      {"fr":"FR-09","work":"FeeCalculator tính phí server-side theo version, khu vực và cân; làm tròn tiền và tách người trả phí, COD, phí, tổng cần thu.","accept":"Sửa giá trên trình duyệt không thay đổi giá server; test cân tại biên; tổng cần thu đúng người trả phí."},
+      {"fr":"FR-10","work":"Điều phối duyệt/yêu cầu bổ sung/từ chối có lý do; chuyển trạng thái trong transaction và ghi history.","accept":"Không duyệt lặp; chỉ đơn submitted được xét; yêu cầu trái quyền bị 403."},
+      {"fr":"FR-11","work":"Ma trận sửa/hủy theo trạng thái; sau duyệt tạo yêu cầu thay đổi; tái tính phí và duyệt lại nếu tác động tài chính.","accept":"Đơn đã giao không bị hủy trực tiếp; COD đổi có căn cứ; đơn đang giữ kiện cần quy trình thu hồi."},
+      {"fr":"FR-12","work":"Danh sách có filter mã/shop/ngày/trạng thái/khu vực/shipper; Eloquent scope, eager loading và paginate.","accept":"Đơn shop khác không lọt vào kết quả; query ổn định với dữ liệu seed lớn; bộ lọc giữ khi phân trang."},
+      {"fr":"FR-13","work":"Timeline người thao tác, thời gian, trạng thái trước/sau và lý do; lịch sử append-only.","accept":"Mọi transition có history; lỗi transaction không để lại history giả."},
+      {"fr":"FR-14","work":"Tra cứu bằng mã và thông tin xác minh; rate limit; ẩn số điện thoại, địa chỉ chi tiết và thông tin nội bộ.","accept":"Nhập mã đơn đơn thuần không lộ thông tin riêng; xác minh sai trả lỗi chung."},
+      {"fr":"FR-15 P1","work":"In tem QR/barcode bằng thư viện có sẵn và bảng kê theo quyền, thiết kế CSS print.","accept":"Quét mã tìm đúng đơn; không cắt nội dung gửi nhận; bảng kê khớp số kiện."}
+    ],
+    "demo":"Shop tạo nháp, tính phí, gửi; điều phối yêu cầu bổ sung rồi duyệt; xem timeline và tra cứu công khai.",
+    "defense":"Tại sao lưu snapshot địa chỉ/biểu phí? Ngăn tạo trùng đơn hoặc chuyển trạng thái đồng thời thế nào?"
+  },
+  {
+    "number":"03","name":"Điều phối và quản lý kho","branch":"sprint-03-dieu-phoi-kho",
+    "depends_on":"Sprint 02 có vận đơn đã approved và lịch sử trạng thái.","estimate":"8 đến 10 ngày công",
+    "tables":"delivery_tasks, task_assignments, handover_documents, handover_lines, warehouse_items, warehouse_locations, stocktakes, stocktake_lines, discrepancies",
+    "tasks":[
+      {"fr":"FR-16","work":"Phân công lấy theo khu vực/tải công việc; khóa dòng đơn khi tạo nhiệm vụ đang hiệu lực.","accept":"Hai điều phối không thể tạo hai nhiệm vụ lấy hiệu lực cho một đơn."},
+      {"fr":"FR-17","work":"Shipper xác nhận lấy/không lấy được; ghi lượt lấy, tình trạng và bằng chứng.","accept":"Chỉ shipper được giao mới xác nhận; lấy thành công xác định người giữ kiện."},
+      {"fr":"FR-18","work":"Kho kiểm đếm, cân thực tế, nhận từng kiện và lập phiếu nhận; thống nhất cân quy đổi nếu áp dụng.","accept":"Phiếu nhận, tồn kho và holder cập nhật cùng transaction; không nhập một kiện hai lần."},
+      {"fr":"FR-19","work":"Sai cân/thiếu/hỏng có hồ sơ, ảnh, mức độ và cờ hold; cập nhật phí phải qua yêu cầu thay đổi.","accept":"Kiện hold không được xuất; bỏ hold có người duyệt và lý do."},
+      {"fr":"FR-20","work":"Tạo nhiệm vụ giao/hoàn khi đơn ở kho, không hold và đủ số lượt theo chính sách.","accept":"Không gán giao cho đơn đã delivered hoặc shipper ngoài phạm vi."},
+      {"fr":"FR-21","work":"Phiếu xuất và xác nhận hai phía; kho ghi giao, shipper ghi nhận thực tế; chuyển holder sau xác nhận.","accept":"Phiếu chưa xác nhận không làm mất dấu kiện; số thực nhận khác tạo sai lệch."},
+      {"fr":"FR-22","work":"Nhận lại kiện thất bại, kiểm tra tình trạng và kết thúc nhiệm vụ cũ khi bàn giao xong.","accept":"Không phân công người mới trong lúc shipper cũ còn giữ kiện."},
+      {"fr":"FR-23","work":"Kiểm kê theo kho/vị trí, snapshot tồn, kiểm đếm thực tế và biên bản chênh lệch.","accept":"Kiểm kê không sửa trực tiếp tồn để che sai lệch; lưu người lập/xác nhận."},
+      {"fr":"FR-24","work":"Thu hồi nhiệm vụ chưa nhận kiện; nếu đã giữ kiện phải hoàn tất bàn giao lại trước khi gán mới.","accept":"Không tồn tại hai người giữ cùng kiện; history thể hiện đủ chuỗi bàn giao."}
+    ],
+    "demo":"Phân công lấy, shipper nhận, kho cân/nhập, tạo hold do hỏng, xử lý hold, xuất giao và kiểm kê.",
+    "defense":"Tại sao nhiệm vụ tách khỏi vận đơn? Ai đang giữ kiện khi một bên chưa xác nhận bàn giao?"
+  },
+  {
+    "number":"04","name":"Giao hàng và hoàn hàng","branch":"sprint-04-giao-hang-hoan-hang",
+    "depends_on":"Sprint 03 có nhiệm vụ và bàn giao; tạo bảng delivery_collections gốc cho sprint 06 sử dụng.","estimate":"5 đến 7 ngày công",
+    "tables":"delivery_attempts, delivery_proofs, return_records, delivery_collections; mỗi collection liên kết đơn/lần giao và người thu",
+    "tasks":[
+      {"fr":"FR-25","work":"Màn hình shipper mobile: tab lấy/giao/hoàn, địa chỉ, gọi điện, COD/phí và nhiệm vụ đang hiệu lực.","accept":"Chỉ hiển thị nhiệm vụ của mình; thao tác dùng được ở 375px; nút lớn và không tràn chữ."},
+      {"fr":"FR-26","work":"Giao thành công có người nhận, bằng chứng, giờ giao và tiền thực thu; tạo collection COD/phí riêng.","accept":"Gửi lại request không tạo tiền lần hai; chênh tiền dự kiến phải có lý do và cờ tài chính."},
+      {"fr":"FR-27","work":"Ghi từng lần giao thất bại theo mã lý do, ghi chú, ảnh khi cần; tăng lượt giao thực tế.","accept":"Thất bại không tạo khoản thu; không tăng lượt khi chỉ phân công mà chưa giao."},
+      {"fr":"FR-28","work":"Điều phối quyết định giao lại/hoàn theo số lượt, ý kiến shop và tình trạng; trước khi gán mới kiểm tra holder.","accept":"Không vượt lượt tối đa nếu chưa được cho phép; kiện giữ ngoài kho chưa được gán người mới."},
+      {"fr":"FR-29","work":"Hoàn thành/thất bại, shop nhận hàng có bằng chứng; phí hoàn theo biểu phí đã chốt.","accept":"Hoàn thành không tạo COD giao thành công; tiền thu và phí hoàn có nguồn gốc riêng."}
+    ],
+    "demo":"Hai đơn: một giao thành công có thu tiền, một thất bại rồi hoàn; đối chiếu holder, lượt giao và collection.",
+    "defense":"Giao thất bại có làm phát sinh COD không? Vì sao phải chống bấm xác nhận hai lần?"
+  },
+  {
+    "number":"05","name":"Sự cố và khiếu nại","branch":"sprint-05-su-co-khieu-nai",
+    "depends_on":"Sprint 02 đến 04 đã có đơn, kiện, nhiệm vụ và khoản thu tham chiếu.","estimate":"4 đến 6 ngày công",
+    "tables":"incidents, incident_actions, complaints, complaint_messages, attachments; khóa nghiệp vụ có nguyên nhân cụ thể",
+    "tasks":[
+      {"fr":"FR-30","work":"Sự cố mất/hỏng/sai tiền/thông tin; mức độ, bằng chứng, người xử lý; khóa giao hoặc đối soát có chọn phạm vi; đề xuất và duyệt kết luận.","accept":"Người lập không tự duyệt bồi thường; sự cố đóng có căn cứ; hồ sơ tài chính chưa triển khai giữ ở trạng thái chờ, không sửa số dư."},
+      {"fr":"FR-31 P1","work":"Shop tạo khiếu nại, CSKH nhận và phân công; SLA deadline; trao đổi; liên kết incident khi tác động tiền/hàng.","accept":"Shop không xem trao đổi nội bộ/shop khác; quá hạn được đánh dấu; đóng khiếu nại có kết quả."}
+    ],
+    "demo":"Shop báo hỏng, CSKH liên kết incident, kho khóa xuất, người có quyền duyệt kết luận và trả lời shop.",
+    "defense":"Sự cố khác khiếu nại ở điểm nào? Vì sao kết luận bồi thường chưa đồng nghĩa đã trả tiền?"
+  },
+  {
+    "number":"06","name":"COD và tài chính","branch":"sprint-06-cod-tai-chinh",
+    "depends_on":"Sprint 04 có delivery_collections; sprint 05 có căn cứ điều chỉnh; sprint 01 có tài khoản ngân hàng được duyệt.","estimate":"9 đến 12 ngày công",
+    "tables":"cash_deposits, deposit_allocations, reconciliations, reconciliation_lines, payments, payment_allocations, fee_receipts, receivables, adjustments, adjustment_lines; unique idempotency_key",
+    "tasks":[
+      {"fr":"FR-32","work":"Sổ thu dựa collection gốc, tách COD/phí; tính tiền shipper giữ bằng thực thu trừ nộp đã xác nhận, không coi tiền chuyển quỹ là thu mới.","accept":"Mỗi số tổng mở ra sổ chi tiết; hoàn/void bằng giao dịch điều chỉnh; không sửa trực tiếp balance."},
+      {"fr":"FR-33","work":"Shipper đề nghị nộp; kế toán xác nhận thực nhận, phân bổ từng collection; partial/thiếu/thừa có chứng từ xử lý.","accept":"Shipper không xác nhận chính mình; tổng phân bổ không vượt thực nhận và số còn lại; request lặp không tạo bản ghi mới."},
+      {"fr":"FR-34","work":"Chọn COD đủ điều kiện có tiền về quỹ, phí/hoàn/điều chỉnh đã duyệt; snapshot ngân hàng và chi tiết phải trả/phải thu.","accept":"Một phần collection không đối soát hai lần; khóa dòng khi chọn; đơn đang tranh chấp không đủ điều kiện."},
+      {"fr":"FR-35","work":"Workflow draft, submitted, approved, rejected/returned; creator khác approver, khóa dữ liệu sau duyệt.","accept":"Người lập không tự duyệt; thay đổi ngân hàng/số tiền sau duyệt phải trả lại quy trình, có audit."},
+      {"fr":"FR-36","work":"Kế toán ghi giao dịch trả shop, mã ngân hàng và bằng chứng; hỗ trợ thanh toán một phần nếu chính sách cho phép.","accept":"Không chi vượt số phải trả; mã tham chiếu/idempotency chống trùng; trả tiền thất bại không đóng công nợ."},
+      {"fr":"FR-37","work":"Thu nợ phí, phân bổ; adjustment tăng/giảm nghĩa vụ gắn khoản gốc, sự cố và người phê duyệt; reversal thay sửa giao dịch đã posted.","accept":"Không trộn phí với COD; số còn nợ khớp phân bổ; test đồng thời và số tiền sát biên DECIMAL."}
+    ],
+    "demo":"Thu COD 500.000 và phí 30.000; shipper nộp thiếu rồi nộp bù; đối soát trừ phí shop chịu; người khác duyệt và ghi thanh toán.",
+    "defense":"COD khác doanh thu thế nào? Transaction/row lock/unique key ngăn ghi trùng và chi vượt ra sao?"
+  },
+  {
+    "number":"07","name":"Báo cáo và thống kê","branch":"sprint-07-bao-cao-thong-ke",
+    "depends_on":"Các bảng trạng thái và tài chính sprint 01 đến 06 ổn định; dùng lại Policy phạm vi dữ liệu.","estimate":"4 đến 6 ngày công",
+    "tables":"Đọc bảng nghiệp vụ qua query builder; export_logs. Chưa tạo bảng report_queries hoặc bảng tổng hợp nếu chưa chứng minh cần.",
+    "tasks":[
+      {"fr":"FR-38","work":"Dashboard và báo cáo đơn tiếp nhận/giao/hoàn/thất bại/tồn/quá hạn theo shop, khu vực, kho và shipper.","accept":"Mẫu số tỷ lệ giao thành công được nêu rõ; phân biệt đơn tạo trong kỳ và giao trong kỳ; test đơn tạo trước kỳ."},
+      {"fr":"FR-39","work":"COD shipper giữ, tiền về quỹ, chưa đối soát/đã trả; phí phát sinh/đã thu và công nợ; drill-down theo chứng từ.","accept":"Tổng báo cáo khớp ledger/allocations; không cộng COD vào doanh thu; kỳ thời gian đúng múi giờ."},
+      {"fr":"FR-41 P1","work":"Xuất Excel/PDF bằng thư viện chuẩn; cùng filter và Policy với màn hình; queue export lớn, hạn sử dụng link tải.","accept":"Excel mở được và cột tiền là số; không vượt phạm vi user; chống công thức trong dữ liệu text; PDF không cắt bảng."}
+    ],
+    "demo":"Chọn một kỳ có đơn tạo trước kỳ nhưng giao trong kỳ; mở báo cáo vận hành, tài chính và đối chiếu export.",
+    "defense":"Vì sao hai báo cáo dùng cùng ngày lọc có số đơn khác nhau? Index nào phục vụ filter thực tế?"
+  },
+  {
+    "number":"08","name":"Nhật ký và thông báo","branch":"sprint-08-nhat-ky-thong-bao",
+    "depends_on":"Audit writer phải có từ sprint 01; sprint 08 hoàn thiện tra cứu, thông báo và kiểm tra phủ toàn bộ module.","estimate":"4 đến 5 ngày công",
+    "tables":"audit_logs, notifications, failed_jobs; queue nếu dùng thông báo/export bất đồng bộ",
+    "tasks":[
+      {"fr":"FR-40.1 P0","work":"Rà soát event cho tạo/sửa/duyệt/chuyển trạng thái; actor, thời gian, subject, kết quả, request_id và reason.","accept":"Nghiệp vụ rollback không lưu audit thành công; thao tác tài chính thành công không bị thiếu audit."},
+      {"fr":"FR-40.2 P0","work":"Before/after chỉ trường cần thiết; append-only; loại password, token, session và số tài khoản đầy đủ khỏi log.","accept":"Xem được thay đổi trọng yếu; không có chức năng sửa/xóa audit cho user nghiệp vụ."},
+      {"fr":"FR-40.3 P0","work":"Trang tra cứu audit theo tài khoản/thời gian/event/đối tượng; filter có index, phân trang và Policy admin.","accept":"Role thường không đọc audit toàn hệ thống; lọc theo đối tượng mở được chứng từ liên quan nếu còn quyền."},
+      {"fr":"FR-40.4 P1","work":"Thông báo đơn mới, nhiệm vụ, giao thất bại, sự cố và đối soát; gửi sau commit; idempotent khi queue retry.","accept":"Rollback không gửi thông báo; retry không gửi trùng; người nhận nằm trong đúng scope."},
+      {"fr":"FR-40.5 P1","work":"Danh sách, số chưa đọc, đánh dấu đã đọc/chưa đọc; link nghiệp vụ kiểm tra lại quyền hiện tại.","accept":"Không đánh dấu thông báo người khác; số đếm khớp danh sách; link cũ không vượt quyền mới."}
+    ],
+    "demo":"Duyệt đơn và phân công, mở thông báo shipper; admin lọc audit theo mã vận đơn và xem before/after.",
+    "defense":"Audit khác timeline nghiệp vụ thế nào? Tại sao notification/queue phải chạy sau commit?"
+  }
+]
