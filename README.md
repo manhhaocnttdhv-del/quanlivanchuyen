@@ -2,7 +2,7 @@
 
 He thong quan ly van chuyen COD xay dung bang Laravel 12, MySQL, Bootstrap 5 va jQuery. Project duoc chia thanh 8 sprint nghiep vu de de phat trien, review va bao ve do an.
 
-Hien tai moi co code nen, cau hinh frontend va tai lieu. Cac chuc nang FR-01 den FR-41 se duoc trien khai tren nhanh sprint tuong ung; chua co tai khoan demo hay module nghiep vu.
+Hiện tại sprint 01 đã có giao diện khách hàng mẫu **Gửi Việt** với tra cứu bản nháp, ước tính cước server-side, tạo/chỉnh sửa/xóa bản nháp theo session và responsive mobile. Các chức năng tài khoản, vận đơn thật, duyệt đơn, kho, giao hàng và tài chính vẫn được triển khai theo các sprint nghiệp vụ tương ứng; chưa có tài khoản demo hay đơn vận chuyển thật.
 
 ## Cong nghe
 
@@ -20,7 +20,7 @@ Hien tai moi co code nen, cau hinh frontend va tai lieu. Cac chuc nang FR-01 den
 5. Chay `npm run build`, sau do `php artisan serve --host=127.0.0.1 --port=8000`.
 6. Mo `http://127.0.0.1:8000`. Khi sua frontend, chay them `npm run dev` o terminal khac.
 
-Tren may Laragon hien tai co the chon PHP 8.2 cho rieng terminal PowerShell:
+Trên máy Laragon hiện tại có thể chọn PHP 8.2 cho riêng terminal PowerShell:
 
 ```powershell
 $env:Path = 'C:\laragon\bin\php\php-8.2.29-nts-Win32-vs16-x64;' + $env:Path
@@ -28,6 +28,12 @@ php -v
 ```
 
 Kiem tra: `php artisan test`, `php vendor/bin/pint --test`, `npm run build`.
+
+## Chạy giao diện mẫu
+
+Sau khi chọn PHP 8.2, chạy `php artisan serve --host=127.0.0.1 --port=8001` và mở `http://127.0.0.1:8001`. Màn hình khách hàng có thể dùng ngay mà chưa cần chạy migration nghiệp vụ. Biểu phí trong `config/shipping.php` là dữ liệu minh họa; khi làm sprint 01 cần thay bằng bảng version biểu phí trong MySQL.
+
+Giao diện, nguồn ảnh và giới hạn session được ghi tại `docs/frontend-notes.md`.
 
 ## Tai lieu ky thuat
 
