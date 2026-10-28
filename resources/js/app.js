@@ -4,11 +4,11 @@ import { Collapse, Tab, Tooltip, Modal } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
-    Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2,
+    Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
-const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2 };
+const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route };
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -25,9 +25,10 @@ function renderQuote($target, quote) {
     $('<p>', { class: 'quote-disclaimer', text: 'Biểu phí mẫu, chưa gồm phụ phí phát sinh. Cước và thời gian sẽ được xác nhận khi tiếp nhận kiện.' }).appendTo($target);
 }
 
-function clearErrors($form) {
-    $form.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
-    $form.find('[data-error-for]').empty();
+function clearErrors($form, names = null) {
+    $form.find('.is-invalid').filter((_, field) => !names || names.includes(field.name))
+        .removeClass('is-invalid').removeAttr('aria-invalid');
+    $form.find('[data-error-for]').filter((_, field) => !names || names.includes(field.dataset.errorFor)).empty();
 }
 
 function showRequestError(xhr, $form, $result) {
@@ -47,7 +48,7 @@ function showRequestError(xhr, $form, $result) {
 }
 
 function requestQuote($form, $button, $result, url) {
-    clearErrors($form);
+    clearErrors($form, ['origin', 'destination', 'weight', 'service']);
     const $fields = $form.find('[name]').filter((_, field) => ['origin', 'destination', 'weight', 'service', '_token'].includes(field.name));
     const label = $button.html();
     const $quoteFields = $form.find('[name]').filter((_, field) => ['origin', 'destination', 'weight', 'service'].includes(field.name));
@@ -56,7 +57,7 @@ function requestQuote($form, $button, $result, url) {
     $saveButton.prop('disabled', true);
     const data = $fields.serialize();
     $quoteFields.prop('disabled', true);
-    $.ajax({ url, method: 'POST', data, dataType: 'json' })
+    $.ajax({ url, method: 'POST', data, dataType: 'json', timeout: 15000 })
         .done((quote) => renderQuote($result, quote))
         .fail((xhr) => { $quoteFields.prop('disabled', false); showRequestError(xhr, $form, $result); })
         .always(() => { $button.prop('disabled', false).html(label); $quoteFields.prop('disabled', false); $saveButton.prop('disabled', false); });
@@ -81,7 +82,7 @@ $(function () {
         const label = $button.html();
         $button.prop('disabled', true).text('Đang tra cứu…');
         $form.find(':input:not(button)').prop('readOnly', true);
-        $.ajax({ url: this.action, method: 'POST', data: $form.serialize(), dataType: 'json' })
+        $.ajax({ url: this.action, method: 'POST', data: $form.serialize(), dataType: 'json', timeout: 15000 })
             .done((result) => {
                 $result.empty().removeClass('d-none is-error');
                 $('<strong>', { text: result.found ? 'Bản nháp · Chưa gửi vận chuyển' : 'Chưa tìm thấy đơn hàng' }).appendTo($result);

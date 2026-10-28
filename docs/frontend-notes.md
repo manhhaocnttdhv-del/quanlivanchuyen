@@ -21,4 +21,5 @@ Tham khảo thông tin: [GHTK](https://ghtk.vn/) (truy cập ngày 28/10/2026, c
 ## Kiểm tra giao diện
 
 - Desktop: kiểm tra ảnh hero, tab tra cứu/tính cước, kết quả AJAX và footer.
-- Mobile 390px: kiểm tra menu collapse, biểu mẫu tạo đơn, tính cước, lỗi validation và không tràn ngang nội dung chính.
+- Đã kiểm tra chiều rộng 320px, 390px, 768px và 1440px; nội dung trang không tràn ngang. Bảng cước có vùng cuộn riêng trên mobile.
+- Đã thử trực tiếp: lỗi nhập liệu, tính cước 501g Hà Nội → TP. Hồ Chí Minh = 45.000đ, tạo/sửa/tìm/xóa bản nháp, hủy xác nhận xóa, tra cứu đúng/sai thông tin, menu mobile và FAQ.

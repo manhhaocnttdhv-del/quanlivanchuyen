@@ -56,7 +56,7 @@ Giao diện, nguồn ảnh và giới hạn session được ghi tại `docs/fro
 - `sprint-07-bao-cao-thong-ke`
 - `sprint-08-nhat-ky-thong-bao`
 
-8 nhanh hien cung xuat phat tu commit nen, chua phai code hoan thanh 8 sprint. Moi sprint can co migration, model, request validation, policy, service, controller, view va test tuong ung truoc khi merge vao `main`.
+Các nhánh được khởi tạo từ cùng commit nền. Nhánh sprint 01 hiện bổ sung giao diện khách hàng; chưa có sprint nghiệp vụ nào hoàn thành toàn bộ. Mỗi sprint cần có migration, model, request validation, policy, service, controller, view và test tương ứng trước khi merge vào `main`.
 
 Truoc khi bat dau sprint sau, cap nhat `main` da merge sprint phu thuoc:
 

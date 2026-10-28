@@ -151,6 +151,17 @@ class CustomerPortalTest extends TestCase
         $this->postJson('/tra-cuu', ['tracking_code' => 'UNKNOWN', 'phone_suffix' => '6789'])->assertStatus(429);
     }
 
+    public function test_invalid_array_input_can_render_again_after_validation_redirect(): void
+    {
+        $this->from('/gui-hang')->post('/don-hang', $this->draftData(['goods' => ['invalid']]))
+            ->assertRedirect('/gui-hang')->assertSessionHasErrors('goods');
+        $this->get('/gui-hang')->assertOk();
+
+        $this->from('/')->post('/tra-cuu', ['tracking_code' => ['invalid'], 'phone_suffix' => '6789'])
+            ->assertRedirect('/')->assertSessionHasErrors('tracking_code');
+        $this->get('/')->assertOk();
+    }
+
     public function test_search_scopes_results_and_rejects_array_input(): void
     {
         $draft = $this->storedDraft();

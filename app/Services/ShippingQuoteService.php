@@ -7,8 +7,13 @@ class ShippingQuoteService
     public function calculate(array $input): array
     {
         $provinces = config('shipping.provinces');
-        $route = $input['origin'] === $input['destination'] ? 'local'
-            : ($provinces[$input['origin']]['region'] === $provinces[$input['destination']]['region'] ? 'regional' : 'national');
+        if ($input['origin'] === $input['destination']) {
+            $route = 'local';
+        } elseif ($provinces[$input['origin']]['region'] === $provinces[$input['destination']]['region']) {
+            $route = 'regional';
+        } else {
+            $route = 'national';
+        }
         $rate = config("shipping.routes.$route");
         $service = config('shipping.services.'.$input['service']);
         $extraWeight = max(0, (int) $input['weight'] - config('shipping.base_weight_grams'));
