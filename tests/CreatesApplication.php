@@ -16,6 +16,10 @@ trait CreatesApplication
 
         $app->make(Kernel::class)->bootstrap();
 
+        if ($app->environment('testing') && config('database.connections.mysql.database') !== 'quanlivanchuyen_testing') {
+            throw new \RuntimeException('Test chỉ được chạy trên database quanlivanchuyen_testing.');
+        }
+
         return $app;
     }
 }

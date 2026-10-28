@@ -24,6 +24,12 @@
             </button>
             <div class="collapse navbar-collapse" id="customer-nav">
                 <ul class="navbar-nav ms-auto align-items-lg-center">
+                    @auth
+                        <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Không gian làm việc</a>
+                        </li>
+                    @else
+                        <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Đăng nhập</a></li>
+                    @endauth
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#dich-vu">Dịch vụ</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#bang-cuoc">Bảng cước</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#ho-tro">Hỗ trợ</a></li>

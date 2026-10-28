@@ -17,3 +17,5 @@ Route::post('/don-hang', [DraftShipmentController::class, 'store'])
 Route::get('/don-hang/{id}/sua', [DraftShipmentController::class, 'edit'])->whereUuid('id')->name('drafts.edit');
 Route::put('/don-hang/{id}', [DraftShipmentController::class, 'update'])->whereUuid('id')->name('drafts.update');
 Route::delete('/don-hang/{id}', [DraftShipmentController::class, 'destroy'])->whereUuid('id')->name('drafts.destroy');
+
+require __DIR__.'/portal.php';

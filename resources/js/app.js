@@ -1,6 +1,6 @@
 import './bootstrap';
 import $ from 'jquery';
-import { Collapse, Tab, Tooltip, Modal } from 'bootstrap';
+import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
@@ -106,5 +106,14 @@ $(function () {
     });
 
     // Keep Bootstrap data-API modules in the Vite bundle, without exporting globals.
-    void [Collapse, Tab, Modal];
+    $('#add-fee-rule').on('click', function () {
+        const $row = $('#fee-rule-rows tr').first().clone();
+        const next = Date.now();
+        $row.find('[name]').each((_, field) => {
+            field.name = field.name.replace(/rules\[\d+\]/, `rules[${next}]`);
+        });
+        $('#fee-rule-rows').append($row);
+    });
+    $('#fee-rule-rows').on('click', '.remove-fee-rule', function () { $(this).closest('tr').remove(); });
+    void [Collapse, Tab, Modal, Offcanvas];
 });

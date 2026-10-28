@@ -1,6 +1,6 @@
 # Thiet ke database
 
-Day la schema du kien cho 8 sprint. Ban khoi tao chi co cac migration mac dinh cua Laravel; cac bang nghiep vu se duoc them theo sprint. Backlog chuan nam trong `docs/sprints.json`.
+Day la schema du kien cho 8 sprint. Sprint 01 da trien khai identity, roles/permissions, pham vi kho, shop, phien ban ngan hang, dia chi, khu vuc, kho, phien ban bieu phi va audit. Migration la nguon schema da trien khai; cac nhom con lai duoc them theo sprint. Backlog chuan nam trong `docs/sprints.json`.
 
 ## Nguyen tac
 
