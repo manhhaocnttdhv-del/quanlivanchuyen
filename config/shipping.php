@@ -1,10 +1,7 @@
 <?php
 
 return [
-    // Demonstration tariff only; approved, effective-dated tariffs belong to sprint 01.
-    'tariff_version' => 'tham-khao-2026-01',
-    'base_weight_grams' => 500,
-    'step_weight_grams' => 500,
+    // Seed defaults and presentation labels only. Runtime pricing reads published MySQL fee versions.
     'routes' => [
         'local' => ['label' => 'Nội tỉnh', 'base' => 27000, 'step' => 5000, 'days' => '1 - 2 ngày'],
         'regional' => ['label' => 'Nội miền', 'base' => 32000, 'step' => 6000, 'days' => '2 - 3 ngày'],

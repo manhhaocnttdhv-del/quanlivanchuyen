@@ -39,10 +39,10 @@
                             href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> Cửa hàng & địa
                             chỉ</a>
                     @endif
-                    @if (Route::has('orders.index'))
+                    @can('viewAny', \App\Models\Order::class)
                         <a class="{{ request()->routeIs('orders.*') ? 'active' : '' }}"
                             href="{{ route('orders.index') }}"><i data-lucide="clipboard-list"></i> Vận đơn</a>
-                    @endif
+                    @endcan
                     @can('users.manage')
                         <p class="nav-group-label mt-4">Quản lý</p><a
                             class="{{ request()->routeIs('users.*') ? 'active' : '' }}"

@@ -13,13 +13,14 @@ Tham khảo thông tin: [GHTK](https://ghtk.vn/) (truy cập ngày 28/10/2026, c
 
 ## Phạm vi hiện tại
 
-- Tra cứu chỉ xác minh bản nháp trong session hiện tại bằng mã và 4 số cuối điện thoại người nhận. Chưa giả lập đơn đã gửi hoặc timeline giao hàng thật.
-- Tính cước dùng biểu phí minh họa version `tham-khao-2026-01`, tính bằng số nguyên VND. Đây chưa phải biểu phí chính thức của hệ thống.
-- Bản nháp chỉ lưu trong session, giới hạn 20 bản nháp mỗi phiên. Sprint tài khoản và vận đơn sẽ chuyển dữ liệu này sang database, gắn với user/shop và audit log.
+- Tra cứu vận đơn đã gửi trong MySQL bằng mã và 4 số cuối điện thoại người nhận. Kết quả chỉ có trạng thái và thời gian công khai, không có địa chỉ/điện thoại/actor/lý do nội bộ. Có rate limit theo IP.
+- Tính cước đọc phiên bản đã công bố và còn hiệu lực trong MySQL; số nguyên đồng, bước cân làm tròn lên. `config/shipping.php` chỉ chứa nhãn hiển thị và mức khởi tạo dữ liệu mẫu.
+- Nháp lưu trong MySQL theo shop, cho phép thiếu thông tin; có xem trước và xác nhận gửi. Khi đã duyệt, chỉnh sửa phải tạo đề nghị và đưa đơn về chờ duyệt lại sau khi đề nghị được chấp nhận.
+- Khu làm việc có bộ lọc, phân trang, timeline, kiểm tra dữ liệu ở từng trường, tem CODE128 theo từng kiện và bảng kê có CSS in. Menu dùng offcanvas trên mobile; bảng dữ liệu cuộn trong vùng riêng.
 - Giao diện dùng Bootstrap 5, Blade, jQuery, Vite, Be Vietnam Pro và Lucide icons.
 
 ## Kiểm tra giao diện
 
 - Desktop: kiểm tra ảnh hero, tab tra cứu/tính cước, kết quả AJAX và footer.
 - Đã kiểm tra chiều rộng 320px, 390px, 768px và 1440px; nội dung trang không tràn ngang. Bảng cước có vùng cuộn riêng trên mobile.
-- Đã thử trực tiếp: lỗi nhập liệu, tính cước 501g Hà Nội → TP. Hồ Chí Minh = 45.000đ, tạo/sửa/tìm/xóa bản nháp, hủy xác nhận xóa, tra cứu đúng/sai thông tin, menu mobile và FAQ.
+- Những kiểm tra của bản prototype session đã được thay bằng kiểm thử OrderWorkflowTest cho vận đơn MySQL. Không còn endpoint lưu/xóa nháp theo session.

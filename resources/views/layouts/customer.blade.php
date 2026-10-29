@@ -34,11 +34,11 @@
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#bang-cuoc">Bảng cước</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#ho-tro">Hỗ trợ</a></li>
                     <li class="nav-item nav-account"><a
-                            class="nav-link {{ request()->routeIs('drafts.index') ? 'active' : '' }}"
-                            href="{{ route('drafts.index') }}"
-                            @if (request()->routeIs('drafts.index')) aria-current="page" @endif><i
+                            class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
+                            href="{{ route('orders.index') }}"
+                            @if (request()->routeIs('orders.index')) aria-current="page" @endif><i
                                 data-lucide="clipboard-list"></i> Đơn của tôi</a></li>
-                    <li class="nav-item"><a class="btn btn-primary" href="{{ route('drafts.create') }}"><i
+                    <li class="nav-item"><a class="btn btn-primary" href="{{ route('orders.create') }}"><i
                                 data-lucide="plus"></i> Tạo đơn hàng</a></li>
                 </ul>
             </div>
@@ -75,8 +75,8 @@
                 </div>
                 <div class="col-6 col-lg-3">
                     <h2>Gửi hàng</h2>
-                    <a href="{{ route('drafts.create') }}">Tạo đơn hàng</a>
-                    <a href="{{ route('drafts.index') }}">Đơn của tôi</a>
+                    <a href="{{ route('orders.create') }}">Tạo đơn hàng</a>
+                    <a href="{{ route('orders.index') }}">Đơn của tôi</a>
                     <a href="{{ route('home') }}?tool=estimate#cong-cu">Ước tính cước</a>
                 </div>
                 <div class="col-6 col-lg-4">

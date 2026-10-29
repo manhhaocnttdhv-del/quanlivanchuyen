@@ -15,8 +15,8 @@ class QuoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'origin' => ['required', Rule::in(array_keys(config('shipping.provinces')))],
-            'destination' => ['required', Rule::in(array_keys(config('shipping.provinces')))],
+            'origin' => ['required', 'string', Rule::exists('areas', 'code')->where('is_active', true)],
+            'destination' => ['required', 'string', Rule::exists('areas', 'code')->where('is_active', true)],
             'weight' => ['required', 'integer', 'between:1,20000'],
             'service' => ['required', Rule::in(array_keys(config('shipping.services')))],
         ];

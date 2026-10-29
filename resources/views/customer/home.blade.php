@@ -16,7 +16,7 @@
                 <p class="hero-category"><span></span> Đồng hành cùng cửa hàng của bạn</p>
                 <h1 id="hero-title">Giao hàng COD</h1>
                 <p class="hero-copy">Từ cửa hàng của bạn<br>đến tay người nhận.</p>
-                <a href="{{ route('drafts.create') }}" class="btn btn-light">Bắt đầu gửi hàng <i
+                <a href="{{ route('orders.create') }}" class="btn btn-light">Bắt đầu gửi hàng <i
                         data-lucide="arrow-up-right"></i></a>
             </div>
             <div class="hero-caption"><i data-lucide="package"></i> Mỗi kiện hàng, một hành trình.</div>
@@ -45,7 +45,7 @@
                                     @csrf
                                     <div class="row g-3 align-items-start">
                                         <div class="col-md-5"><x-field name="tracking_code" label="Mã đơn hàng"
-                                                placeholder="Nhập mã đơn hoặc mã nháp" maxlength="40" autocomplete="off"
+                                                placeholder="Nhập mã vận đơn GV..." maxlength="40" autocomplete="off"
                                                 required /></div>
                                         <div class="col-md-4"><x-field name="phone_suffix" label="4 số cuối điện thoại nhận"
                                                 placeholder="Ví dụ: 6789" inputmode="numeric" maxlength="4"
@@ -60,8 +60,11 @@
                                 <div id="tracking-result" class="tracking-output {{ session('tracking') ? '' : 'd-none' }}"
                                     role="status" aria-live="polite">
                                     @if (session('tracking'))
-                                        <strong>{{ session('tracking')['found'] ? 'Bản nháp · Chưa gửi vận chuyển' : 'Chưa tìm thấy đơn hàng' }}</strong>
+                                        <strong>{{ session('tracking')['status'] ?? 'Chưa tìm thấy đơn hàng' }}</strong>
                                         <p class="mb-0 mt-1">{{ session('tracking')['message'] }}</p>
+                                        @foreach (session('tracking')['events'] ?? [] as $event)
+                                            <p class="small mt-2 mb-0">{{ $event['time'] }} · {{ $event['status'] }}</p>
+                                        @endforeach
                                     @endif
                                 </div>
                             </div>
@@ -85,7 +88,8 @@
                                                 cước</button></div>
                                     </div>
                                 </form>
-                                <p class="tool-note">Biểu phí mẫu · Tối đa 20kg · Thời gian giao chỉ mang tính dự kiến.</p>
+                                <p class="tool-note">{{ $feeVersion ?? 'Chưa có biểu phí hiệu lực' }} · Tối đa 20kg · Thời
+                                    gian giao dự kiến.</p>
                                 <div id="quote-result" class="quote-output {{ session('quote') ? '' : 'd-none' }}"
                                     role="status" aria-live="polite">
                                     @if (session('quote'))
@@ -101,7 +105,7 @@
                         <span class="icon-tile"><i data-lucide="clipboard-list"></i></span>
                         <h2>Đơn hàng của bạn</h2>
                         <p>Tiếp tục chỉnh sửa các kiện hàng đã lưu.</p>
-                        <a href="{{ route('drafts.index') }}">Mở danh sách <i data-lucide="arrow-right"></i></a>
+                        <a href="{{ route('orders.index') }}">Mở danh sách <i data-lucide="arrow-right"></i></a>
                     </aside>
                 </div>
             </div>
@@ -143,7 +147,7 @@
                                     class="service-tag">Cho cửa hàng</span></div>
                             <h3>Gửi hàng thu hộ</h3>
                             <p>Ghi rõ tiền hàng cần thu hộ, tách biệt với phí vận chuyển và người trả phí.</p><a
-                                href="{{ route('drafts.create') }}">Chuẩn bị đơn COD <i
+                                href="{{ route('orders.create') }}">Chuẩn bị đơn COD <i
                                     data-lucide="arrow-up-right"></i></a>
                         </article>
                     </div>
@@ -157,7 +161,7 @@
                     <div>
                         <p class="section-label">Chuẩn bị gửi hàng</p>
                         <h2>Sẵn sàng trong 3 bước.</h2>
-                    </div><a href="{{ route('drafts.create') }}" class="btn btn-outline-primary">Tạo đơn hàng <i
+                    </div><a href="{{ route('orders.create') }}" class="btn btn-outline-primary">Tạo đơn hàng <i
                             data-lucide="arrow-right"></i></a>
                 </div>
                 <div class="row g-4">
@@ -180,8 +184,8 @@
                     <div class="col-md-4">
                         <div class="process-step"><span>03</span>
                             <div>
-                                <h3>Lưu bản nháp</h3>
-                                <p>Lưu để kiểm tra lại. Bản nháp chưa được gửi vận chuyển.</p>
+                                <h3>Xác nhận gửi duyệt</h3>
+                                <p>Kiểm tra thông tin và gửi đơn để điều phối tiếp nhận.</p>
                             </div>
                         </div>
                     </div>
@@ -200,12 +204,12 @@
                 </div>
                 <div class="table-responsive price-table-wrap">
                     <table class="table price-table align-middle">
-                        <caption>Biểu phí mẫu. Các mức giá dưới đây áp dụng cho dịch vụ tiêu chuẩn.</caption>
+                        <caption>{{ $feeVersion ?? 'Chưa có biểu phí hiệu lực' }} · Bậc đầu dịch vụ tiêu chuẩn.</caption>
                         <thead>
                             <tr>
                                 <th scope="col">Tuyến vận chuyển</th>
-                                <th scope="col">Đến 500g</th>
-                                <th scope="col">Mỗi 500g tiếp theo</th>
+                                <th scope="col">Cước cơ bản</th>
+                                <th scope="col">Bước cân thêm</th>
                                 <th scope="col">Thời gian dự kiến</th>
                             </tr>
                         </thead>
@@ -213,17 +217,19 @@
                             @foreach ($rates as $rate)
                                 <tr>
                                     <th scope="row"><i data-lucide="route"></i> {{ $rate['label'] }}</th>
-                                    <td class="price-value">{{ number_format($rate['base'], 0, ',', '.') }}đ</td>
-                                    <td>+{{ number_format($rate['step'], 0, ',', '.') }}đ</td>
+                                    <td class="price-value">
+                                        {{ $rate['base'] !== null ? number_format($rate['base'], 0, ',', '.') . 'đ / ' . $rate['base_weight'] . 'g' : 'Chưa công bố' }}
+                                    </td>
+                                    <td>{{ $rate['step'] !== null ? '+' . number_format($rate['step'], 0, ',', '.') . 'đ / ' . $rate['step_weight'] . 'g' : 'Chưa công bố' }}
+                                    </td>
                                     <td>{{ $rate['days'] }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                <p class="small text-secondary mt-3 mb-0">Giao nhanh: cộng
-                    {{ number_format($services['express']['surcharge'], 0, ',', '.') }}đ/kiện. Khối lượng vượt bậc được làm
-                    tròn lên mỗi 500g. Chưa gồm phụ phí phát sinh.</p>
+                <p class="small text-secondary mt-3 mb-0">Chọn dịch vụ và khối lượng tại công cụ tính cước để xem mức phí
+                    theo bậc cân hiện hành.</p>
             </div>
         </section>
 
@@ -242,9 +248,8 @@
                                         data-bs-toggle="collapse" data-bs-target="#faq-one" aria-expanded="true"
                                         aria-controls="faq-one">Lưu bản nháp xong là đã gửi hàng chưa?</button></h3>
                                 <div id="faq-one" class="accordion-collapse collapse show" data-bs-parent="#faq-list">
-                                    <div class="accordion-body">Chưa. Bản nháp giúp kiểm tra thông tin, chưa phát sinh phí
-                                        hay yêu cầu lấy hàng. Đơn hiện lưu theo phiên trình duyệt và có thể mất khi phiên
-                                        hết hạn.</div>
+                                    <div class="accordion-body">Chưa. Bản nháp được lưu trong tài khoản cửa hàng. Bạn cần
+                                        kiểm tra thông tin, xác nhận gửi duyệt và chờ điều phối tiếp nhận.</div>
                                 </div>
                             </div>
                             <div class="accordion-item">
@@ -252,9 +257,9 @@
                                         data-bs-toggle="collapse" data-bs-target="#faq-two" aria-expanded="false"
                                         aria-controls="faq-two">Cước tham khảo có phải số tiền cuối cùng?</button></h3>
                                 <div id="faq-two" class="accordion-collapse collapse" data-bs-parent="#faq-list">
-                                    <div class="accordion-body">Chưa. Cước hiện tính theo biểu phí mẫu, tỉnh/thành và cân
-                                        nặng đã nhập. Cước chính thức cần xác nhận địa chỉ, kích thước, cân nặng thực tế và
-                                        các phụ phí áp dụng.</div>
+                                    <div class="accordion-body">Cước dựa trên biểu phí hiệu lực, khu vực và khối lượng đã
+                                        nhập. Khi gửi duyệt, hệ thống tính lại và lưu mức phí. Mọi thay đổi sau duyệt phải
+                                        có đề nghị và được xét duyệt.</div>
                                 </div>
                             </div>
                             <div class="accordion-item">
@@ -273,9 +278,9 @@
                                         data-bs-toggle="collapse" data-bs-target="#faq-four" aria-expanded="false"
                                         aria-controls="faq-four">Vì sao không tìm thấy đơn của tôi?</button></h3>
                                 <div id="faq-four" class="accordion-collapse collapse" data-bs-parent="#faq-list">
-                                    <div class="accordion-body">Kiểm tra lại mã và 4 số cuối điện thoại người nhận. Hiện
-                                        chỉ tra cứu được bản nháp trong cùng phiên trình duyệt; trang chưa kết nối với đơn
-                                        vận chuyển thực tế hoặc dữ liệu hãng giao hàng khác.</div>
+                                    <div class="accordion-body">Kiểm tra lại mã và 4 số cuối điện thoại người nhận. Bản
+                                        nháp chưa gửi không xuất hiện khi tra cứu công khai. Công cụ chỉ tra cứu vận đơn
+                                        được tạo trong hệ thống Gửi Việt.</div>
                                 </div>
                             </div>
                         </div>

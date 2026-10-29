@@ -4,11 +4,11 @@ import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
-    Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route,
+    Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
-const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route };
+const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X };
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -17,12 +17,12 @@ function renderQuote($target, quote) {
     $('<div>', { class: 'quote-price', text: money(quote.total) }).appendTo($target);
     $('<p>', { class: 'small mb-3', text: `${quote.service} · Dự kiến ${quote.days}` }).appendTo($target);
     const $breakdown = $('<dl>', { class: 'quote-breakdown' }).appendTo($target);
-    [ ['Cước cơ bản (đến 500g)', quote.base_fee], ['Khối lượng thêm', quote.weight_fee], ['Phụ phí dịch vụ nhanh', quote.service_fee] ].forEach(([label, value]) => {
+    [ [`Cước cơ bản (đến ${quote.base_weight_grams}g)`, quote.base_fee], ['Khối lượng thêm', quote.weight_fee] ].forEach(([label, value]) => {
         const $row = $('<div>').appendTo($breakdown);
         $('<dt>', { text: label }).appendTo($row);
         $('<dd>', { text: money(value) }).appendTo($row);
     });
-    $('<p>', { class: 'quote-disclaimer', text: 'Biểu phí mẫu, chưa gồm phụ phí phát sinh. Cước và thời gian sẽ được xác nhận khi tiếp nhận kiện.' }).appendTo($target);
+    $('<p>', { class: 'quote-disclaimer', text: `${quote.version} · Cước được tính lại và chốt khi gửi duyệt.` }).appendTo($target);
 }
 
 function clearErrors($form, names = null) {
@@ -52,15 +52,13 @@ function requestQuote($form, $button, $result, url) {
     const $fields = $form.find('[name]').filter((_, field) => ['origin', 'destination', 'weight', 'service', '_token'].includes(field.name));
     const label = $button.html();
     const $quoteFields = $form.find('[name]').filter((_, field) => ['origin', 'destination', 'weight', 'service'].includes(field.name));
-    const $saveButton = $form.is('#draft-form') ? $form.find('[type=submit]') : $();
     $button.prop('disabled', true).text('Đang tính…');
-    $saveButton.prop('disabled', true);
     const data = $fields.serialize();
     $quoteFields.prop('disabled', true);
     $.ajax({ url, method: 'POST', data, dataType: 'json', timeout: 15000 })
         .done((quote) => renderQuote($result, quote))
         .fail((xhr) => { $quoteFields.prop('disabled', false); showRequestError(xhr, $form, $result); })
-        .always(() => { $button.prop('disabled', false).html(label); $quoteFields.prop('disabled', false); $saveButton.prop('disabled', false); });
+        .always(() => { $button.prop('disabled', false).html(label); $quoteFields.prop('disabled', false); });
 }
 
 $(function () {
@@ -85,24 +83,35 @@ $(function () {
         $.ajax({ url: this.action, method: 'POST', data: $form.serialize(), dataType: 'json', timeout: 15000 })
             .done((result) => {
                 $result.empty().removeClass('d-none is-error');
-                $('<strong>', { text: result.found ? 'Bản nháp · Chưa gửi vận chuyển' : 'Chưa tìm thấy đơn hàng' }).appendTo($result);
+                $('<strong>', { text: result.status ?? 'Chưa tìm thấy đơn hàng' }).appendTo($result);
                 $('<p>', { class: 'mb-0 mt-1', text: result.message }).appendTo($result);
+                (result.events ?? []).forEach((item) => $('<p>', { class: 'small mt-2 mb-0', text: `${item.time} · ${item.status}` }).appendTo($result));
             })
             .fail((xhr) => showRequestError(xhr, $form, $result))
             .always(() => { $button.prop('disabled', false).html(label); $form.find(':input').prop('readOnly', false); });
     }).on('input', ':input', () => $('#tracking-result').empty().addClass('d-none'));
 
-    $('#draft-estimate').on('click', function () {
-        const $form = $('#draft-form');
-        requestQuote($form, $(this), $('#draft-quote'), $form.data('estimate-url'));
+    $('[data-print]').on('click', () => window.print());
+    $('form[data-confirm]').on('submit', function (event) { if (!window.confirm(this.dataset.confirm)) event.preventDefault(); });
+    let itemIndex = $('#order-item-rows .order-item-row').length;
+    $('#add-order-item').on('click', function () {
+        if ($('#order-item-rows .order-item-row').length >= 20) return;
+        const $row = $('#order-item-rows .order-item-row').first().clone();
+        $row.find('.invalid-feedback').remove();
+        $row.find('input').each((_, input) => {
+            input.name = input.name.replace(/items\[\d+\]/, `items[${itemIndex}]`);
+            input.id = input.id.replace(/\d+$/, itemIndex);
+            input.value = '';
+            input.classList.remove('is-invalid');
+        });
+        $row.find('label').each((_, label) => { label.htmlFor = label.htmlFor.replace(/\d+$/, itemIndex); });
+        itemIndex++;
+        $('#order-item-rows').append($row);
+        $row.find('input').first().trigger('focus');
     });
-    $('#draft-form').on('input change', '[name=origin], [name=destination], [name=weight], [name=service]', () => {
-        $('#draft-quote').empty().append($('<p>', { class: 'small text-secondary mb-0', text: 'Thông tin đã đổi. Bấm Tính cước để xem mức mới.' }));
-    });
-
-    document.querySelector('#delete-modal')?.addEventListener('show.bs.modal', (event) => {
-        $('#delete-form').attr('action', event.relatedTarget.dataset.deleteUrl);
-        $('#delete-code').text(event.relatedTarget.dataset.code);
+    $('#order-item-rows').on('click', '.remove-order-item', function () {
+        if ($('#order-item-rows .order-item-row').length > 1) $(this).closest('.order-item-row').remove();
+        else $(this).closest('.order-item-row').find('input').val('');
     });
 
     // Keep Bootstrap data-API modules in the Vite bundle, without exporting globals.
