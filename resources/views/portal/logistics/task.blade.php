@@ -1,6 +1,7 @@
 @extends('layouts.portal')
 @section('heading', \App\Models\DeliveryTask::TYPES[$task->type] . ' · Nhiệm vụ #' . $task->id)
-@section('actions')<a class="btn btn-outline-primary" href="{{ route('logistics.index') }}">
+@section('actions')<a class="btn btn-outline-primary"
+        href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}">
     <i data-lucide="arrow-left"></i> Nhiệm vụ</a>@endsection
 @section('content')
     <div class="order-identity">
@@ -24,6 +25,14 @@
     </div>
     @if ($task->status === 'recall_pending')
         <p class="alert alert-warning">Nhiệm vụ đang thu hồi. Bàn giao toàn bộ kiện đang giữ về kho.</p>
+    @endif
+    @if (in_array($task->type, ['delivery', 'return']) &&
+            $task->status === 'in_custody' &&
+            $policy->shipper(auth()->user(), $task))
+        @include('portal.delivery.form')
+    @endif
+    @if ($task->deliveryAttempt)
+        @include('portal.delivery.attempts', ['attempts' => collect([$task->deliveryAttempt])])
     @endif
     @if ($task->type === 'pickup' && $task->status === 'assigned' && $policy->shipper(auth()->user(), $task))
         <section class="work-section">

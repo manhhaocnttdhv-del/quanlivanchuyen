@@ -77,7 +77,7 @@ class OrderController extends Controller
     public function show(Order $order, OrderService $service)
     {
         $this->authorize('view', $order);
-        $order->load(['shop', 'area', 'warehouse', 'items', 'pickupAddress.area', 'histories.actor', 'changeRequests.creator', 'changeRequests.reviewer', 'pendingChange']);
+        $order->load(['shop', 'area', 'warehouse', 'items', 'pickupAddress.area', 'histories.actor', 'changeRequests.creator', 'changeRequests.reviewer', 'pendingChange', 'deliveryAttempts.proof', 'deliveryAttempts.shipper', 'returnRecord']);
         $quote = $order->fee_snapshot;
         $previewErrors = [];
         if (in_array($order->status, Order::EDITABLE)) {

@@ -52,7 +52,7 @@ class LogisticsController extends Controller
     public function order(Request $request, Order $order)
     {
         abort_unless($this->policy->dispatch($request->user(), $order->warehouse_id) || $this->policy->warehouse($request->user(), $order->warehouse_id), 403);
-        $order->load(['shop', 'warehouse', 'parcels.holder', 'parcels.location', 'tasks.shipper', 'discrepancies.creator', 'discrepancies.resolver', 'discrepancies.item', 'discrepancies.order']);
+        $order->load(['shop', 'warehouse', 'parcels.holder', 'parcels.location', 'tasks.shipper', 'returnRecord', 'deliveryAttempts.proof', 'deliveryAttempts.shipper', 'deliveryDecisions', 'discrepancies.creator', 'discrepancies.resolver', 'discrepancies.item', 'discrepancies.order']);
         $shippers = User::where('status', 'active')->whereHas('roles', fn ($q) => $q->where('name', 'shipper'))
             ->whereHas('warehouses', fn ($q) => $q->whereKey($order->warehouse_id))
             ->get();
@@ -66,7 +66,7 @@ class LogisticsController extends Controller
     public function show(Request $request, DeliveryTask $task)
     {
         abort_unless($this->policy->view($request->user(), $task), 403);
-        $task->load(['order.parcels.holder', 'order.parcels.location', 'order.shop', 'warehouse', 'shipper', 'pickupAttempt', 'assignments.actor', 'handovers.creator', 'handovers.confirmer']);
+        $task->load(['order.parcels.holder', 'order.parcels.location', 'order.shop', 'order.returnRecord', 'deliveryAttempt.proof', 'warehouse', 'shipper', 'pickupAttempt', 'assignments.actor', 'handovers.creator', 'handovers.confirmer']);
 
         return view('portal.logistics.task', ['task' => $task, 'order' => $task->order, 'policy' => $this->policy]);
     }

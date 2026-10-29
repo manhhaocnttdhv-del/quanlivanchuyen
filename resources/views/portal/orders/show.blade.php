@@ -157,6 +157,9 @@
             @endforeach
         </section>
     @endif
+    @if ($order->deliveryAttempts->isNotEmpty() || $order->returnRecord)
+        @include('portal.delivery.attempts', ['attempts' => $order->deliveryAttempts])
+    @endif
     <section class="work-section">
         <h2>Lịch sử vận đơn</h2>
         <ol class="order-timeline">

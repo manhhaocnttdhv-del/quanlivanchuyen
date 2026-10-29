@@ -32,7 +32,14 @@ class DispatchService
                 $this->ledger->ensure($order->status === 'approved' && $order->custody_status === 'uncollected' && ! $order->parcels()->exists(), 'Chỉ phân công lấy đơn đã duyệt, chưa nhận kiện.');
             } else {
                 $this->ledger->ensure($order->status === 'at_warehouse' && $order->parcels()->where('holder_type', 'warehouse')->count() === $order->parcel_count, 'Phải đủ kiện tại kho trước khi phân công giao/hoàn.');
-                $this->ledger->ensure($type === 'return' ? $order->return_authorized_by !== null : ($order->return_authorized_by === null && $order->delivery_attempt_count < 3), 'Hoàn cần quyết định điều phối; giao tối đa 3 lượt và chưa có quyết định hoàn.');
+                $this->ledger->ensure($type === 'return' ? $order->return_authorized_by !== null : ($order->return_authorized_by === null && $order->delivery_attempt_count < $order->delivery_attempt_limit), 'Hoàn cần quyết định điều phối; giao phải còn lượt và chưa có quyết định hoàn.');
+                if ($type === 'delivery' && $order->delivery_attempt_count > 0) {
+                    $this->ledger->ensure($order->retry_authorized_attempt === $order->delivery_attempt_count + 1, 'Cần quyết định giao lại và ý kiến shop trước nhiệm vụ mới.');
+                    // Chỉ dùng hết lượt cho phép khi có kết quả giao thực tế; thu hồi chưa giao vẫn được gán lại.
+                }
+                if ($type === 'return') {
+                    app(DeliveryDecisionService::class)->ensureReturnRecord($actor, $order);
+                }
             }
             $before = $this->ledger->snapshot($order);
             $task = $order->tasks()->create(['warehouse_id' => $order->warehouse_id, 'shipper_id' => $shipper->id, 'created_by' => $actor->id, 'type' => $type, 'reason' => $data['reason']]);
@@ -101,15 +108,6 @@ class DispatchService
 
     public function authorizeReturn(User $actor, Order $order, string $reason): void
     {
-        DB::transaction(function () use ($actor, $order, $reason) {
-            $order = $this->ledger->lock($order);
-            abort_unless($this->policy->dispatch($actor, $order->warehouse_id), 403);
-            $this->ledger->ensure($order->status === 'at_warehouse' && ! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists() && $order->custody_status === 'warehouse', 'Chỉ quyết định hoàn khi đủ kiện trong kho, không có nhiệm vụ hiệu lực.');
-            $this->ledger->ensure($order->return_authorized_by === null, 'Đơn đã có quyết định hoàn.');
-            $before = $this->ledger->snapshot($order);
-            $order->return_authorized_by = $actor->id;
-            $order->return_reason = $reason;
-            $this->ledger->record($actor, $order, 'return_authorized', $before, $reason);
-        }, 3);
+        app(DeliveryDecisionService::class)->decide($actor, $order, ['decision' => 'return', 'reason' => $reason, 'shop_instruction' => $reason]);
     }
 }

@@ -52,6 +52,8 @@ Trên máy hiện tại, mở `http://127.0.0.1:8001`, đăng nhập tại `/dan
 
 Giao diện và nguồn ảnh được ghi tại `docs/frontend-notes.md`.
 
+Sprint 04: chạy `php artisan db:seed --class=DemoDeliverySeeder` sau DemoLogisticsSeeder để có 7 tình huống giao/hoàn. Shipper dùng `/viec-cua-toi`; sổ thu tại `/so-thu-giao-hang`. Có ảnh/người nhận, chống xác nhận trùng, giao lại/hoàn và phí hoàn theo snapshot. Xem [nghiệm thu và câu hỏi bảo vệ Sprint 04](docs/sprint-04-nghiem-thu.md). Tiền ghi nhận đã thu chưa đồng nghĩa quỹ đã nhận; nộp tiền/đối soát thuộc Sprint 06.
+
 ## Tai lieu ky thuat
 
 - `docs/Ke-hoach-chi-tiet-he-thong-quan-ly-van-chuyen-COD.docx`: ke hoach nghiep vu, database, phan quyen, test va tieu chi nghiem thu.

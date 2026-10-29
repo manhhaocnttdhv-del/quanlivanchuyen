@@ -8,7 +8,7 @@ class DeliveryTask extends Model
 {
     public const TYPES = ['pickup' => 'Lấy hàng', 'delivery' => 'Giao hàng', 'return' => 'Hoàn hàng'];
 
-    public const STATUSES = ['assigned' => 'Chờ nhận kiện', 'in_custody' => 'Đang giữ kiện', 'recall_pending' => 'Chờ trả về kho', 'completed' => 'Đã bàn giao về kho', 'cancelled' => 'Đã thu hồi', 'failed' => 'Không nhận được hàng'];
+    public const STATUSES = ['assigned' => 'Chờ nhận kiện', 'in_custody' => 'Đang giữ kiện', 'recall_pending' => 'Chờ trả về kho', 'completed' => 'Đã hoàn tất bàn giao', 'cancelled' => 'Đã thu hồi', 'failed' => 'Không nhận được hàng'];
 
     public const ACTIVE = ['assigned', 'in_custody', 'recall_pending'];
 
@@ -41,6 +41,11 @@ class DeliveryTask extends Model
     public function pickupAttempt()
     {
         return $this->hasOne(PickupAttempt::class);
+    }
+
+    public function deliveryAttempt()
+    {
+        return $this->hasOne(DeliveryAttempt::class);
     }
 
     public function handovers()

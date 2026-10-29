@@ -32,6 +32,7 @@
                             <th>Phí cơ bản đ</th>
                             <th>Phí mỗi bước đ</th>
                             <th>COD tối đa đ</th>
+                            <th>Phí hoàn đ</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -53,7 +54,7 @@
                                                 {{ $option['label'] }}</option>
                                         @endforeach
                                     </select></td>
-                                @foreach (['min_weight_grams', 'max_weight_grams', 'base_weight_grams', 'step_weight_grams', 'base_fee', 'step_fee', 'max_cod'] as $field)
+                                @foreach (['min_weight_grams', 'max_weight_grams', 'base_weight_grams', 'step_weight_grams', 'base_fee', 'step_fee', 'max_cod', 'return_fee'] as $field)
                                     <td><input class="form-control" type="number"
                                             name="rules[{{ $i }}][{{ $field }}]"
                                             value="{{ (int) ($rule[$field] ?? 0) }}"

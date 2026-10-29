@@ -14,7 +14,10 @@
         <dt>Giao hàng</dt>
         <dd>{{ $order->recipient_snapshot['address'] ?? '' }} · {{ $order->recipient_snapshot['area'] ?? '' }}</dd>
         <dt>Đã giao thử</dt>
-        <dd>{{ $order->delivery_attempt_count }} / 3 lượt</dd>
+        <dd>{{ $order->delivery_attempt_count }} / {{ $order->delivery_attempt_limit }} lượt @if ($order->retry_authorized_attempt)
+                · Đã cho phép lượt {{ $order->retry_authorized_attempt }}
+            @endif
+        </dd>
     </dl>
     @if ($policy->dispatch(auth()->user(), $order->warehouse_id))
         @if (
@@ -37,20 +40,39 @@
             </section>
             @if ($order->status === 'at_warehouse' && !$order->return_authorized_by)
                 <section class="work-section">
-                    <details>
-                        <summary>Quyết định hoàn hàng</summary>
-                        <form method="post" action="{{ route('logistics.return', $order) }}" class="narrow-form mt-3"
-                            data-confirm="Xác nhận chuyển đơn sang phương án hoàn?">@csrf<x-field name="reason"
-                                id="return-reason" label="Căn cứ / ý kiến shop" minlength="5" maxlength="1000"
-                                required /><button class="btn btn-outline-danger mt-3"><i data-lucide="rotate-ccw"></i> Lưu
-                                quyết định hoàn</button></form>
-                    </details>
+                    <h2>Phương án giao lại / hoàn</h2>
+                    <form method="post" action="{{ route('delivery.decide', $order) }}" class="narrow-form mt-3"
+                        data-confirm="Lưu phương án xử lý theo ý kiến shop?">
+                        @csrf<input type="hidden" name="revision" value="{{ $order->revision }}">
+                        <div class="row g-3">
+                            <div class="col-sm-6"><x-field name="decision" label="Phương án" :options="\App\Models\DeliveryDecision::TYPES" required />
+                            </div>
+                            <div class="col-sm-6"><x-field name="fee_payment" label="Cách thu phí nếu hoàn"
+                                    :options="\App\Models\ReturnRecord::PAYMENTS" required /></div>
+                            <div class="col-12"><x-field name="shop_instruction" label="Ý kiến / yêu cầu của shop"
+                                    type="textarea" rows="2" minlength="5" maxlength="1000" required /></div>
+                            <div class="col-12"><x-field name="reason" id="decision-reason" label="Căn cứ quyết định"
+                                    type="textarea" rows="2" minlength="5" maxlength="1000" required /></div>
+                        </div>
+                        <button class="btn btn-outline-primary mt-3"><i data-lucide="save"></i> Lưu phương án</button>
+                    </form>
                 </section>
             @endif
         @endif
     @endif
     @if ($order->return_reason)
         <p class="alert alert-warning">Quyết định hoàn: {{ $order->return_reason }}</p>
+    @endif
+    @include('portal.delivery.attempts', ['attempts' => $order->deliveryAttempts])
+    @if ($order->deliveryDecisions->isNotEmpty())
+        <section class="work-section">
+            <h2>Lịch sử phương án</h2>
+            @foreach ($order->deliveryDecisions as $decision)
+                <p class="small mt-3"><strong>{{ \App\Models\DeliveryDecision::TYPES[$decision->decision] }}</strong> ·
+                    {{ $decision->created_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }}<br>Shop:
+                    {{ $decision->shop_instruction }}<br>Căn cứ: {{ $decision->reason }}</p>
+            @endforeach
+        </section>
     @endif
     <section class="work-section">
         <h2>Kiện và người giữ</h2>@include('portal.logistics.parcels')
