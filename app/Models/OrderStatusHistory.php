@@ -11,7 +11,11 @@ class OrderStatusHistory extends Model
 
     public $timestamps = false;
 
+    public const LOGISTICS_EVENTS = ['task_assigned' => 'Phân công nhiệm vụ', 'pickup_confirmed' => 'Xác nhận lấy hàng', 'pickup_failed' => 'Lấy hàng thất bại', 'task_recalled' => 'Thu hồi nhiệm vụ', 'return_authorized' => 'Quyết định hoàn', 'handover_prepared' => 'Lập phiếu bàn giao', 'handover_confirmed' => 'Xác nhận bàn giao', 'hold_released' => 'Xử lý sai lệch / bỏ giữ', 'stocktake_difference' => 'Sai lệch kiểm kê'];
+
     protected $guarded = ['id'];
+
+    public const WAREHOUSE_EVENTS = ['weight_review_requested' => 'Đề nghị tính cước theo cân thực tế'];
 
     protected $casts = ['before_values' => 'array', 'after_values' => 'array', 'created_at' => 'datetime'];
 

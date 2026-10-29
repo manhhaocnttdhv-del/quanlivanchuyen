@@ -25,7 +25,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
         Gate::define('any-shop-review', fn (User $user) => $user->hasPermission('shops.review') || $user->hasPermission('banks.verify'));
 
-        foreach (['users.manage', 'catalog.manage', 'shops.review', 'banks.verify', 'orders.review', 'audit.view'] as $permission) {
+        foreach (['users.manage', 'catalog.manage', 'shops.review', 'banks.verify', 'orders.review', 'audit.view', 'logistics.dispatch', 'logistics.warehouse', 'logistics.approve'] as $permission) {
             Gate::define($permission, fn (User $user) => $user->hasPermission($permission));
         }
     }

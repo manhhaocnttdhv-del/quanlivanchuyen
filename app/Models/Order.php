@@ -48,6 +48,21 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function tasks()
+    {
+        return $this->hasMany(DeliveryTask::class);
+    }
+
+    public function parcels()
+    {
+        return $this->hasMany(WarehouseItem::class)->orderBy('parcel_number');
+    }
+
+    public function discrepancies()
+    {
+        return $this->hasMany(Discrepancy::class);
+    }
+
     public function histories()
     {
         return $this->hasMany(OrderStatusHistory::class)->orderByDesc('id');
