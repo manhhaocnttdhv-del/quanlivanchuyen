@@ -14,6 +14,7 @@
     </div>
 @endsection
 @section('content')
+    @include('portal.cases.order-links')
     <div class="order-identity">
         <div><span class="order-code">{{ $order->tracking_code }}</span>
             <p>{{ $order->created_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }} ·

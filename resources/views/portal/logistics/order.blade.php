@@ -3,6 +3,7 @@
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('logistics.index') }}">
     <i data-lucide="arrow-left"></i> Điều phối</a>@endsection
 @section('content')
+    @include('portal.cases.order-links')
     <div class="order-identity">
         <div><strong class="order-code logistics-code">{{ $order->tracking_code }}</strong>
             <p>{{ $order->shop->name }} · {{ $order->warehouse->name }} · {{ $order->parcel_count }} kiện</p>

@@ -36,6 +36,7 @@ class DeliveryDecisionService
                 $order->retry_authorized_attempt = null;
                 $this->ensureReturnRecord($actor, $order, $data['fee_payment'] ?? 'reconciliation');
             } else {
+                $this->ledger->ensureNoIncidentDispatchHold($order);
                 $last = $order->deliveryAttempts()->where('type', 'delivery')->latest('attempt_number')->first();
                 $this->ledger->ensure($last && $last->outcome === 'failed' && $order->retry_authorized_attempt === null, 'Chỉ quyết định giao lại sau lần giao thất bại chưa được xử lý.');
                 if ($decision === 'retry_exception') {

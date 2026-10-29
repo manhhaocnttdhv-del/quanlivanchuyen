@@ -48,6 +48,7 @@ class DeliveryService
                 $this->ledger->ensure($items->count() === $order->parcel_count && $items->every(fn ($item) => $item->holder_type === 'shipper' && $item->holder_user_id === $actor->id), 'Shipper phải đang giữ toàn bộ kiện của vận đơn.');
                 $success = $data['outcome'] === 'success';
                 if ($success) {
+                    $this->ledger->ensureNoIncidentDispatchHold($order);
                     $this->ledger->ensure(! $order->discrepancies()->where('status', 'open')->where('blocks_dispatch', true)->exists(), 'Đơn đang giữ vì sai lệch, chưa được giao/hoàn thành công.');
                 }
                 $return = $task->type === 'return' ? $order->returnRecord()->lockForUpdate()->first() : null;

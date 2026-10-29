@@ -83,6 +83,21 @@ class Order extends Model
         return $this->hasMany(Discrepancy::class);
     }
 
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class);
+    }
+
+    public function complaints()
+    {
+        return $this->hasMany(Complaint::class);
+    }
+
+    public function reconciliationBlocked(): bool
+    {
+        return $this->financial_hold || $this->incidents()->where('blocks_reconciliation', true)->exists();
+    }
+
     public function histories()
     {
         return $this->hasMany(OrderStatusHistory::class)->orderByDesc('id');

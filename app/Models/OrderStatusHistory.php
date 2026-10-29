@@ -15,7 +15,7 @@ class OrderStatusHistory extends Model
 
     protected $guarded = ['id'];
 
-    public const WAREHOUSE_EVENTS = ['weight_review_requested' => 'Đề nghị tính cước theo cân thực tế', 'delivery_succeeded' => 'Giao hàng thành công', 'delivery_failed' => 'Giao hàng thất bại', 'return_succeeded' => 'Hoàn hàng thành công', 'return_failed' => 'Hoàn hàng thất bại', 'retry_authorized' => 'Cho phép giao lại'];
+    public const WAREHOUSE_EVENTS = ['weight_review_requested' => 'Đề nghị tính cước theo cân thực tế', 'delivery_succeeded' => 'Giao hàng thành công', 'delivery_failed' => 'Giao hàng thất bại', 'return_succeeded' => 'Hoàn hàng thành công', 'return_failed' => 'Hoàn hàng thất bại', 'retry_authorized' => 'Cho phép giao lại', 'incident_opened' => 'Ghi nhận sự cố', 'incident_updated' => 'Cập nhật xử lý sự cố'];
 
     protected $casts = ['before_values' => 'array', 'after_values' => 'array', 'created_at' => 'datetime'];
 

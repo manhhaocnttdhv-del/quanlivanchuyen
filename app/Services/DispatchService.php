@@ -21,6 +21,7 @@ class DispatchService
             abort_unless($this->policy->dispatch($actor, $order->warehouse_id), 403);
             $this->ledger->ensure($order->revision === (int) $data['revision'], 'Đơn đã thay đổi. Tải lại trước khi phân công.', 'revision');
             $this->ledger->ensure(! $order->pendingChange()->exists(), 'Đang có đề nghị thay đổi; xử lý đề nghị trước.');
+            $this->ledger->ensureNoIncidentDispatchHold($order);
             $this->ledger->ensure(! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists(), 'Đơn đã có nhiệm vụ đang hiệu lực.');
             $this->ledger->ensure(! $order->discrepancies()->where('status', 'open')->where('blocks_dispatch', true)->exists(), 'Đơn đang giữ do sai lệch; cần người có quyền xử lý.');
             $this->ledger->ensure(Warehouse::whereKey($order->warehouse_id)->where('is_active', true)->exists(), 'Kho đang ngừng hoạt động.');
@@ -64,6 +65,7 @@ class DispatchService
             $successful = (bool) $data['successful'];
             $task->pickupAttempt()->create(['created_by' => $actor->id, 'successful' => $successful, 'condition' => $data['condition'], 'evidence_path' => $evidence, 'reason' => $data['reason']]);
             if ($successful) {
+                $this->ledger->ensureNoIncidentDispatchHold($order);
                 for ($number = 1; $number <= $order->parcel_count; $number++) {
                     $item = $order->parcels()->create(['parcel_number' => $number, 'holder_type' => 'shipper', 'holder_user_id' => $actor->id, 'warehouse_id' => $order->warehouse_id, 'condition' => $data['condition']]);
                     if ($data['condition'] === 'damaged') {

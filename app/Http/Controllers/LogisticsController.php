@@ -41,6 +41,7 @@ class LogisticsController extends Controller
         $waiting = Order::with('shop')->whereIn('warehouse_id', $this->warehouseIds($user))->whereIn('status', ['approved', 'at_warehouse'])
             ->whereDoesntHave('tasks', fn ($q) => $q->whereIn('status', DeliveryTask::ACTIVE))->whereDoesntHave('pendingChange')
             ->whereDoesntHave('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
+            ->whereDoesntHave('incidents', fn ($q) => $q->where('blocks_dispatch', true))
             ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('warehouse_id', $id))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where('tracking_code', 'like', $v.'%'));
 
