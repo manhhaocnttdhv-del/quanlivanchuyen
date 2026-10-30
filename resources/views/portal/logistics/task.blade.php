@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Form lấy/giao/hoàn hoặc bàn giao phụ thuộc loại việc và người đang giữ; Policy kiểm lại ở server. --}}
 @section('heading', \App\Models\DeliveryTask::TYPES[$task->type] . ' · Nhiệm vụ #' . $task->id)
 @section('actions')<a class="btn btn-outline-primary"
         href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}">

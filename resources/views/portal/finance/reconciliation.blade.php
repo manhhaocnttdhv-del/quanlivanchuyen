@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Nguồn và ngân hàng là snapshot; Policy tách người lập/duyệt, chỉ thanh toán succeeded mới giảm phải trả. --}}
 @section('heading', 'Chi tiết đối soát shop')
 @section('content')
     @include('portal.finance.nav', ['section' => 'reconciliations'])
@@ -40,6 +41,7 @@
             </details>
         @endif
     @endif
+    {{-- Ledger chỉ cộng phân bổ thanh toán thành công; giao dịch failed không giảm nghĩa vụ trả shop. --}}
     @php($paid = $ledger->paid($document->id))
     <section class="work-section"><h2>Thanh toán shop</h2>
         <dl class="delivery-totals"><div><dt>Đã thanh toán thành công</dt><dd>{{ number_format($paid, 0, ',', '.') }}đ</dd></div><div><dt>Còn phải trả</dt><dd>{{ number_format((int) $document->payable_amount - $paid, 0, ',', '.') }}đ</dd></div></dl>

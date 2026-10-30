@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Hiển thị phiếu thu và các nghĩa vụ đã phân bổ, giữ chứng từ/bằng chứng/lịch sử để đối chiếu. --}}
 @section('heading', 'Chi tiết phiếu thu phí')
 @section('content')
     @include('portal.finance.nav', ['section' => 'receipts'])

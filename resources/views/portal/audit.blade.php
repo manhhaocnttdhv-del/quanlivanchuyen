@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Bộ lọc được validate cho admin; danh sách phân trang, không tải toàn bộ JSON audit vào bảng. --}}
 @section('heading', 'Nhật ký thay đổi')
 @section('content')
     <form class="audit-filters" method="get">

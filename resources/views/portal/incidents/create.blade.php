@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Các tham chiếu kiện/task/khoản thu thuộc đơn đã chọn; hai khóa giao và đối soát là độc lập. --}}
 @section('heading', 'Mở hồ sơ sự cố')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('incidents.index') }}"><i
         data-lucide="arrow-left"></i> Sự cố</a>@endsection

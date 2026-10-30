@@ -1,3 +1,4 @@
+{{-- Đơn đã gửi ưu tiên snapshot người gửi/nhận; thay danh mục sau này không làm thay địa chỉ chứng từ cũ. --}}
 @php
     $sender = $order->sender_snapshot ?? [
         'name' => $order->pickupAddress?->contact_name,

@@ -7,6 +7,7 @@ use App\Http\Requests\ProfileRequest;
 use App\Services\IdentityService;
 use Illuminate\Http\Request;
 
+/** Hồ sơ cá nhân luôn lấy user từ phiên; request không được chỉ định user_id để sửa người khác. */
 class ProfileController extends Controller
 {
     public function edit(Request $request)
@@ -23,6 +24,7 @@ class ProfileController extends Controller
 
     public function password(PasswordRequest $request, IdentityService $service)
     {
+        // Request kiểm mật khẩu cũ; Service tăng auth_version, giữ phiên này và vô hiệu phiên khác.
         $service->changePassword($request->user(), $request->validated('password'));
         $request->session()->regenerate();
 

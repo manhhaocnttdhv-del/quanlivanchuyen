@@ -11,6 +11,7 @@ use App\Services\AuditSubject;
 use App\Support\AuditData;
 use Illuminate\Http\Request;
 
+/** Tra cứu nhật ký toàn hệ thống; AuditFilterRequest/Policy giới hạn quyền admin. */
 class AuditController extends Controller
 {
     public function index(AuditFilterRequest $request, AuditSearch $search)
@@ -24,6 +25,8 @@ class AuditController extends Controller
     public function show(Request $request, AuditLog $log, AuditSubject $subjects, AuditService $audit)
     {
         $this->authorize('view', $log);
+
+        // Log cũ cũng được lọc lại trước hiển thị; link hồ sơ phải qua quyền hiện tại.
 
         return view('portal.audit-show', [
             'log' => $log->load('actor'), 'sourceUrl' => $subjects->url($request->user(), $log),

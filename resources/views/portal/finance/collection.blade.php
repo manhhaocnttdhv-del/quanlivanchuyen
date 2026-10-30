@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Đối chiếu khoản thu gốc với điều chỉnh, nộp quỹ và đối soát; các phần là chứng từ riêng, không sửa gốc. --}}
 @section('heading', 'Chi tiết khoản thu')
 @section('content')
     @include('portal.finance.nav', ['section' => 'collections'])

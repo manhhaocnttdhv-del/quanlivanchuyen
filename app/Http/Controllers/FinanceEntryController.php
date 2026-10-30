@@ -14,6 +14,7 @@ use App\Services\FeeReceiptService;
 use App\Services\FinanceQueries;
 use Illuminate\Http\Request;
 
+/** Phiếu thu phí và điều chỉnh có căn cứ; các Service giữ quy tắc tiền, chứng từ và người duyệt. */
 class FinanceEntryController extends Controller
 {
     public function receiptForm(FinanceFilterRequest $request, FinanceQueries $queries, FinancePolicy $policy)
@@ -24,6 +25,7 @@ class FinanceEntryController extends Controller
         $shops = $queries->shops($request->user());
         $filters += ['warehouse_id' => $warehouses->keys()->first(), 'shop_id' => $shops->keys()->first()];
         abort_unless($policy->staff($request->user(), (int) $filters['warehouse_id']), 403);
+        // Trừ cả phần đã thu và đang giữ đối soát để không chọn cùng nghĩa vụ hai lần.
         $fees = $queries->fees($request->user(), $filters)
             ->havingRaw('amount + COALESCE(correction_amount, 0) - COALESCE(received_amount, 0) - COALESCE(reserved_amount, 0) > 0')->oldest('id')->paginate(100)->withQueryString();
 
@@ -55,6 +57,7 @@ class FinanceEntryController extends Controller
             $order->load('collections');
         }
         $incidents = $order ? Incident::where('order_id', $order->id)->where('financial_status', 'pending_finance')->where('status', 'closed')->with('approvedAction')->get() : collect();
+        // Đề xuất dựa trên cùng vận đơn; Service kiểm tra lại căn cứ và khóa khi ghi thật.
         $originals = $order ? Adjustment::where('order_id', $order->id)->where('status', 'approved')->where('kind', '!=', 'reversal')->whereDoesntHave('reversal')->get() : collect();
         $fees = $order ? $order->getConnection()->table('receivables')->where('order_id', $order->id)->get() : collect();
 

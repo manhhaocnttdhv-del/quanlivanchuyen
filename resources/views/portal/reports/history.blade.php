@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Lịch sử tệp của người yêu cầu; tệp hết hạn giữ bản ghi lịch sử và không còn quyền tải. --}}
 @section('heading', 'Tệp báo cáo đã xuất')
 @section('actions')
     <a class="btn btn-outline-primary" href="{{ route('reports.home') }}"><i data-lucide="arrow-left"></i> Báo cáo</a>

@@ -1,4 +1,5 @@
 @extends('layouts.customer')
+{{-- Tra cứu/cước hỗ trợ AJAX và form thường; chỉ trình bày kết quả rút gọn từ Service công khai. --}}
 @section('title', 'Gửi Việt | Giao hàng COD')
 
 @section('content')

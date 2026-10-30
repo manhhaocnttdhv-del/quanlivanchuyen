@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Nút theo Policy và trạng thái chỉ hỗ trợ UI; Service vẫn kiểm tra khóa/revision trước mỗi thay đổi. --}}
 @section('heading', 'Chi tiết vận đơn')
 @section('actions')
     <div class="d-flex gap-2 flex-wrap">
@@ -114,6 +115,7 @@
             </form>
         </section>
     @endif @endcan
+    {{-- Đề nghị sửa/hủy có lịch sử riêng; approved mới được áp vào dữ liệu gốc tại Service. --}}
     @if ($order->changeRequests->isNotEmpty())
         <section class="work-section">
             <h2>Đề nghị thay đổi</h2>

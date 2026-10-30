@@ -1,3 +1,4 @@
+{{-- Người giữ thực tế và custody_version của từng kiện là căn cứ bàn giao, khác người được phân công task. --}}
 <div class="table-responsive">
     <table class="table align-middle">
         <thead>

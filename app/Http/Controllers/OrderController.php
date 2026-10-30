@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 
+/** HTTP cho vận đơn; OrderService giữ quy tắc giá, chuyển trạng thái, khóa revision và lịch sử. */
 class OrderController extends Controller
 {
     public function index(OrderFilterRequest $request)
@@ -25,6 +26,7 @@ class OrderController extends Controller
         $orders = $query->with(['shop', 'area', 'warehouse', 'shipper', 'pendingChange'])->latest('id')->paginate(15)->withQueryString();
         $visible = Order::visibleTo($request->user());
 
+        // Danh mục lọc và số theo trạng thái cùng scope; tổng tab không chỉ tính trang hiện tại.
         return view('portal.orders.index', [
             'orders' => $orders, 'statuses' => Order::STATUSES,
             'areas' => Area::orderBy('name')->pluck('name', 'id'),
@@ -80,6 +82,7 @@ class OrderController extends Controller
         $order->load(['shop', 'area', 'warehouse', 'items', 'pickupAddress.area', 'histories.actor', 'changeRequests.creator', 'changeRequests.reviewer', 'pendingChange', 'deliveryAttempts.proof', 'deliveryAttempts.shipper', 'returnRecord']);
         $quote = $order->fee_snapshot;
         $previewErrors = [];
+        // Nháp chỉ tính thử; đơn đã gửi giữ fee_snapshot, không lấy biểu phí mới để sửa lịch sử.
         if (in_array($order->status, Order::EDITABLE)) {
             try {
                 $quote = $service->preview($order);
@@ -114,6 +117,7 @@ class OrderController extends Controller
 
     public function change(OrderRequest $request, Order $order, OrderService $service)
     {
+        // Đơn đã duyệt cần đề nghị riêng; không ghi đè dữ liệu trước khi người khác xét duyệt.
         $service->requestChange($request->user(), $order, $request->integer('revision'), 'edit', $request->validated(), $request->validated('reason'));
 
         return redirect()->route('orders.show', $order)->with('status', 'Đã gửi đề nghị chỉnh sửa, chờ điều phối xét duyệt.');
@@ -138,6 +142,7 @@ class OrderController extends Controller
         $this->authorize('print', $order);
         $order->load(['items', 'pendingChange']);
         abort_if($order->pendingChange, 422, 'Đang có đề nghị thay đổi, chưa thể in tem.');
+        // SVG chỉ do thư viện dựng từ mã vận đơn do server cấp, không lấy HTML từ request.
         $barcode = (new BarcodeGeneratorSVG)->getBarcode($order->tracking_code, BarcodeGeneratorSVG::TYPE_CODE_128, 1.3, 55);
 
         return response()->view('portal.orders.label', compact('order', 'barcode'))->header('Cache-Control', 'private, no-store');
@@ -145,6 +150,7 @@ class OrderController extends Controller
 
     public function manifest(OrderFilterRequest $request)
     {
+        // Lấy 101 để phát hiện vượt ngưỡng 100; không âm thầm in thiếu dòng hoặc đơn đang đổi.
         $orders = $this->filtered($request)->whereNotIn('status', ['draft', 'cancelled', 'rejected', 'needs_info'])->whereDoesntHave('pendingChange')
             ->with('shop')->orderBy('id')->limit(101)->get();
         if ($orders->count() > 100) {

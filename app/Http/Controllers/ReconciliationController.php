@@ -13,6 +13,7 @@ use App\Services\PaymentService;
 use App\Services\ReconciliationService;
 use Illuminate\Http\Request;
 
+/** Lập/duyệt đối soát và ghi kết quả trả shop; Service giữ nguồn, ngân hàng và lịch sử bất biến. */
 class ReconciliationController extends Controller
 {
     public function create(FinanceFilterRequest $request, FinanceQueries $queries, FinancePolicy $policy)
@@ -45,6 +46,7 @@ class ReconciliationController extends Controller
 
     public function edit(FinanceFilterRequest $request, Reconciliation $reconciliation, FinancePolicy $policy, FinanceQueries $queries)
     {
+        // Chứng từ đã từng duyệt chỉ được duyệt lại ngân hàng; không thay các dòng nghĩa vụ gốc.
         abort_unless($policy->staff($request->user(), $reconciliation->warehouse_id), 403);
         abort_unless(in_array($reconciliation->status, ['draft', 'returned']) && ! $reconciliation->approved_at, 422);
         $filters = ['warehouse_id' => $reconciliation->warehouse_id, 'shop_id' => $reconciliation->shop_id, 'from' => $reconciliation->period_start->format('Y-m-d'), 'until' => $reconciliation->period_end->format('Y-m-d')];
@@ -70,6 +72,8 @@ class ReconciliationController extends Controller
 
     private function sources(Request $request, FinanceQueries $queries, array $filters, ?int $except = null): array
     {
+        // COD chỉ khả dụng khi đã về quỹ, không bị khóa và chưa giữ ở đối soát khác.
+        // except trả phần nguồn của bản đang sửa vào lựa chọn; Service vẫn khóa và tính lại lúc lưu.
         $eligible = fn ($q) => $q->where('financial_hold', false)->whereDoesntHave('incidents', fn ($q) => $q->where('blocks_reconciliation', true));
         $cod = $queries->collections($request->user(), $filters + ['type' => 'cod'], $except)->whereHas('order', $eligible)
             ->havingRaw('LEAST(amount + COALESCE(correction_amount, 0), COALESCE(deposited_amount, 0)) - COALESCE(reserved_amount, 0) > 0')->oldest('id')->limit(100)->get();

@@ -1,3 +1,4 @@
+{{-- Hoàn không thu COD; phí thu tại chỗ lấy snapshot/cách thu, token giữ lại khi form lỗi để chống ghi nhận hai lần. --}}
 @php
     $isReturn = $task->type === 'return';
     $return = $order->returnRecord;

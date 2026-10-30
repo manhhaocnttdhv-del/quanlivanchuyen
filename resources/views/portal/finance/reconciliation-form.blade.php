@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Bản mới có token; thay dòng bản nháp có revision; nguồn khả dụng loại phần đang giữ ở đối soát khác. --}}
 @section('heading', $document ? 'Cập nhật đối soát nháp' : 'Lập đối soát shop')
 @section('content')
     @include('portal.finance.nav', ['section' => 'reconciliations'])
@@ -25,6 +26,7 @@
             <section class="work-section"><h2>{{ $set['label'] }}</h2>
                 <div class="table-responsive"><table class="table align-middle finance-table"><thead><tr><th>Vận đơn / nguồn</th><th class="text-end">Khả dụng</th><th class="text-end">Đối soát (đ)</th></tr></thead><tbody>
                     @forelse ($set['sources'] as $source)
+                        {{-- lines của document đã lọc phiên bản hiện hành, tránh lấy lại số của phiên bản thay thế. --}}
                         @php($selected = $document?->lines->firstWhere($group === 'cod' ? 'delivery_collection_id' : 'receivable_id', $source->id))
                         <tr><td><span class="order-code">{{ $source->order->tracking_code }}</span><small class="d-block">#{{ $source->id }} · {{ $group === 'cod' ? 'COD thu hộ' : \App\Models\Receivable::TYPES[$source->type] }}</small></td>
                             <td class="text-end" data-label="Khả dụng">{{ number_format($queries->available($source), 0, ',', '.') }}đ</td><td data-label="Đối soát (đ)"><x-finance-amount :group="$group" :source="$source->id" :label="'Đối soát '.$group.' #'.$source->id" :value="(int) ($selected?->amount ?? 0)" :max="$queries->available($source)" /></td></tr>

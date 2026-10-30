@@ -1,3 +1,4 @@
+{{-- In từng kiện từ snapshot đã chốt; barcode là SVG do thư viện tạo từ mã server, không render HTML người nhập. --}}
 <!doctype html>
 <html lang="vi">
 

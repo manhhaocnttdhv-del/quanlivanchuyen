@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Controller chỉ cấp thống kê đúng quyền; chỉ tiêu tồn hiện tại khác với số tạo/giao trong kỳ. --}}
 @section('heading', 'Tổng quan')
 @section('content')
     @if ($reportStats)

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\IdentityService;
 
+/** Quản trị nhân sự sau middleware users.manage; IdentityService bảo vệ admin cuối và thu hồi phiên cũ. */
 class InternalUserController extends Controller
 {
     public function index(PortalFilterRequest $request)
@@ -35,6 +36,7 @@ class InternalUserController extends Controller
 
     private function form(?User $user = null)
     {
+        // Tài khoản shop đăng ký bằng luồng riêng, không gán vai trò shop từ form nhân sự.
         return view('portal.users.form', ['record' => $user, 'roles' => Role::where('name', '!=', 'shop')->get(), 'warehouses' => Warehouse::where('is_active', true)->get()]);
     }
 

@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Công nợ phí có thể từ vận đơn hoặc nợ sau đối soát; xem riêng gốc, đã thu, điều chỉnh và phần giữ chỗ. --}}
 @section('heading', 'Chi tiết công nợ phí')
 @section('content')
     @include('portal.finance.nav', ['section' => 'fees'])

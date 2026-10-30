@@ -1,3 +1,4 @@
+{{-- Chỉ tạo link route private theo ID; Controller kiểm quyền hồ sơ và tính nội bộ trước khi trả tệp. --}}
 @if ($attachments->isNotEmpty())
     <ul class="case-files">
         @foreach ($attachments as $attachment)

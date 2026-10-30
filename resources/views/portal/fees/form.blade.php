@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chỉ bản nháp được soạn; rule lưu theo tuyến/dịch vụ/bậc cân, Service kiểm tra chồng lấn trước công bố. --}}
 @section('heading', $version ? 'Biểu phí: ' . $version->name : 'Tạo phiên bản biểu phí')
 @section('content')
     @php($published = $version && $version->status === 'published')

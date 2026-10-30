@@ -11,6 +11,7 @@ use App\Policies\ReportPolicy;
 use App\Services\OperationalReport;
 use Illuminate\Http\Request;
 
+/** Dashboard chỉ tổng hợp trong phạm vi quyền; các chỉ tiêu mở đúng bộ lọc báo cáo tương ứng. */
 class DashboardController extends Controller
 {
     public function index(Request $request, ReportPolicy $reportPolicy, OperationalReport $reports)
@@ -18,6 +19,7 @@ class DashboardController extends Controller
         $visibleOrders = Order::visibleTo($request->user());
         $reportStats = [];
         if ($reportPolicy->view($request->user(), 'operations')) {
+            // Tạo/giao dùng kỳ 7 ngày; tồn và quá hạn là trạng thái hiện tại theo OperationalReport.
             $filters = ['from' => now('Asia/Ho_Chi_Minh')->subDays(6)->toDateString(), 'until' => now('Asia/Ho_Chi_Minh')->toDateString(), 'group_by' => 'warehouse', 'metric' => 'created'];
             foreach (['created', 'delivered', 'inventory', 'overdue'] as $metric) {
                 $reportStats[] = ['label' => OperationalReport::METRICS[$metric], 'value' => $reports->query($request->user(), $filters, $metric)->count(),

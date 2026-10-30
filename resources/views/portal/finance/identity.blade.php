@@ -1,3 +1,4 @@
+{{-- Nhận document từ view cha để thống nhất mã, trạng thái, người lập và lý do trên mọi loại chứng từ. --}}
 <div class="case-identity">
     <strong class="logistics-code">{{ $document->code }}</strong>
     <span class="status-badge state-{{ $document->status }}">{{ $document::STATUSES[$document->status] }}</span>

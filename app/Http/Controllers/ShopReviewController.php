@@ -9,6 +9,7 @@ use App\Models\Shop;
 use App\Models\ShopBankAccount;
 use App\Services\ShopService;
 
+/** Nhân viên xét hồ sơ shop/xác minh ngân hàng; hai quyền độc lập và kiểm bằng Policy từng bản ghi. */
 class ShopReviewController extends Controller
 {
     public function index(PortalFilterRequest $request)
@@ -38,6 +39,7 @@ class ShopReviewController extends Controller
 
     public function verify(ReasonRequest $request, ShopBankAccount $bank, ShopService $service)
     {
+        // Chỉ phiên bản ngân hàng hiện hành được xác minh; lịch sử phiên bản cũ vẫn được giữ.
         $this->authorize('verify', $bank);
         $service->verifyBank($request->user(), $bank, $request->validated('reason'));
 

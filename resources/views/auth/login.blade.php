@@ -1,4 +1,5 @@
 @extends('layouts.customer')
+{{-- Form nhận email hoặc điện thoại; lỗi xác thực chung và giới hạn thử được xử lý tại server. --}}
 @section('title', 'Đăng nhập | Gửi Việt')
 @section('content')
     <main class="auth-band">

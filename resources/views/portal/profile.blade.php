@@ -1,7 +1,8 @@
 @extends('layouts.portal')
+{{-- Hai form riêng cho hồ sơ và mật khẩu; server luôn sửa user hiện tại, không nhận user_id từ form. --}}
 @section('heading', 'Hồ sơ cá nhân')
 @section('content')
-    <div class="row g-5">
+    <div class="row g-4 g-lg-5">
         <section class="col-lg-6">
             <h2 class="h5 mb-4">Thông tin liên hệ</h2>
             <form method="post" action="{{ route('profile.update') }}">@csrf @method('PUT')

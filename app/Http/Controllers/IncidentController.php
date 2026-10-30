@@ -12,6 +12,7 @@ use App\Policies\IncidentPolicy;
 use App\Services\IncidentService;
 use Illuminate\Http\Request;
 
+/** Hồ sơ sự cố nội bộ; Service quản lý khóa giao/đối soát, bằng chứng và phê duyệt kết luận. */
 class IncidentController extends Controller
 {
     public function __construct(private IncidentPolicy $policy) {}
@@ -40,6 +41,7 @@ class IncidentController extends Controller
             $query->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id'));
         }
         if (! $user->hasPermission('incidents.manage')) {
+            // Shipper chỉ chọn được đơn đang có nhiệm vụ của mình, không duyệt mọi đơn trong kho.
             $query->whereHas('tasks', fn ($q) => $q->where('shipper_id', $user->id)->whereIn('status', DeliveryTask::ACTIVE));
         }
         $order = ! empty($filters['order_id']) ? (clone $query)->findOrFail($filters['order_id']) : null;
@@ -69,6 +71,7 @@ class IncidentController extends Controller
 
     public function action(IncidentRequest $request, Incident $incident, string $operation, IncidentService $service)
     {
+        // Mọi thao tác đi qua Service để kiểm tra revision, người duyệt khác người đề xuất và audit.
         $service->act($request->user(), $incident, $operation, $request->validated(), $request->file('evidence'));
 
         return back()->with('success', 'Đã lưu diễn biến xử lý sự cố.');

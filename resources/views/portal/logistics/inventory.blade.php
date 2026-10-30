@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Tồn hiển thị kiện kho đang giữ; sai lệch có sổ riêng, xử lý hồ sơ không tự cộng/trừ tồn. --}}
 @section('heading', 'Tồn kho & sai lệch')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('stocktakes.index') }}">
     <i data-lucide="clipboard-list"></i> Kiểm kê</a>@endsection

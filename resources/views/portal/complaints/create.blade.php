@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chọn đơn trong shop trước khi gửi; client_token chống gửi lặp, SLA do server đặt. --}}
 @section('heading', 'Gửi khiếu nại')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('complaints.index') }}"><i
         data-lucide="arrow-left"></i> Khiếu nại</a>@endsection

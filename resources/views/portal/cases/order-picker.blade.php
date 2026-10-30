@@ -1,3 +1,4 @@
+{{-- orders đã được Controller giới hạn shop/kho/nhiệm vụ; pickerRoute do view cha đặt, không nhận route từ query. --}}
 <form method="get" class="filter-bar">
     <x-field name="q" label="Tìm mã vận đơn" :value="$filters['q'] ?? ''" maxlength="60" />
     <button class="btn btn-primary"><i data-lucide="search"></i> Tìm</button>

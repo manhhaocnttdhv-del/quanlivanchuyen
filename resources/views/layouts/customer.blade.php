@@ -1,3 +1,4 @@
+{{-- Layout công khai dùng chung đăng nhập/đăng ký/công cụ; CSRF và thông báo validation cho cả form thường. --}}
 <!doctype html>
 <html lang="vi">
 

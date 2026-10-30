@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Phân bổ phiếu thu vào phí còn khả dụng; không ghi nhận COD hoặc tự khấu trừ lại phần đang đối soát. --}}
 @section('heading', 'Thu nợ phí shop')
 @section('content')
     @include('portal.finance.nav', ['section' => 'receipts'])

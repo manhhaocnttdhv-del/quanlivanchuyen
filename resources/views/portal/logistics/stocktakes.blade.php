@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Tạo snapshot theo kho/vị trí được cấp; danh sách giữ người lập/duyệt và số dòng để truy vết. --}}
 @section('heading', 'Kiểm kê kho')
 @section('content')
     @can('logistics.warehouse')

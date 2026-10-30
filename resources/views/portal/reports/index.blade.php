@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Tổng/nhóm tính trên toàn query, chi tiết mới phân trang; xuất giữ bộ lọc đã áp dụng, không chỉ trang hiện tại. --}}
 @section('heading', $report['title'])
 @section('actions')
     <a class="btn btn-outline-primary" href="{{ route('reports.history') }}"><i data-lucide="clock-3"></i> Tệp đã xuất</a>
@@ -62,6 +63,7 @@
                 @endforeach
             </select>
         </div>
+        {{-- Ô không có ý nghĩa với sổ hiện tại phải disabled để form không gửi giá trị lọc cũ. --}}
         @foreach (['warehouse_id' => 'Kho', 'shop_id' => 'Shop', 'area_id' => 'Khu vực', 'shipper_id' => 'Shipper'] as $field => $label)
             @php($disabled = (! $orderFilters && in_array($field, ['area_id', 'shipper_id'])) || ($type === 'finance' && $filters['ledger'] === 'deposits' && $field === 'shop_id'))
             <div class="field-group" @if(in_array($field, ['area_id', 'shipper_id'])) data-report-order-filter @endif @if($field === 'shop_id') data-report-shop-filter @endif @if($disabled) hidden @endif>

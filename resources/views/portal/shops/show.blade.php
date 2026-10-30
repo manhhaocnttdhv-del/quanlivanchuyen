@@ -1,7 +1,8 @@
 @extends('layouts.portal')
+{{-- Xét shop và xác minh ngân hàng là hai quyền độc lập; chỉ phiên bản ngân hàng hiện hành được xác minh. --}}
 @section('heading', $shop->name)
 @section('content')
-    <div class="row g-5">
+    <div class="row g-4 g-lg-5">
         <section class="col-lg-6">
             <h2 class="h5 mb-3">Hồ sơ đăng ký</h2>
             <dl class="detail-grid">

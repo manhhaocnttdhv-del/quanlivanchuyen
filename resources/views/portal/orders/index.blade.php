@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Bộ lọc GET giữ qua phân trang; tab đếm theo scope, nháp và đơn shop khác được giới hạn ở query. --}}
 @section('heading', 'Vận đơn')
 @section('actions')
     <div class="d-flex gap-2 flex-wrap">

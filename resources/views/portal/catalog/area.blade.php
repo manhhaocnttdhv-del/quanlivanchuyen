@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Hidden is_active=0 gửi cả khi bỏ chọn checkbox; Service lưu danh mục và audit cùng transaction. --}}
 @section('heading', $record ? 'Cập nhật khu vực' : 'Thêm khu vực')
 @section('content')
     <form class="edit-form narrow-form" method="post"

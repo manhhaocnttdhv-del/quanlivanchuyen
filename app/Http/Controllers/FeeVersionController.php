@@ -7,6 +7,7 @@ use App\Http\Requests\ReasonRequest;
 use App\Models\FeeVersion;
 use App\Services\FeeVersionService;
 
+/** Soạn biểu phí nháp và gửi công bố; FeeVersionService chặn sửa bản đã công bố, trùng kỳ/bậc cân. */
 class FeeVersionController extends Controller
 {
     public function index()
@@ -18,6 +19,7 @@ class FeeVersionController extends Controller
     {
         $rules = $version?->rules->toArray() ?? [];
         if (! $version) {
+            // Config chỉ gợi ý dữ liệu ban đầu; cước thực tế lấy các rule đã lưu và công bố trong DB.
             foreach (config('shipping.routes') as $route => $rate) {
                 foreach (config('shipping.services') as $service => $option) {
                     $rules[] = ['route' => $route, 'service' => $service, 'min_weight_grams' => 1, 'max_weight_grams' => 20000, 'base_weight_grams' => 500, 'step_weight_grams' => 500, 'base_fee' => $rate['base'] + $option['surcharge'], 'step_fee' => $rate['step'], 'max_cod' => 20000000];

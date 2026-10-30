@@ -8,11 +8,13 @@ use App\Services\NotificationTarget;
 use App\Support\NotificationEvents;
 use Illuminate\Http\Request;
 
+/** Hộp thư cá nhân; ownership bảo vệ trạng thái đọc, Policy hồ sơ bảo vệ liên kết nghiệp vụ. */
 class NotificationController extends Controller
 {
     public function index(NotificationRequest $request)
     {
         $filters = $request->validated();
+        // Bắt đầu từ quan hệ user, không lấy toàn bộ notifications rồi mới lọc trên giao diện.
         $query = $request->user()->notifications();
         if (($filters['state'] ?? null) === 'unread') {
             $query->whereNull('read_at');
@@ -40,6 +42,7 @@ class NotificationController extends Controller
 
     public function readAll(Request $request)
     {
+        // Chỉ đánh dấu các thông báo hiện có của chính tài khoản, kể cả ngoài trang/bộ lọc đang xem.
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
         return back()->with('status', 'Đã đánh dấu tất cả thông báo hiện có là đã đọc.');
@@ -48,6 +51,7 @@ class NotificationController extends Controller
     public function open(Request $request, BusinessNotification $notification, NotificationTarget $targets)
     {
         $this->authorize('view', $notification);
+        // GET chỉ mở hồ sơ; thao tác đọc/chưa đọc đi qua PATCH có CSRF riêng.
         $data = $notification->data;
         $target = $targets->find($data['target_type'] ?? '', (int) ($data['target_id'] ?? 0));
         $url = $targets->url($request->user(), $target);

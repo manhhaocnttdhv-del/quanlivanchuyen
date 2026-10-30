@@ -1,3 +1,4 @@
+{{-- Menu theo quyền chỉ phục vụ điều hướng; route/Policy vẫn kiểm quyền, khung nội dung và sidebar cuộn riêng. --}}
 <!doctype html>
 <html lang="vi">
 
@@ -14,6 +15,7 @@
         <a class="brand" href="{{ route('dashboard') }}"><span class="brand-symbol"><i
                     data-lucide="package-check"></i></span>Gửi Việt.</a>
         <div class="d-flex align-items-center gap-3">
+            {{-- Đếm từ quan hệ user; JS chỉ cập nhật huy hiệu, không tải nội dung thông báo toàn hệ thống. --}}
             @php($notificationCount = auth()->user()->unreadNotifications()->count())
             <a class="btn icon-button notification-bell" href="{{ route('notifications.index') }}" aria-label="Thông báo, {{ $notificationCount }} chưa đọc" title="Thông báo"
                 data-notification-counter="{{ route('notifications.count') }}">

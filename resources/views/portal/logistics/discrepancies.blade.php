@@ -1,3 +1,4 @@
+{{-- Sai lệch và khóa theo từng hồ sơ; Service xử lý chỉ gỡ khóa tương ứng, không tự thay cước/tồn. --}}
 @forelse ($discrepancies as $difference)
     <article class="discrepancy-row">
         <div class="d-flex flex-wrap justify-content-between gap-2"><strong>#{{ $difference->id }} ·

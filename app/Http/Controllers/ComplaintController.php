@@ -12,6 +12,7 @@ use App\Policies\ComplaintPolicy;
 use App\Services\ComplaintService;
 use Illuminate\Http\Request;
 
+/** Khiếu nại của shop và trao đổi CSKH; ComplaintService quản lý SLA, revision và lịch sử. */
 class ComplaintController extends Controller
 {
     public function __construct(private ComplaintPolicy $policy) {}
@@ -21,6 +22,7 @@ class ComplaintController extends Controller
         abort_unless($this->policy->viewAny($request->user()), 403);
         $filters = $request->validated();
         $base = Complaint::visibleTo($request->user());
+        // Số quá hạn được tính trong phạm vi người dùng, trước các bộ lọc của danh sách.
         $overdueCount = (clone $base)->overdue()->count();
         $query = $base->with(['order', 'assignee'])->when($filters['overdue'] ?? null, fn ($q) => $q->overdue())
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where(fn ($q) => $q->where('code', 'like', $v.'%')->orWhereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%'))))
@@ -55,6 +57,7 @@ class ComplaintController extends Controller
         abort_unless($this->policy->view($request->user(), $complaint), 403);
         $staff = $this->policy->manage($request->user(), $complaint);
         $complaint->load(['order', 'shop', 'assignee']);
+        // Lọc tin nội bộ ngay trong SQL trước phân trang; Blade không phải lớp bảo mật dữ liệu.
         $messages = $complaint->messages()->when(! $staff, fn ($q) => $q->where('is_internal', false))->with(['actor', 'attachments'])->paginate(20)->withQueryString();
         $handlers = $staff ? User::where('status', 'active')->whereHas('roles.permissions', fn ($q) => $q->where('name', 'complaints.manage'))
             ->where(fn ($q) => $q->whereHas('warehouses', fn ($q) => $q->whereKey($complaint->warehouse_id))->orWhereHas('roles', fn ($q) => $q->where('name', 'admin')))->orderBy('name')->pluck('name', 'id') : collect();

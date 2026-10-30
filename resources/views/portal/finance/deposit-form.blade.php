@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chỉ chọn số tiền shipper còn giữ; token chống gửi lặp, xác nhận thực nhận là bước của người khác. --}}
 @section('heading', 'Đề nghị nộp tiền')
 @section('content')
     @include('portal.finance.nav', ['section' => 'deposits'])

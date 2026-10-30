@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+/** Xác thực tài khoản; ShopService chịu trách nhiệm tạo shop và lịch sử đăng ký. */
 class AuthController extends Controller
 {
     public function login()
@@ -30,6 +31,7 @@ class AuthController extends Controller
     public function authenticate(LoginRequest $request, AuditService $audit)
     {
         $data = $request->validated();
+        // Giới hạn theo danh tính + IP; thông báo chung tránh tiết lộ tài khoản có tồn tại.
         $key = 'login:'.hash('sha256', Str::lower($data['identity']).'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($key, 5)) {
             abort(429, 'Thử đăng nhập quá nhiều lần. Vui lòng đợi một phút.');
@@ -42,6 +44,7 @@ class AuthController extends Controller
         }
         RateLimiter::clear($key);
         $audit->record($user, $user, 'auth.logged_in', [], ['status' => $user->status], 'Đăng nhập thành công');
+        // Đổi session ID chống session fixation; auth_version dùng thu hồi các phiên cũ.
         Auth::login($user);
         $request->session()->regenerate();
         $request->session()->put('auth_version', $user->auth_version);
@@ -61,6 +64,7 @@ class AuthController extends Controller
 
     public function logout(Request $request, AuditService $audit)
     {
+        // Ghi actor trước khi xóa phiên; hủy cả dữ liệu phiên và token CSRF khi đăng xuất.
         $audit->record($request->user(), $request->user(), 'auth.logged_out', [], [], 'Người dùng đăng xuất');
         Auth::logout();
         $request->session()->invalidate();

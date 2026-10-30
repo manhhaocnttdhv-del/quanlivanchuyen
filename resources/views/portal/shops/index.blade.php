@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Nhân viên có quyền xét shop/ngân hàng mới tới danh sách; mỗi hồ sơ vẫn được Policy kiểm tra riêng. --}}
 @section('heading', 'Duyệt cửa hàng & ngân hàng')
 @section('content')
     <form class="filter-bar" method="get"><x-field name="q" label="Tên cửa hàng" :value="request('q')" /><x-field

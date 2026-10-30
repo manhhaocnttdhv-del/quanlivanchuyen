@@ -21,6 +21,7 @@ use App\Services\FeeVersionService;
 use App\Services\OrderService;
 use App\Services\PublicTrackingService;
 use App\Services\WarehouseService;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -505,5 +506,23 @@ class DeliveryWorkflowTest extends DatabaseTestCase
         $attempt = app(DeliveryService::class)->record($this->shipper, $task, $this->success($task, ['actual_cod' => '9999999999999', 'financial_reason' => 'Số thực thu ngoại lệ cần xác minh']), $this->photo());
         $this->assertSame('9999999999999.00', $attempt->collections()->where('type', 'cod')->value('amount'));
         $this->assertTrue($task->order->fresh()->financial_hold);
+    }
+
+    public function test_collection_dates_use_stored_vietnam_midnight_and_until_only_is_valid(): void
+    {
+        $ids = [];
+        foreach (['2026-10-27 23:59:59', '2026-10-28 00:00:00', '2026-10-28 23:59:59', '2026-10-29 00:00:00'] as $at) {
+            $this->travelTo(Carbon::parse($at, config('app.timezone')));
+            $task = $this->out($this->stocked('sender'));
+            $attempt = app(DeliveryService::class)->record($this->shipper, $task, $this->success($task), $this->photo());
+            $ids[] = $attempt->collections()->where('type', 'cod')->sole()->id;
+        }
+        $this->actingAs($this->owner)->get(route('delivery.collections', ['type' => 'cod', 'from' => '2026-10-28', 'until' => '2026-10-28']))
+            ->assertOk()->assertViewHas('collections', fn ($rows) => $rows->modelKeys() === [$ids[2], $ids[1]])
+            ->assertViewHas('totals', fn ($totals) => $totals['cod']->amount === '1000000.00');
+        $this->get(route('delivery.collections', ['type' => 'cod', 'until' => '2026-10-28']))
+            ->assertOk()->assertViewHas('collections', fn ($rows) => $rows->total() === 3);
+        $this->getJson(route('delivery.collections', ['from' => '2026-10-29', 'until' => '2026-10-28']))
+            ->assertUnprocessable()->assertJsonValidationErrors('until');
     }
 }

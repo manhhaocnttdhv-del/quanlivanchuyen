@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chọn nhiều vai trò và phạm vi kho; mật khẩu trống khi sửa sẽ giữ mật khẩu cũ, Service bảo vệ admin cuối. --}}
 @section('heading', $record ? 'Cập nhật tài khoản' : 'Tạo tài khoản nội bộ')
 @section('content')
     <form method="post" class="edit-form" action="{{ $record ? route('users.update', $record) : route('users.store') }}">

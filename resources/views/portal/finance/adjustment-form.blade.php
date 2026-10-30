@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chọn căn cứ cùng vận đơn; JS đổi nhóm ô nhập, Service kiểm tra lại số tiền/căn cứ và người duyệt. --}}
 @section('heading', 'Lập điều chỉnh tài chính')
 @section('content')
     @include('portal.finance.nav', ['section' => 'adjustments'])

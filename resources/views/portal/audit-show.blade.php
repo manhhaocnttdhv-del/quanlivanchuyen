@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Before/after đã được sanitizer lọc; Blade escape JSON và đánh dấu trường khác nhau, không sửa log gốc. --}}
 @section('heading', 'Chi tiết nhật ký #'.$log->id)
 @section('actions')
     <a class="btn btn-outline-primary" href="{{ route('audit.index', ['subject_type' => class_basename($log->subject_type), 'subject_id' => $log->subject_id]) }}"><i data-lucide="clock-3"></i> Cùng đối tượng</a>

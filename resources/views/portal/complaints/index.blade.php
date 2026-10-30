@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Danh sách và số quá hạn đã giới hạn scope tại Controller; quyền CSKH quyết định bộ lọc phụ trách. --}}
 @section('heading', 'Khiếu nại')
 @section('actions')@if (auth()->user()->shop)
     <a class="btn btn-primary" href="{{ route('complaints.create') }}">

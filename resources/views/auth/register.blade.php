@@ -1,4 +1,5 @@
 @extends('layouts.customer')
+{{-- Đăng ký tạo tài khoản kèm shop chờ duyệt; shop chưa được gửi đơn trước khi hồ sơ được duyệt. --}}
 @section('title', 'Đăng ký cửa hàng | Gửi Việt')
 @section('content')
     <main class="auth-band">

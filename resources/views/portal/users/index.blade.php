@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Bộ lọc nhân sự giữ qua phân trang; roles/warehouses đã eager load để không query lại theo từng dòng. --}}
 @section('heading', 'Tài khoản & phân quyền')
 @section('actions')<a class="btn btn-primary" href="{{ route('users.create') }}"><i data-lucide="plus"></i> Tạo tài
     khoản</a>@endsection

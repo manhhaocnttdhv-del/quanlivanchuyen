@@ -1,3 +1,4 @@
+{{-- Tên group[source_id] khớp validation từng nguồn; max trên UI là gợi ý, Service vẫn khóa và kiểm tra số khả dụng. --}}
 @props(['group', 'source', 'label', 'value' => 0, 'max' => 9999999999999])
 @php($errorName = $group.'.'.$source)
 <div class="finance-amount">

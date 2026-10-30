@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chỉ nhiệm vụ của shipper trong kho còn được gán; số tab tính trước bộ lọc loại/từ khóa. --}}
 @section('heading', 'Nhiệm vụ của tôi')
 @section('actions')
     <a class="btn btn-outline-primary" href="{{ route('delivery.collections') }}">

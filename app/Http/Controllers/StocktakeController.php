@@ -10,6 +10,7 @@ use App\Policies\LogisticsPolicy;
 use App\Services\StocktakeService;
 use Illuminate\Http\Request;
 
+/** Kiểm kê từ snapshot tồn; StocktakeService ghi chênh lệch và yêu cầu người khác duyệt. */
 class StocktakeController extends Controller
 {
     public function __construct(private LogisticsPolicy $policy) {}
@@ -33,6 +34,7 @@ class StocktakeController extends Controller
 
     public function show(Request $request, Stocktake $stocktake)
     {
+        // Đếm theo lô 100; số chưa đếm lấy trên toàn snapshot, không chỉ trang đang mở.
         abort_unless($this->policy->warehouse($request->user(), $stocktake->warehouse_id) || $this->policy->approve($request->user(), $stocktake->warehouse_id), 403);
         $stocktake->load(['warehouse', 'location', 'creator', 'approver', 'discrepancies.item', 'discrepancies.creator', 'discrepancies.resolver', 'discrepancies.order']);
 
@@ -42,6 +44,7 @@ class StocktakeController extends Controller
 
     public function submit(LogisticsRequest $request, Stocktake $stocktake, StocktakeService $service)
     {
+        // finalize=0 lưu trang hiện tại; finalize=1 chỉ gửi khi toàn bộ snapshot đã kiểm đếm.
         $service->submit($request->user(), $stocktake, $request->validated());
 
         return back()->with('success', $request->boolean('finalize', true) ? 'Đã gửi kiểm đếm, chờ người khác xác nhận.' : 'Đã lưu kết quả đếm của trang này.');

@@ -1,3 +1,4 @@
+{{-- Không render đường dẫn file; mỗi lần tải kiểm lại quyền chứng từ cha qua finance.attachment. --}}
 @if ($document->attachments->isNotEmpty())
     <ul class="case-files">
         @foreach ($document->attachments as $file)

@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Mở link kiểm tra lại quyền hồ sơ; trạng thái đọc thay đổi bằng PATCH riêng có CSRF. --}}
 @section('heading', 'Thông báo')
 @section('actions')
     <form method="post" action="{{ route('notifications.read-all') }}">
