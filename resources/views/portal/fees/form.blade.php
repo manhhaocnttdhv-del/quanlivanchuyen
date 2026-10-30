@@ -39,37 +39,14 @@
                     </thead>
                     <tbody id="fee-rule-rows">
                         @foreach (collect((array) old('rules', $rules))->filter(fn ($rule) => is_array($rule))->values() as $i => $rule)
-                            <tr>
-                                <td><select class="form-select" name="rules[{{ $i }}][route]"
-                                        aria-label="Tuyến dòng {{ $i + 1 }}">
-                                        @foreach (config('shipping.routes') as $key => $option)
-                                            <option value="{{ $key }}" @selected(($rule['route'] ?? '') === $key)>
-                                                {{ $option['label'] }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td><select class="form-select" name="rules[{{ $i }}][service]"
-                                        aria-label="Dịch vụ dòng {{ $i + 1 }}">
-                                        @foreach (config('shipping.services') as $key => $option)
-                                            <option value="{{ $key }}" @selected(($rule['service'] ?? '') === $key)>
-                                                {{ $option['label'] }}</option>
-                                        @endforeach
-                                    </select></td>
-                                @foreach (['min_weight_grams', 'max_weight_grams', 'base_weight_grams', 'step_weight_grams', 'base_fee', 'step_fee', 'max_cod', 'return_fee'] as $field)
-                                    <td><input class="form-control" type="number"
-                                            name="rules[{{ $i }}][{{ $field }}]"
-                                            value="{{ (int) ($rule[$field] ?? 0) }}"
-                                            aria-label="{{ $field }} dòng {{ $i + 1 }}" min="0"
-                                            step="1"></td>
-                                @endforeach
-                                <td><button class="btn btn-outline-danger remove-fee-rule" type="button"
-                                        aria-label="Xóa bậc cân"><i data-lucide="trash-2"></i></button></td>
-                            </tr>
+                            @include('portal.fees.rule-row', ['i' => $i, 'rule' => $rule])
                         @endforeach
                     </tbody>
                 </table>
             </div>
+            @error('rules')<p class="text-danger small mt-2" role="alert">{{ $message }}</p>@enderror
             @if (!$published)
+                <template id="fee-rule-template">@include('portal.fees.rule-row', ['i' => '__INDEX__', 'rule' => []])</template>
                 <button type="button" class="btn btn-outline-primary mt-2" id="add-fee-rule"><i data-lucide="plus"></i>
                     Thêm bậc cân</button>
                 <div class="form-actions"><button class="btn btn-primary"><i data-lucide="save"></i> Lưu bản nháp</button>

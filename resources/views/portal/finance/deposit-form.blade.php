@@ -11,7 +11,7 @@
     </form>
     <form method="post" action="{{ route('finance.deposits.store') }}" class="finance-form">
         @csrf
-        <input type="hidden" name="client_token" value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
+        <x-client-token />
         <input type="hidden" name="warehouse_id" value="{{ $warehouse }}"><input type="hidden" name="shipper_id" value="{{ $shipper }}">
         <div class="table-responsive"><table class="table align-middle finance-table">
             <thead><tr><th>Vận đơn / khoản thu</th><th class="text-end">Thực thu hiệu lực</th><th class="text-end">Còn phải nộp</th><th class="text-end">Đề nghị nộp (đ)</th></tr></thead>

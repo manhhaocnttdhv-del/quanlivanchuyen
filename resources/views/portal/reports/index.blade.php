@@ -19,20 +19,8 @@
         @endforeach
     </nav>
     <form method="get" action="{{ route('reports.index', $type) }}" class="report-filters" data-report-type="{{ $type }}">
-        <div class="field-group">
-            <label for="report-from">Từ ngày</label>
-            <input id="report-from" type="date" name="from" value="{{ old('from', $filters['from']) }}" class="form-control @error('from') is-invalid @enderror" required>
-            @error('from')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="field-group">
-            <label for="report-until">Đến ngày</label>
-            <input id="report-until" type="date" name="until" value="{{ old('until', $filters['until']) }}" class="form-control @error('until') is-invalid @enderror" required>
-            @error('until')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+        <x-field id="report-from" type="date" name="from" label="Từ ngày" :value="$filters['from']" required />
+        <x-field id="report-until" type="date" name="until" label="Đến ngày" :value="$filters['until']" required />
         @if ($type === 'operations')
             <div class="field-group">
                 <label for="report-metric">Chi tiết chỉ tiêu</label>

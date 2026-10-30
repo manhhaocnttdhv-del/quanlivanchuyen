@@ -18,7 +18,7 @@
         @csrf
         @if ($document)<input type="hidden" name="revision" value="{{ $document->revision }}">
         @else
-            <input type="hidden" name="client_token" value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
+            <x-client-token />
             <input type="hidden" name="warehouse_id" value="{{ $filters['warehouse_id'] }}"><input type="hidden" name="shop_id" value="{{ $filters['shop_id'] }}">
             <input type="hidden" name="period_start" value="{{ $filters['from'] }}"><input type="hidden" name="period_end" value="{{ $filters['until'] }}">
         @endif
@@ -37,7 +37,7 @@
         @endforeach
         <section class="work-section"><h2>Bồi thường đã duyệt</h2>
             @forelse ($adjustments as $adjustment)
-                <label class="finance-source-row"><span><input class="form-check-input me-2" type="checkbox" name="adjustment_ids[]" value="{{ $adjustment->id }}" @checked(in_array($adjustment->id, old('adjustment_ids', $document?->lines->pluck('adjustment_id')->filter()->all() ?? [])))>{{ $adjustment->code }}<small class="d-block text-secondary">{{ $adjustment->order->tracking_code }}</small></span><strong>{{ number_format((int) $adjustment->amount, 0, ',', '.') }}đ</strong></label>
+                <label class="finance-source-row"><span><input class="form-check-input me-2" type="checkbox" name="adjustment_ids[]" value="{{ $adjustment->id }}" @checked(in_array($adjustment->id, (array) old('adjustment_ids', $document?->lines->pluck('adjustment_id')->filter()->all() ?? [])))>{{ $adjustment->code }}<small class="d-block text-secondary">{{ $adjustment->order->tracking_code }}</small></span><strong>{{ number_format((int) $adjustment->amount, 0, ',', '.') }}đ</strong></label>
             @empty<p class="small text-secondary">Không có khoản bồi thường khả dụng.</p>@endforelse
         </section>
         <x-field name="reason" label="Căn cứ lập / cập nhật đối soát" type="textarea" rows="3" minlength="5" maxlength="2000" required />

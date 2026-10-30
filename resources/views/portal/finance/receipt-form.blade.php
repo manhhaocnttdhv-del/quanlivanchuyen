@@ -10,7 +10,7 @@
         <button class="btn btn-outline-primary"><i data-lucide="search"></i> Lấy công nợ</button>
     </form>
     <form method="post" action="{{ route('finance.receipts.store') }}" enctype="multipart/form-data" class="finance-form">
-        @csrf<input type="hidden" name="client_token" value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
+        @csrf<x-client-token />
         <input type="hidden" name="warehouse_id" value="{{ $filters['warehouse_id'] }}"><input type="hidden" name="shop_id" value="{{ $filters['shop_id'] }}">
         <div class="table-responsive"><table class="table align-middle finance-table"><thead><tr><th>Nguồn phí</th><th class="text-end">Còn nợ khả dụng</th><th class="text-end">Phân bổ thu (đ)</th></tr></thead><tbody>
             @forelse ($fees as $fee)<tr><td>{{ $fee->order?->tracking_code ?? $fee->reconciliation?->code }}<small class="d-block">#{{ $fee->id }} · {{ \App\Models\Receivable::TYPES[$fee->type] }}</small></td><td class="text-end" data-label="Còn nợ khả dụng">{{ number_format($queries->available($fee), 0, ',', '.') }}đ</td><td data-label="Phân bổ thu (đ)"><x-finance-amount group="allocations" :source="$fee->id" :label="'Thu nợ phí #'.$fee->id" :max="$queries->available($fee)" /></td></tr>

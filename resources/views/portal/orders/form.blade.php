@@ -42,8 +42,7 @@
         @if ($order && !$isChange)
             @method('PUT')
         @endif
-        <input type="hidden" name="client_token"
-            value="{{ is_string(old('client_token')) ? old('client_token') : $clientToken }}">
+        <x-client-token :value="$clientToken" />
         @if ($order)
             <input type="hidden" name="revision" value="{{ $order->revision }}">
         @endif

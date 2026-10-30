@@ -1,8 +1,11 @@
 @extends('layouts.portal')
 {{-- Tồn hiển thị kiện kho đang giữ; sai lệch có sổ riêng, xử lý hồ sơ không tự cộng/trừ tồn. --}}
 @section('heading', 'Tồn kho & sai lệch')
-@section('actions')<a class="btn btn-outline-primary" href="{{ route('stocktakes.index') }}">
-    <i data-lucide="clipboard-list"></i> Kiểm kê</a>@endsection
+@section('actions')
+    @if (auth()->user()->hasPermission('logistics.warehouse') || auth()->user()->hasPermission('logistics.approve'))
+        <a class="btn btn-outline-primary" href="{{ route('stocktakes.index') }}"><i data-lucide="clipboard-list"></i> Kiểm kê</a>
+    @endif
+@endsection
 @section('content')
     <form method="get" class="filter-bar"><x-field name="q" label="Mã vận đơn" :value="$filters['q'] ?? ''" /><x-field
             name="warehouse_id" label="Kho" :options="['' => 'Tất cả kho'] + $warehouses->all()" :value="$filters['warehouse_id'] ?? ''" /><x-field name="location_id" label="Vị trí"

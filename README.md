@@ -81,6 +81,7 @@ Không cần đổi `QUEUE_CONNECTION`. Thông báo tạo sau commit, có outbox
 
 ## Tai lieu ky thuat
 
+- [Rà soát logic và UI/UX lần hai](docs/ra-soat-logic-ui-ux-2026-10-30.md): khôi phục form, bậc cân, quyền menu và kiểm tra màn hình nhỏ.
 - [Rà soát tổng thể 30/10/2026](docs/ra-soat-tong-the-2026-10-30.md): lỗi đã sửa, phạm vi comment Controller/Blade, kiểm thử và cách đọc code khi bảo vệ.
 - `docs/Ke-hoach-chi-tiet-he-thong-quan-ly-van-chuyen-COD.docx`: ke hoach nghiep vu, database, phan quyen, test va tieu chi nghiem thu.
 - `docs/architecture.md`: kien truc va quy uoc code.

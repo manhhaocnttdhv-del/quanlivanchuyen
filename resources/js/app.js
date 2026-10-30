@@ -3,14 +3,14 @@ import $ from 'jquery';
 import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
-    Bell, Mail, MailCheck, CheckCheck,
+    Bell, Mail, MailCheck, CheckCheck, LogOut,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
     Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
 const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole };
-Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck });
+Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut });
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -64,7 +64,7 @@ function requestQuote($form, $button, $result, url) {
 }
 
 $(function () {
-    createIcons({ icons: iconSet });
+    createIcons({ icons: iconSet, attrs: { 'aria-hidden': 'true' } });
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((element) => new Tooltip(element));
     document.querySelector('[data-validation-summary]')?.focus();
 
@@ -166,15 +166,22 @@ $(function () {
         else $(this).closest('.order-item-row').find('input').val('');
     });
 
-    // Keep Bootstrap data-API modules in the Vite bundle, without exporting globals.
+    // Template riêng vẫn dùng được khi người dùng đã xóa mọi dòng; chỉ số tăng độc lập với số dòng còn lại.
+    let feeRuleIndex = $('#fee-rule-rows tr').length;
+    const updateFeeRuleLimit = () => $('#add-fee-rule').prop('disabled', $('#fee-rule-rows tr').length >= 60);
     $('#add-fee-rule').on('click', function () {
-        const $row = $('#fee-rule-rows tr').first().clone();
-        const next = Date.now();
-        $row.find('[name]').each((_, field) => {
-            field.name = field.name.replace(/rules\[\d+\]/, `rules[${next}]`);
-        });
+        if ($('#fee-rule-rows tr').length >= 60) return;
+        const $row = $($('#fee-rule-template').html().replaceAll('__INDEX__', String(feeRuleIndex++)));
         $('#fee-rule-rows').append($row);
+        createIcons({ icons: iconSet, attrs: { 'aria-hidden': 'true' } });
+        updateFeeRuleLimit();
+        $row.find('select').first().trigger('focus');
     });
-    $('#fee-rule-rows').on('click', '.remove-fee-rule', function () { $(this).closest('tr').remove(); });
+    $('#fee-rule-rows').on('click', '.remove-fee-rule', function () {
+        $(this).closest('tr').remove();
+        updateFeeRuleLimit();
+    });
+    updateFeeRuleLimit();
+    // Keep Bootstrap data-API modules in the Vite bundle, without exporting globals.
     void [Collapse, Tab, Modal, Offcanvas];
 });

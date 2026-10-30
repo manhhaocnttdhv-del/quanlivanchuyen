@@ -8,6 +8,8 @@ use App\Models\DeliveryTask;
 use App\Models\Discrepancy;
 use App\Models\HandoverDocument;
 use App\Models\Order;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseItem;
@@ -57,6 +59,27 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         $this->location = WarehouseLocation::create(['warehouse_id' => $this->depot->id, 'code' => 'A-01', 'name' => 'Kệ A-01']);
         $fees = app(FeeVersionService::class);
         $fees->publish($this->admin, $fees->save($this->admin, $this->feeData()), 'Biểu phí kiểm thử');
+    }
+
+    public function test_stocktake_navigation_matches_independent_dispatch_and_approval_permissions(): void
+    {
+        foreach (['logistics.dispatch', 'logistics.approve'] as $permission) {
+            $role = Role::create(['name' => str_replace('.', '-', $permission).'-only', 'label' => 'Quyền độc lập kiểm thử']);
+            $role->permissions()->attach(Permission::where('name', $permission)->sole());
+            $actor = $this->person('dispatcher');
+            $actor->roles()->sync([$role->id]);
+            $actor->warehouses()->attach($this->depot);
+            $response = $this->actingAs($actor->fresh())->get(route('dashboard'))->assertOk();
+            $link = 'href="'.route('stocktakes.index').'"';
+            if ($permission === 'logistics.approve') {
+                $response->assertSee($link, false);
+                $this->get(route('stocktakes.index'))->assertOk();
+            } else {
+                $response->assertDontSee($link, false);
+                $this->get(route('logistics.inventory'))->assertOk()->assertDontSee($link, false);
+                $this->get(route('stocktakes.index'))->assertForbidden();
+            }
+        }
     }
 
     private function approved(): Order
