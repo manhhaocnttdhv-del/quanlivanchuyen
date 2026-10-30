@@ -57,5 +57,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/bieu-phi/{version}/cong-bo', [FeeVersionController::class, 'publish'])->name('fees.publish');
         });
         Route::get('/nhat-ky', [AuditController::class, 'index'])->middleware('can:audit.view')->name('audit.index');
+        Route::get('/nhat-ky/{log}', [AuditController::class, 'show'])->middleware('can:audit.view')->whereNumber('log')->name('audit.show');
     });
 });

@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\Area;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,7 @@ class AuthController extends Controller
         return view('auth.register', ['areas' => Area::where('is_active', true)->orderBy('name')->pluck('name', 'id')]);
     }
 
-    public function authenticate(LoginRequest $request)
+    public function authenticate(LoginRequest $request, AuditService $audit)
     {
         $data = $request->validated();
         $key = 'login:'.hash('sha256', Str::lower($data['identity']).'|'.$request->ip());
@@ -40,6 +41,7 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['identity' => 'Thông tin đăng nhập không đúng hoặc tài khoản đã bị khóa.']);
         }
         RateLimiter::clear($key);
+        $audit->record($user, $user, 'auth.logged_in', [], ['status' => $user->status], 'Đăng nhập thành công');
         Auth::login($user);
         $request->session()->regenerate();
         $request->session()->put('auth_version', $user->auth_version);
@@ -57,8 +59,9 @@ class AuthController extends Controller
         return redirect()->route('shop.profile')->with('status', 'Đăng ký thành công. Hồ sơ cửa hàng đang chờ duyệt.');
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request, AuditService $audit)
     {
+        $audit->record($request->user(), $request->user(), 'auth.logged_out', [], [], 'Người dùng đăng xuất');
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

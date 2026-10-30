@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Policies\AuditLogPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -28,5 +29,6 @@ class AuthServiceProvider extends ServiceProvider
         foreach (['users.manage', 'catalog.manage', 'shops.review', 'banks.verify', 'orders.review', 'audit.view', 'logistics.dispatch', 'logistics.warehouse', 'logistics.approve'] as $permission) {
             Gate::define($permission, fn (User $user) => $user->hasPermission($permission));
         }
+        Gate::define('audit.view', fn (User $user) => app(AuditLogPolicy::class)->viewAny($user));
     }
 }

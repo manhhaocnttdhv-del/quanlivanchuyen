@@ -37,3 +37,11 @@ Trang thai la chuoi co hang so o model/service, duoc kiem tra bang transition me
 - Sprint 04 tao `delivery_collections` khi giao thanh cong. Sprint 06 phan bo tien tu collection nay, khong tao lai khoan thu.
 - Audit cung transaction voi nghiep vu; notification phat sau commit de khong thong bao thao tac da rollback.
 - Giu cau truc MVC va HTTP Kernel/providers hien co. Laravel 12 ho tro cau truc ung dung duoc nang cap; khong tach module/Repository khi chua co nhu cau cu the.
+
+## Nhật ký và thông báo đã triển khai
+
+`AssignRequestId` tạo UUID ở server cho mỗi HTTP request. Service nghiệp vụ gọi `AuditService` trong transaction đang có; audit và outbox cùng commit hoặc cùng rollback. Callback `DB::afterCommit()` chỉ enqueue khi transaction ngoài cùng thành công. Worker đọc outbox, chọn người nhận theo quyền/phạm vi hiện tại, khóa dòng và ghi thông báo cùng dấu delivered. Unique người nhận/audit bảo vệ thêm khi retry.
+
+`AuditSearch` chịu trách nhiệm truy vấn; `AuditLogPolicy` giới hạn nhật ký toàn hệ thống cho admin có quyền audit.view. `AuditData` áp dụng allowlist đệ quy và che dữ liệu nhạy cảm trước ghi/hiển thị. `NotificationAudience` quyết định ai nhận; `NotificationTarget` dùng allowlist model/route và Policy khi delivery cũng như lúc mở link. Controller chỉ xử lý lọc, trạng thái đọc và response. Scheduler phục hồi outbox chưa gửi; worker notifications và reports chạy độc lập.
+
+Thông báo chỉ mang tiêu đề chung và tham chiếu, không là nguồn trạng thái hay số dư tài chính. Timeline nghiệp vụ tiếp tục là lịch sử của từng hồ sơ; audit phục vụ kiểm tra xuyên module. Xem `docs/sprint-08-nghiem-thu.md` để chạy worker, demo và đọc các giới hạn.

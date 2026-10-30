@@ -82,8 +82,10 @@ class FinancePosting
 
     public function event(User $actor, FinanceDocument $document, string $event, string $reason, array $payload = []): void
     {
-        $payload += $document->only(['status', 'revision', 'line_version', 'shop_bank_account_id', 'requested_amount', 'received_amount', 'payable_amount', 'debt_amount']);
+        $before = $document->events()->latest('id')->first()?->payload ?? [];
+        $payload += $document->only(['status', 'revision', 'line_version', 'shop_bank_account_id', 'requested_amount', 'received_amount',
+            'cod_total', 'fee_total', 'adjustment_total', 'payable_amount', 'debt_amount', 'period_start', 'period_end']);
         $document->events()->create(['document_type' => $document->getTable(), 'created_by' => $actor->id, 'event' => $event, 'reason' => $reason, 'payload' => $payload]);
-        $this->audit->record($actor, $document, 'finance.'.$event, [], $document->toArray() + $payload, $reason);
+        $this->audit->record($actor, $document, 'finance.'.$event, $before, $document->toArray() + $payload, $reason);
     }
 }

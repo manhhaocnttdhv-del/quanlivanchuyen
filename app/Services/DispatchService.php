@@ -46,7 +46,7 @@ class DispatchService
             $task = $order->tasks()->create(['warehouse_id' => $order->warehouse_id, 'shipper_id' => $shipper->id, 'created_by' => $actor->id, 'type' => $type, 'reason' => $data['reason']]);
             $task->assignments()->create(['shipper_id' => $shipper->id, 'created_by' => $actor->id, 'event' => 'assigned', 'reason' => $data['reason']]);
             $order->assigned_shipper_id = $shipper->id;
-            $this->ledger->record($actor, $order, 'task_assigned', $before, $data['reason']);
+            $this->ledger->record($actor, $order, 'task_assigned', $before, $data['reason'], ['delivery_task_id' => $task->id, 'shipper_id' => $shipper->id]);
 
             return $task;
         }, 3);

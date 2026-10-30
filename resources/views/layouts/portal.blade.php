@@ -14,6 +14,12 @@
         <a class="brand" href="{{ route('dashboard') }}"><span class="brand-symbol"><i
                     data-lucide="package-check"></i></span>Gửi Việt.</a>
         <div class="d-flex align-items-center gap-3">
+            @php($notificationCount = auth()->user()->unreadNotifications()->count())
+            <a class="btn icon-button notification-bell" href="{{ route('notifications.index') }}" aria-label="Thông báo, {{ $notificationCount }} chưa đọc" title="Thông báo"
+                data-notification-counter="{{ route('notifications.count') }}">
+                <i data-lucide="bell"></i>
+                <span data-unread-count @if ($notificationCount === 0) hidden @endif>{{ $notificationCount > 99 ? '99+' : $notificationCount }}</span>
+            </a>
             <a href="{{ route('home') }}" class="small d-none d-sm-inline">Trang khách hàng</a>
             <span class="small d-none d-md-inline">{{ auth()->user()->name }}</span>
             <form method="post" action="{{ route('logout') }}">@csrf<button class="btn btn-outline-primary">Đăng
@@ -34,6 +40,7 @@
                             data-lucide="package"></i> Tổng quan</a>
                     <a class="{{ request()->routeIs('profile.*') ? 'active' : '' }}"
                         href="{{ route('profile.edit') }}"><i data-lucide="info"></i> Hồ sơ cá nhân</a>
+                    <a class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><i data-lucide="bell"></i> Thông báo</a>
                     @if (auth()->user()->shop)
                         <a class="{{ request()->routeIs('shop.*', 'pickups.*') ? 'active' : '' }}"
                             href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> Cửa hàng & địa

@@ -13,6 +13,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('reports:prune-exports')->hourly()->withoutOverlapping();
+        $schedule->command('notifications:dispatch-pending')->everyFiveMinutes()->withoutOverlapping();
     }
 
     /**

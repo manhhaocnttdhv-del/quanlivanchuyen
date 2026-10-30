@@ -3,12 +3,14 @@ import $ from 'jquery';
 import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
+    Bell, Mail, MailCheck, CheckCheck,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
     Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
 const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole };
+Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck });
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -92,6 +94,16 @@ $(function () {
     }).on('input', ':input', () => $('#tracking-result').empty().addClass('d-none'));
 
     $('[data-print]').on('click', () => window.print());
+    $('[data-notification-counter]').each((_, element) => {
+        const refresh = () => {
+            if (document.hidden) return;
+            $.getJSON(element.dataset.notificationCounter).done(data => {
+                $(element).attr('aria-label', `Thông báo, ${data.unread} chưa đọc`)
+                    .find('[data-unread-count]').prop('hidden', data.unread === 0).text(data.unread > 99 ? '99+' : data.unread);
+            });
+        };
+        window.setInterval(refresh, 30000);
+    });
     $('[data-report-ledger]').on('change', function () {
         const $form = $(this).closest('form');
         const orderFilters = this.value === 'collections';

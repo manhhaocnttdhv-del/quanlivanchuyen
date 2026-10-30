@@ -19,6 +19,9 @@ class IdentityService
             DB::table('business_locks')->where('name', 'active-administrators')->lockForUpdate()->first();
             $user = $user ? User::lockForUpdate()->findOrFail($user->id) : new User;
             $before = $user->only(['name', 'email', 'phone', 'status']);
+            if ($user->exists) {
+                $before += ['role_ids' => $user->roles()->pluck('roles.id')->all(), 'warehouse_ids' => $user->warehouses()->pluck('warehouses.id')->all()];
+            }
             $wasAdmin = $user->exists && $user->hasRole('admin') && $user->status === 'active';
             $adminId = Role::where('name', 'admin')->value('id');
             $removesAdmin = $data['status'] !== 'active' || ! in_array($adminId, $data['role_ids']);
