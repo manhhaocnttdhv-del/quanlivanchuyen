@@ -104,7 +104,7 @@
                 </nav>
             </div>
         </aside>
-        <main class="portal-main">
+        <main class="portal-main" tabindex="0" aria-label="Nội dung chính">
             @include('portal.partials.feedback')
             <div class="portal-heading">
                 <h1>@yield('heading')</h1>@yield('actions')
