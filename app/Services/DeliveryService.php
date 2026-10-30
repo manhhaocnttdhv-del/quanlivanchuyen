@@ -104,6 +104,7 @@ class DeliveryService
                     }
                 }
                 $task->save();
+                app(ReceivableService::class)->accrue($order, $actor);
                 $event = ($return ? 'return_' : 'delivery_').($success ? 'succeeded' : 'failed');
                 $this->ledger->record($actor, $order, $event, $before, $data['reason']);
                 $this->audit->record($actor, $attempt, 'delivery.attempt_recorded', [], $attempt->toArray(), $data['reason']);

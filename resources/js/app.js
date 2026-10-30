@@ -4,11 +4,11 @@ import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
-    Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole,
+    Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
-const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole };
+const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole };
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -92,6 +92,16 @@ $(function () {
     }).on('input', ':input', () => $('#tracking-result').empty().addClass('d-none'));
 
     $('[data-print]').on('click', () => window.print());
+    $('[data-finance-kind]').on('change', function () {
+        const kind = this.value;
+        $('[data-finance-basis]').each((_, block) => {
+            const type = block.dataset.financeBasis;
+            const visible = type === 'incident' ? kind !== 'reversal'
+                : type === 'reversal' ? kind === 'reversal'
+                : type === 'fee' ? kind === 'fee_reduction' : kind.startsWith('collection_');
+            $(block).toggle(visible).find(':input').prop('disabled', !visible);
+        });
+    }).trigger('change');
     $('form[data-confirm]').on('submit', function (event) { if (!window.confirm(this.dataset.confirm)) event.preventDefault(); });
     let itemIndex = $('#order-item-rows .order-item-row').length;
     $('#add-order-item').on('click', function () {

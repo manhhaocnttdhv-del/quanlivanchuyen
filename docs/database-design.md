@@ -93,6 +93,19 @@ Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` 
 - Index incidents (warehouse_id, status, created_at), (assigned_to, status, created_at), (order_id, blocks_dispatch), (order_id, blocks_reconciliation); complaints (warehouse_id, status, due_at), (shop_id, status, created_at), (assigned_to, status, due_at); messages (complaint_id, is_internal, id).
 - Giao dich khoa shop -> order -> incident/complaint. Tao ho so khoa them creator de tuan tu hoa token tren hai don khac nhau; duyet khoa proposal. Phan cong/nhap/xuat/giao dung cung shop/order lock nen khong co khoang trong giua kiem tra khoa va ghi ket qua.
 
+## Du lieu Sprint 06 da trien khai
+
+- Migration `2026_10_29_220000` den `220300` la schema thuc te; ten idempotency trong bang chung tu la `(created_by, client_token)` + `request_hash`, khong phai cot `idempotency_key` trong ban thiet ke du kien.
+- `cash_deposits`, `cash_deposit_lines`: de nghi cua shipper, so de nghi/so thuc nhan rieng, nguoi xac nhan khac nguoi lap va shipper. `deposit_allocations` phan bo thuc nhan vao collection, khong tao collection moi.
+- `reconciliations`: snapshot ngan hang encrypted, ky, tong COD/phi/boi thuong, phai tra/no, revision, line_version, creator/approver. `reconciliation_lines` append-only, chi phien ban hien hanh giu cho nguon. Ban tra lai van giu cho; ban huy/tu choi giai phong nguon.
+- `payments`, `payment_allocations`: ket qua ngan hang; chi succeeded tao allocation, failed khong dong no. `fee_receipts`, `fee_receipt_allocations`: thu truc tiep no phi. Ma giao dich unique moi bang va Service kiem tra khong tai su dung xuyen ba so.
+- `receivables`: phi shop chiu khi giao/hoan, unique (order_id, type); no sau doi soat unique reconciliation_id. CHECK chinh xac mot nguon order/reconciliation, khong tao no hai lan khi duyet lai ngan hang.
+- `adjustments`, `adjustment_lines`: can cu su co hoac dao chung tu goc, dung mot nguon collection/receivable/order. So tien co dau; collection_verification co tac dong 0 va verified_amount. Dao giu nguyen ban goc; khoa su co va Service ngan lap trung can cu chua dao. Unique active_reversal_id ngan hai reversal hieu luc cung luc.
+- `finance_events`: document type/id, actor, reason, payload trang thai/revision/phien ban ngan hang. `finance_attachments`: CHECK dung mot FK cha, duong dan private, SHA-256, MIME/size; chi doc qua route co Policy.
+- `business_locks`: mot dong finance-posting khoa cac doan ghi tien ngan trong transaction; khoa shop/order/nguon theo ID. Day la lua chon de giai thich va kiem chung o quy mo do an, chua toi uu thong luong tai chinh lon.
+- Index theo kho/trang thai/ngay, shipper/trang thai/ngay, shop/ky; FK restrict, CHECK so tien va nguon; DECIMAL(15,2), VND nguyen dong xu ly bang int 64 bit.
+- Luu y timezone thuc te: `config/app.php` hien la Asia/Ho_Chi_Minh va cac luong ghi bang now(). Sprint 06 loc theo ngay Viet Nam va timezone cau hinh. Mo ta UTC truoc day la dinh huong, chua co migration chuyen du lieu cu. Xem tai lieu nghiem thu Sprint 06 truoc khi doi timezone.
+
 ## Cong thuc va dong thoi
 
 - Tien shipper dang giu = tong collection posted - tong deposit allocation confirmed + dieu chinh da duyet.

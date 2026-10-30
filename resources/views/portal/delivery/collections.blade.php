@@ -2,7 +2,7 @@
 @section('heading', 'Sổ thu giao hàng')
 @section('content')
     <p class="text-secondary">
-        Tiền shipper ghi nhận đã thu tại lúc giao / hoàn. Trạng thái nộp quỹ và đối soát chưa được xác nhận.</p>
+        Khoản thu gốc tại lúc giao / hoàn. @if (app(\App\Policies\FinancePolicy::class)->any(auth()->user()))<a href="{{ route('finance.index') }}">Xem tiền đã nộp quỹ và đối soát</a>.@endif</p>
     <dl class="delivery-totals">
         @foreach (\App\Models\DeliveryCollection::TYPES as $type => $label)
             <div>

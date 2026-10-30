@@ -7,7 +7,7 @@ use LogicException;
 
 class IncidentAction extends Model
 {
-    public const TYPES = ['created' => 'Mở sự cố', 'assigned' => 'Phân công xử lý', 'note' => 'Ghi nhận xác minh', 'hold_added' => 'Bổ sung khóa', 'proposed' => 'Đề xuất kết luận', 'approved' => 'Duyệt kết luận', 'rejected' => 'Trả lại xác minh'];
+    public const TYPES = ['created' => 'Mở sự cố', 'assigned' => 'Phân công xử lý', 'note' => 'Ghi nhận xác minh', 'hold_added' => 'Bổ sung khóa', 'proposed' => 'Đề xuất kết luận', 'approved' => 'Duyệt kết luận', 'rejected' => 'Trả lại xác minh', 'finance_posted' => 'Ghi sổ điều chỉnh tài chính', 'finance_reversed' => 'Đảo điều chỉnh tài chính'];
 
     protected $guarded = ['id'];
 

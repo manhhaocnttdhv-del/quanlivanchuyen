@@ -38,6 +38,21 @@ class DeliveryCollection extends Model
         return $this->belongsTo(User::class, 'shipper_id');
     }
 
+    public function depositAllocations()
+    {
+        return $this->hasMany(DepositAllocation::class);
+    }
+
+    public function adjustmentLines()
+    {
+        return $this->hasMany(AdjustmentLine::class);
+    }
+
+    public function reconciliationLines()
+    {
+        return $this->hasMany(ReconciliationLine::class);
+    }
+
     public function scopeVisibleTo(Builder $query, User $user): void
     {
         if ($user->hasRole('admin')) {

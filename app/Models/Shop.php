@@ -27,6 +27,11 @@ class Shop extends Model
         return $this->hasMany(PickupAddress::class);
     }
 
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function bankAccounts()
     {
         return $this->hasMany(ShopBankAccount::class);
