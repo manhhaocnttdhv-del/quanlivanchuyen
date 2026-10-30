@@ -2,7 +2,7 @@
 
 He thong quan ly van chuyen COD xay dung bang Laravel 12, MySQL, Bootstrap 5 va jQuery. Project duoc chia thanh 8 sprint nghiep vu de de phat trien, review va bao ve do an.
 
-Sprint 01 đến 06 đã triển khai trên các nhánh riêng: tài khoản/danh mục, vận đơn, điều phối/kho, giao/hoàn hàng, sự cố/khiếu nại, COD/tài chính. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Sprint 06 có nộp quỹ, đối soát, thanh toán shop từng phần, thu nợ phí và điều chỉnh có căn cứ được duyệt.
+Sprint 01 đến 07 đã triển khai trên các nhánh riêng: tài khoản/danh mục, vận đơn, điều phối/kho, giao/hoàn hàng, sự cố/khiếu nại, COD/tài chính, báo cáo/thống kê. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Sprint 07 có dashboard vận hành, báo cáo theo phạm vi kho/shop và xuất Excel/PDF private.
 
 ## Cong nghe
 
@@ -57,6 +57,17 @@ Sprint 04: chạy `php artisan db:seed --class=DemoDeliverySeeder` sau DemoLogis
 Sprint 05: chạy `php artisan db:seed --class=DemoCaseSeeder` sau DemoDeliverySeeder. Shop gửi và theo dõi `/khieu-nai`; CSKH tiếp nhận, phân công và trao đổi nội bộ/công khai. `/su-co` có xác minh, bằng chứng private, khóa giao/đối soát riêng, đề xuất và người khác duyệt kết luận. SLA mặc định 48 giờ; cho mở lại khiếu nại trong 7 ngày. Xem [nghiệm thu, thiết kế và câu hỏi bảo vệ Sprint 05](docs/sprint-05-nghiem-thu.md). Không xóa các khóa kho/tài chính có trước; khoản bồi thường đã duyệt vẫn chờ tài chính.
 
 Sprint 06: chạy `php artisan db:seed --class=DemoFinanceSeeder` sau các seeder trên, rồi `php artisan finance:accrue-fees` để bổ sung phí từ đơn cũ. Mở `/tai-chinh`: shipper đề nghị nộp, kế toán xác nhận; đối soát có người khác duyệt; trả shop từng phần theo chứng từ ngân hàng. Tiền gốc và tài liệu đã ghi sổ không sửa/xóa; thay ngân hàng sau duyệt phải duyệt lại. Xem [nghiệm thu, công thức và câu hỏi bảo vệ Sprint 06](docs/sprint-06-nghiem-thu.md). Đây là ghi nhận kết quả ngân hàng, chưa tự chuyển tiền thật.
+
+Sprint 07: chạy `php artisan migrate`, `php artisan db:seed --class=CatalogSeeder` để cập nhật quyền, rồi `php artisan db:seed --class=DemoReportSeeder` sau các seeder trên. Mở `/bao-cao`: phân biệt ngày tạo/gửi và ngày giao/hoàn, xem tồn/quá hạn hiện tại, đối chiếu COD/quỹ/phí/phải trả từ sổ gốc. Seeder tạo một đơn cuối tháng trước, giao đầu tháng này; chạy lại không trùng. Báo cáo tài chính lọc nguồn phát sinh trong kỳ và hiển thị số dư hiện tại, chưa dựng lại số dư chốt cuối kỳ. Xem [nghiệm thu, cách đọc báo cáo và câu hỏi bảo vệ Sprint 07](docs/sprint-07-nghiem-thu.md).
+
+Xuất Excel tối đa 10.000 dòng, PDF 1.500 dòng; tệp trên 500 dòng chạy qua queue database riêng. Khởi động worker và lịch dọn tệp ở hai terminal riêng:
+
+```shell
+php artisan queue:work reports --queue=reports --tries=1 --timeout=240
+php artisan schedule:work
+```
+
+Tệp private hết hạn sau 24 giờ từ lúc yêu cầu, chỉ người yêu cầu còn đúng quyền/phạm vi mới tải được. `reports:prune-exports` chạy hằng giờ qua scheduler; có thể chạy lệnh này thủ công. Không cần đổi `QUEUE_CONNECTION` cho queue báo cáo.
 
 ## Tai lieu ky thuat
 

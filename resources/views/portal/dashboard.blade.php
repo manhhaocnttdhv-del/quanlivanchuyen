@@ -1,6 +1,25 @@
 @extends('layouts.portal')
 @section('heading', 'Tổng quan')
 @section('content')
+    @if ($reportStats)
+        <section class="work-section">
+            <div class="report-section-heading">
+                <h2>Vận hành 7 ngày</h2>
+                <a href="{{ route('reports.home') }}">Báo cáo <i data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="report-metrics">
+                @foreach ($reportStats as $metric)
+                    <a class="report-metric" href="{{ $metric['url'] }}">
+                        <span>{{ $metric['label'] }}</span>
+                        <strong>{{ $metric['value'] }}</strong>
+                        @if (in_array($loop->index, [2, 3]))
+                            <small>Hiện tại</small>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
     @if ($stats)
         <div class="row g-3 mb-4">
             @foreach ($stats as $label => $value)

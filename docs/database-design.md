@@ -1,10 +1,10 @@
 # Thiet ke database
 
-Day la schema du kien cho 8 sprint. Sprint 01 da trien khai identity, roles/permissions, pham vi kho, shop, phien ban ngan hang, dia chi, khu vuc, kho, phien ban bieu phi va audit. Sprint 02 them orders, order_items, order_status_histories, order_change_requests. Migration la nguon schema da trien khai; cac nhom con lai duoc them theo sprint. Backlog chuan nam trong `docs/sprints.json`.
+Đây là thiết kế cho 8 sprint, kèm mô tả schema thực tế đã triển khai từ Sprint 01 đến 07 ở các phần bên dưới. Migration là nguồn xác định tên bảng/cột/ràng buộc đã có; bảng đề xuất không thay thế migration. Sprint 08 còn thông báo và hoàn thiện tra cứu nhật ký. Backlog chuẩn nằm trong `docs/sprints.json`.
 
 ## Nguyen tac
 
-Sprint 03 đã triển khai delivery_tasks, task_assignments, pickup_attempts, handover_documents/lines, warehouse_items/locations, stocktakes/lines và discrepancies. Thiết kế chi tiết, unique key, chuỗi người giữ và cách kiểm tra nằm trong [nghiệm thu Sprint 03](sprint-03-nghiem-thu.md). Các nhóm tài chính/giao hàng tiếp theo vẫn là dự kiến.
+Sprint 03 đã triển khai delivery_tasks, task_assignments, pickup_attempts, handover_documents/lines, warehouse_items/locations, stocktakes/lines và discrepancies. Thiết kế chi tiết, unique key, chuỗi người giữ và cách kiểm tra nằm trong [nghiệm thu Sprint 03](sprint-03-nghiem-thu.md). Giao hàng, sự cố, tài chính và báo cáo đã triển khai được mô tả riêng trong phần Sprint 04–07.
 
 - MySQL 8, InnoDB, utf8mb4.
 - Khoa chinh BIGINT unsigned; ma van don va ma chung tu co unique index rieng.
@@ -24,6 +24,7 @@ Sprint 03 đã triển khai delivery_tasks, task_assignments, pickup_attempts, h
 | Delivery | delivery_attempts, delivery_proofs, return_records, delivery_collections | Giao, giao lai, hoan va khoan thu goc |
 | Finance | cash_deposits, deposit_allocations, reconciliations, reconciliation_lines, payments, payment_allocations, fee_receipts, receivables, adjustments, adjustment_lines | Nop tien, doi soat, thanh toan va dieu chinh |
 | Control | incidents, complaints, audit_logs, notifications, attachments | Su co, khieu nai, nhat ky |
+| Reports | export_logs, jobs | Lich su tep bao cao private va hang doi database |
 
 ## Index quan trong
 
@@ -67,7 +68,7 @@ Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` 
 - `weight_grams` la so nguyen dung tinh bac can; `weight_kg DECIMAL(10,3)` duoc suy ra bang chia nguyen, khong nhan can nang tu hai input doc lap.
 - `sender_snapshot`, `recipient_snapshot`, `fee_snapshot` luu tai luc gui. Dia chi hoac bieu phi danh muc thay doi khong sua lai snapshot cu.
 - `revision` tang moi lan cap nhat; request voi revision cu bi tu choi. Khoa shop -> order -> change trong transaction de tranh hai thao tac cung vuot qua kiem tra trang thai.
-- Ngay gio luu UTC; bo loc ngay theo Asia/Ho_Chi_Minh chuyen ve khoang UTC [dau ngay, dau ngay ke tiep), khong dung DATE(created_at) de giu kha nang dung index.
+- Định hướng ban đầu là lưu UTC; dữ liệu thực tế hiện ghi theo Asia/Ho_Chi_Minh. Bộ lọc chuyển ngày Việt Nam sang timezone cấu hình theo khoảng [đầu ngày, đầu ngày kế tiếp), không dùng DATE(created_at). Chưa có migration chuyển lịch sử cũ sang UTC; không tự đổi config timezone trên database đang có dữ liệu.
 - `custody_status` va `assigned_shipper_id` chuan bi cho Sprint 03; Sprint 02 khong co endpoint gia lap nhan/giao kien. Don da giu kien khong duoc huy truc tiep.
 - Timeline luu before/after, actor, revision va ly do trong cung transaction voi order va audit. Model tu choi sua/xoa; tai khoan DB van phai duoc bao ve, SQL truc tiep co the vuot qua Eloquent.
 
@@ -105,6 +106,19 @@ Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` 
 - `business_locks`: mot dong finance-posting khoa cac doan ghi tien ngan trong transaction; khoa shop/order/nguon theo ID. Day la lua chon de giai thich va kiem chung o quy mo do an, chua toi uu thong luong tai chinh lon.
 - Index theo kho/trang thai/ngay, shipper/trang thai/ngay, shop/ky; FK restrict, CHECK so tien va nguon; DECIMAL(15,2), VND nguyen dong xu ly bang int 64 bit.
 - Luu y timezone thuc te: `config/app.php` hien la Asia/Ho_Chi_Minh va cac luong ghi bang now(). Sprint 06 loc theo ngay Viet Nam va timezone cau hinh. Mo ta UTC truoc day la dinh huong, chua co migration chuyen du lieu cu. Xem tai lieu nghiem thu Sprint 06 truoc khi doi timezone.
+
+## Du lieu Sprint 07 da trien khai
+
+- Migration `2026_10_30_100000_create_report_exports.php` thêm `export_logs`, `jobs` và index phục vụ báo cáo; không thêm bảng số dư hoặc bảng tổng hợp chưa có nhu cầu.
+- `export_logs`: FK user restrict, code unique, unique `(user_id, client_token)`, request_hash, scope_hash, JSON bộ lọc, format/status, path private, row_count, generated_at/expires_at. Người yêu cầu, loại, định dạng và bộ lọc bất biến; dọn tệp không xóa lịch sử.
+- Index export `(user_id, created_at)` cho lịch sử cá nhân, `(status, expires_at)` cho dọn hết hạn; `jobs(queue)` cho worker. `failed_jobs` dùng migration nền của Laravel.
+- Index mới `orders(warehouse_id, submitted_at)`, `orders(warehouse_id, approved_at)` và `delivery_attempts(type, outcome, attempted_at, order_id)`. Tái sử dụng các index tài chính Sprint 06; chưa thêm index đơn theo mọi bộ lọc. Dữ liệu demo nhỏ không đủ chứng minh hiệu năng ở tải lớn; dùng EXPLAIN và dữ liệu đại diện trước khi thêm index tiếp.
+- Báo cáo vận hành đọc sự kiện `delivery_attempts.attempted_at`/shipper thực hiện; không bắt buộc `orders.created_at` cùng kỳ giao. Tồn dùng EXISTS trên warehouse_items nên một đơn nhiều kiện chỉ đếm một lần. Nhóm theo ID và tên, không gộp shop trùng tên.
+- Tài chính dùng SQL sổ gốc/phân bổ/điều chỉnh đã có. Tổng toàn bộ kết quả lọc, chi tiết phân trang sau. Giao dịch đọc giữ tổng/nhóm/chi tiết cùng snapshot MySQL; xuất tệp dựng snapshot khi worker xử lý, không cố định từ lúc bấm yêu cầu.
+- Kỳ lọc theo ngày Việt Nam `[đầu ngày, đầu ngày sau ngày kết thúc)`, chuyển sang timezone lưu thực tế trong config. Hiện dữ liệu lưu Asia/Ho_Chi_Minh; không giả định dữ liệu cũ là UTC.
+- Quyền áp dụng ngay trong SQL và kiểm tra lại khi tạo/tải tệp; scope_hash thay đổi khi phạm vi kho hoặc chế độ staff/shop đổi. Link signed không thay thế kiểm tra owner, trạng thái tài khoản và hạn tải.
+
+Xem [nghiệm thu Sprint 07](sprint-07-nghiem-thu.md) về công thức, ý nghĩa ngày lọc, giới hạn export và kịch bản đối chiếu.
 
 ## Cong thuc va dong thoi
 
