@@ -2,7 +2,7 @@
 
 He thong quan ly van chuyen COD xay dung bang Laravel 12, MySQL, Bootstrap 5 va jQuery. Project duoc chia thanh 8 sprint nghiep vu de de phat trien, review va bao ve do an.
 
-Sprint 01 đã hoàn thành tài khoản, phân quyền theo vai trò/kho, hồ sơ và duyệt shop, phiên bản ngân hàng, địa chỉ lấy hàng, khu vực/kho, biểu phí có phiên bản và nhật ký. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Vận đơn, kho, giao hàng và tài chính được triển khai ở các sprint tiếp theo.
+Sprint 01 và 02 đã triển khai trên các nhánh riêng: tài khoản/phân quyền, shop/ngân hàng/địa chỉ, danh mục/biểu phí; vận đơn MySQL, tính phí, duyệt đơn, đề nghị thay đổi, timeline, tra cứu công khai, barcode và bảng kê. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Kho, phân công shipper, giao/hoàn hàng và tài chính thuộc Sprint 03 trở đi.
 
 ## Cong nghe
 
@@ -36,16 +36,19 @@ Chạy `php artisan db:seed` để tạo vai trò, quyền và khu vực. Dữ l
 ```powershell
 $env:DEMO_PASSWORD = 'ThayBangMatKhauDemoCuaBan'
 php artisan db:seed --class=DemoSeeder
+php artisan db:seed --class=DemoOrderSeeder
 Remove-Item Env:DEMO_PASSWORD
 ```
 
 Tài khoản mẫu: `admin@guiviet.test`, `dispatcher@guiviet.test`, `warehouse@guiviet.test`, `shipper@guiviet.test`, `accountant@guiviet.test`, `support@guiviet.test`, `shop@guiviet.test`, `pending@guiviet.test`. Mật khẩu là giá trị đã đặt khi seed lần đầu; chạy lại seeder không đổi mật khẩu cũ.
 
-Chạy `php artisan dev:prepare-test-db` trước `php artisan test`. Test sử dụng MySQL `quanlivanchuyen_testing` riêng và rollback từng test. Lệnh chuẩn bị chỉ tạo/migrate database; không xóa database ứng dụng. Xem `docs/sprint-01-nghiem-thu.md` để demo và giải thích các quyết định thiết kế.
+`DemoOrderSeeder` tạo 8 vận đơn với lịch sử thật qua service; chạy lại không tạo trùng. Cần chạy DemoSeeder trước. Đơn mẫu có nháp, chờ duyệt, cần bổ sung, đã duyệt, đã hủy và đề nghị chỉnh sửa chờ xử lý.
 
-Trên máy hiện tại, mở `http://127.0.0.1:8001`, đăng nhập tại `/dang-nhap`. Trang khách hàng còn có công cụ nháp theo session; Sprint 02 sẽ chuyển sang vận đơn và biểu phí MySQL.
+Chạy `php artisan dev:prepare-test-db` trước `php artisan test`. Test sử dụng MySQL `quanlivanchuyen_testing` riêng và rollback từng test. Lệnh chuẩn bị chỉ tạo/migrate database; không xóa database ứng dụng. Xem `docs/sprint-01-nghiem-thu.md` và `docs/sprint-02-nghiem-thu.md` để demo và giải thích các quyết định thiết kế.
 
-Giao diện, nguồn ảnh và giới hạn session được ghi tại `docs/frontend-notes.md`.
+Trên máy hiện tại, mở `http://127.0.0.1:8001`, đăng nhập tại `/dang-nhap`. Shop tạo đơn tại `/gui-hang`; danh sách tại `/don-hang`. Điều phối chỉ xem và duyệt đơn thuộc kho được gán. Tra cứu công khai cần mã vận đơn đã gửi cùng 4 số cuối điện thoại nhận.
+
+Giao diện và nguồn ảnh được ghi tại `docs/frontend-notes.md`.
 
 ## Tai lieu ky thuat
 
@@ -68,7 +71,7 @@ Giao diện, nguồn ảnh và giới hạn session được ghi tại `docs/fro
 - `sprint-07-bao-cao-thong-ke`
 - `sprint-08-nhat-ky-thong-bao`
 
-Các nhánh được khởi tạo từ cùng commit nền. Sprint 01 đã hoàn thành trên `sprint-01-tai-khoan-danh-muc`, gồm migration, model, validation, policy, service, controller, view và test. Khi PR phụ thuộc chưa merge, nhánh sprint kế tiếp nhận merge từ nhánh phụ thuộc và ghi rõ trong PR; sau khi review mới merge vào `main`.
+Các nhánh được khởi tạo từ cùng commit nền. Sprint 01 nằm trên `sprint-01-tai-khoan-danh-muc`; Sprint 02 trên `sprint-02-quan-ly-van-don` đã nhận dependency Sprint 01. Khi PR phụ thuộc chưa merge, nhánh sprint kế tiếp nhận merge từ nhánh phụ thuộc và ghi rõ trong PR; sau khi review mới merge vào `main`.
 
 Truoc khi bat dau sprint sau, cap nhat `main` da merge sprint phu thuoc:
 

@@ -1,6 +1,6 @@
 # Thiet ke database
 
-Day la schema du kien cho 8 sprint. Sprint 01 da trien khai identity, roles/permissions, pham vi kho, shop, phien ban ngan hang, dia chi, khu vuc, kho, phien ban bieu phi va audit. Migration la nguon schema da trien khai; cac nhom con lai duoc them theo sprint. Backlog chuan nam trong `docs/sprints.json`.
+Day la schema du kien cho 8 sprint. Sprint 01 da trien khai identity, roles/permissions, pham vi kho, shop, phien ban ngan hang, dia chi, khu vuc, kho, phien ban bieu phi va audit. Sprint 02 them orders, order_items, order_status_histories, order_change_requests. Migration la nguon schema da trien khai; cac nhom con lai duoc them theo sprint. Backlog chuan nam trong `docs/sprints.json`.
 
 ## Nguyen tac
 
@@ -27,7 +27,10 @@ Day la schema du kien cho 8 sprint. Sprint 01 da trien khai identity, roles/perm
 
 - `orders(tracking_code)` unique.
 - `orders(shop_id, status, created_at)`.
-- `orders(receiver_phone)`, `orders(area_id, status)`.
+- `orders(warehouse_id, status, created_at)`, `orders(area_id, status)`.
+- `orders(assigned_shipper_id, status)`, `orders(created_at)`.
+- `orders(shop_id, client_token)` unique chong gui lap; `tracking_code` la ma ULID co unique rieng.
+- `order_change_requests(pending_order_id)` generated unique chi cho mot de nghi pending tren moi don.
 - `delivery_tasks(shipper_id, status, scheduled_at)`.
 - `warehouse_items(warehouse_id, status, location_id)`.
 - `delivery_collections(shipper_id, collected_at, status)`.
@@ -56,6 +59,15 @@ COD thu ho, phi van chuyen, phi hoan, tien shipper nop va tien tra shop la cac l
 | audit_logs | actor_id, event, subject_type, subject_id, old_values, new_values, reason, request_id, created_at | append-only; khong ghi credential; cung transaction voi thay doi nghiep vu |
 
 Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` trong unique composite. Khong dung index don `status` neu da co composite index dap ung query; kiem tra bang EXPLAIN tren du lieu seed lon truoc khi them index.
+
+## Du lieu van don da trien khai
+
+- `weight_grams` la so nguyen dung tinh bac can; `weight_kg DECIMAL(10,3)` duoc suy ra bang chia nguyen, khong nhan can nang tu hai input doc lap.
+- `sender_snapshot`, `recipient_snapshot`, `fee_snapshot` luu tai luc gui. Dia chi hoac bieu phi danh muc thay doi khong sua lai snapshot cu.
+- `revision` tang moi lan cap nhat; request voi revision cu bi tu choi. Khoa shop -> order -> change trong transaction de tranh hai thao tac cung vuot qua kiem tra trang thai.
+- Ngay gio luu UTC; bo loc ngay theo Asia/Ho_Chi_Minh chuyen ve khoang UTC [dau ngay, dau ngay ke tiep), khong dung DATE(created_at) de giu kha nang dung index.
+- `custody_status` va `assigned_shipper_id` chuan bi cho Sprint 03; Sprint 02 khong co endpoint gia lap nhan/giao kien. Don da giu kien khong duoc huy truc tiep.
+- Timeline luu before/after, actor, revision va ly do trong cung transaction voi order va audit. Model tu choi sua/xoa; tai khoan DB van phai duoc bao ve, SQL truc tiep co the vuot qua Eloquent.
 
 ## Cong thuc va dong thoi
 
