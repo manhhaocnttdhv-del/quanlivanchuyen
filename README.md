@@ -2,7 +2,7 @@
 
 He thong quan ly van chuyen COD xay dung bang Laravel 12, MySQL, Bootstrap 5 va jQuery. Project duoc chia thanh 8 sprint nghiep vu de de phat trien, review va bao ve do an.
 
-Hien tai moi co code nen, cau hinh frontend va tai lieu. Cac chuc nang FR-01 den FR-41 se duoc trien khai tren nhanh sprint tuong ung; chua co tai khoan demo hay module nghiep vu.
+Sprint 01 đã hoàn thành tài khoản, phân quyền theo vai trò/kho, hồ sơ và duyệt shop, phiên bản ngân hàng, địa chỉ lấy hàng, khu vực/kho, biểu phí có phiên bản và nhật ký. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Vận đơn, kho, giao hàng và tài chính được triển khai ở các sprint tiếp theo.
 
 ## Cong nghe
 
@@ -20,7 +20,7 @@ Hien tai moi co code nen, cau hinh frontend va tai lieu. Cac chuc nang FR-01 den
 5. Chay `npm run build`, sau do `php artisan serve --host=127.0.0.1 --port=8000`.
 6. Mo `http://127.0.0.1:8000`. Khi sua frontend, chay them `npm run dev` o terminal khac.
 
-Tren may Laragon hien tai co the chon PHP 8.2 cho rieng terminal PowerShell:
+Trên máy Laragon hiện tại có thể chọn PHP 8.2 cho riêng terminal PowerShell:
 
 ```powershell
 $env:Path = 'C:\laragon\bin\php\php-8.2.29-nts-Win32-vs16-x64;' + $env:Path
@@ -28,6 +28,24 @@ php -v
 ```
 
 Kiem tra: `php artisan test`, `php vendor/bin/pint --test`, `npm run build`.
+
+## Dữ liệu mẫu và kiểm thử
+
+Chạy `php artisan db:seed` để tạo vai trò, quyền và khu vực. Dữ liệu demo chỉ dùng ở môi trường local/testing; đặt mật khẩu riêng qua biến môi trường, không commit mật khẩu:
+
+```powershell
+$env:DEMO_PASSWORD = 'ThayBangMatKhauDemoCuaBan'
+php artisan db:seed --class=DemoSeeder
+Remove-Item Env:DEMO_PASSWORD
+```
+
+Tài khoản mẫu: `admin@guiviet.test`, `dispatcher@guiviet.test`, `warehouse@guiviet.test`, `shipper@guiviet.test`, `accountant@guiviet.test`, `support@guiviet.test`, `shop@guiviet.test`, `pending@guiviet.test`. Mật khẩu là giá trị đã đặt khi seed lần đầu; chạy lại seeder không đổi mật khẩu cũ.
+
+Chạy `php artisan dev:prepare-test-db` trước `php artisan test`. Test sử dụng MySQL `quanlivanchuyen_testing` riêng và rollback từng test. Lệnh chuẩn bị chỉ tạo/migrate database; không xóa database ứng dụng. Xem `docs/sprint-01-nghiem-thu.md` để demo và giải thích các quyết định thiết kế.
+
+Trên máy hiện tại, mở `http://127.0.0.1:8001`, đăng nhập tại `/dang-nhap`. Trang khách hàng còn có công cụ nháp theo session; Sprint 02 sẽ chuyển sang vận đơn và biểu phí MySQL.
+
+Giao diện, nguồn ảnh và giới hạn session được ghi tại `docs/frontend-notes.md`.
 
 ## Tai lieu ky thuat
 
@@ -50,7 +68,7 @@ Kiem tra: `php artisan test`, `php vendor/bin/pint --test`, `npm run build`.
 - `sprint-07-bao-cao-thong-ke`
 - `sprint-08-nhat-ky-thong-bao`
 
-8 nhanh hien cung xuat phat tu commit nen, chua phai code hoan thanh 8 sprint. Moi sprint can co migration, model, request validation, policy, service, controller, view va test tuong ung truoc khi merge vao `main`.
+Các nhánh được khởi tạo từ cùng commit nền. Sprint 01 đã hoàn thành trên `sprint-01-tai-khoan-danh-muc`, gồm migration, model, validation, policy, service, controller, view và test. Khi PR phụ thuộc chưa merge, nhánh sprint kế tiếp nhận merge từ nhánh phụ thuộc và ghi rõ trong PR; sau khi review mới merge vào `main`.
 
 Truoc khi bat dau sprint sau, cap nhat `main` da merge sprint phu thuoc:
 
