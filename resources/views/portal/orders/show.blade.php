@@ -119,7 +119,7 @@
             @foreach ($order->changeRequests as $change)
                 <article class="change-entry">
                     <div class="d-flex gap-2 flex-wrap justify-content-between">
-                        <strong>{{ $change->type === 'cancel' ? 'Đề nghị hủy' : 'Đề nghị chỉnh sửa' }}</strong><span
+                        <strong>{{ $change->type === 'cancel' ? 'Đề nghị hủy' : ($change->type === 'measured_weight' ? 'Đề nghị tính lại cước theo cân thực tế' : 'Đề nghị chỉnh sửa') }}</strong><span
                             class="status-badge">{{ ['pending' => 'Chờ xử lý', 'approved' => 'Đã chấp nhận', 'rejected' => 'Đã từ chối'][$change->status] }}</span>
                     </div>
                     <p class="small text-secondary mt-2">{{ $change->creator->name }} ·
@@ -163,7 +163,7 @@
             @foreach ($order->histories as $history)
                 <li>
                     <div>
-                        <strong>{{ \App\Models\OrderStatusHistory::EVENTS[$history->event] ?? $history->event }}</strong><span>{{ $history->created_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }}</span>
+                        <strong>{{ \App\Models\OrderStatusHistory::EVENTS[$history->event] ?? \App\Models\OrderStatusHistory::LOGISTICS_EVENTS[$history->event] ?? \App\Models\OrderStatusHistory::WAREHOUSE_EVENTS[$history->event] ?? $history->event }}</strong><span>{{ $history->created_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }}</span>
                     </div>
                     <p>{{ $history->actor?->name }} ·
                         {{ $history->from_status ? (\App\Models\Order::STATUSES[$history->from_status] ?? $history->from_status) . ' → ' : '' }}{{ \App\Models\Order::STATUSES[$history->to_status] ?? $history->to_status }}

@@ -28,3 +28,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/portal.php';
+require __DIR__.'/logistics.php';

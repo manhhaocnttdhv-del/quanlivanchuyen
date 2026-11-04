@@ -1,6 +1,6 @@
-@if (session('status'))
+@if (session('status') || session('success'))
     <div class="alert alert-success" role="status">
-        {{ session('status') }}</div>
+        {{ session('status') ?? session('success') }}</div>
 @endif
 @if ($errors->any())
     <div class="alert alert-danger" role="alert" tabindex="-1" data-validation-summary><strong>Vui lòng kiểm tra thông

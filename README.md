@@ -44,6 +44,8 @@ Tài khoản mẫu: `admin@guiviet.test`, `dispatcher@guiviet.test`, `warehouse@
 
 `DemoOrderSeeder` tạo 8 vận đơn với lịch sử thật qua service; chạy lại không tạo trùng. Cần chạy DemoSeeder trước. Đơn mẫu có nháp, chờ duyệt, cần bổ sung, đã duyệt, đã hủy và đề nghị chỉnh sửa chờ xử lý.
 
+Sprint 03: chạy `php artisan db:seed --class=DemoLogisticsSeeder` để thêm đơn lấy hàng, nhập/xuất kho, hàng hỏng và kiểm kê. Điều phối/shipper vào `/dieu-phoi`; kho dùng `/ton-kho` và `/kiem-ke`. Xem [nghiệm thu và câu hỏi bảo vệ Sprint 03](docs/sprint-03-nghiem-thu.md). Cước theo cân thực tế chỉ đổi sau đề nghị và người khác duyệt; Sprint 03 chưa ghi nhận COD đã thu.
+
 Chạy `php artisan dev:prepare-test-db` trước `php artisan test`. Test sử dụng MySQL `quanlivanchuyen_testing` riêng và rollback từng test. Lệnh chuẩn bị chỉ tạo/migrate database; không xóa database ứng dụng. Xem `docs/sprint-01-nghiem-thu.md` và `docs/sprint-02-nghiem-thu.md` để demo và giải thích các quyết định thiết kế.
 
 Trên máy hiện tại, mở `http://127.0.0.1:8001`, đăng nhập tại `/dang-nhap`. Shop tạo đơn tại `/gui-hang`; danh sách tại `/don-hang`. Điều phối chỉ xem và duyệt đơn thuộc kho được gán. Tra cứu công khai cần mã vận đơn đã gửi cùng 4 số cuối điện thoại nhận.

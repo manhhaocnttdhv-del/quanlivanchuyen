@@ -43,6 +43,13 @@
                         <a class="{{ request()->routeIs('orders.*') ? 'active' : '' }}"
                             href="{{ route('orders.index') }}"><i data-lucide="clipboard-list"></i> Vận đơn</a>
                     @endcan
+                    @if (auth()->user()->hasPermission('logistics.dispatch') || auth()->user()->hasPermission('logistics.warehouse') || auth()->user()->hasRole('shipper'))
+                        <a class="{{ request()->routeIs('logistics.index', 'logistics.show', 'logistics.order', 'logistics.handover') ? 'active' : '' }}" href="{{ route('logistics.index') }}"><i data-lucide="truck"></i> {{ auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Điều phối & bàn giao' }}</a>
+                    @endif
+                    @if (auth()->user()->hasPermission('logistics.warehouse') || auth()->user()->hasPermission('logistics.dispatch'))
+                        <a class="{{ request()->routeIs('logistics.inventory') ? 'active' : '' }}" href="{{ route('logistics.inventory') }}"><i data-lucide="package-check"></i> Tồn kho & sai lệch</a>
+                        <a class="{{ request()->routeIs('stocktakes.*') ? 'active' : '' }}" href="{{ route('stocktakes.index') }}"><i data-lucide="clipboard-list"></i> Kiểm kê kho</a>
+                    @endif
                     @can('users.manage')
                         <p class="nav-group-label mt-4">Quản lý</p><a
                             class="{{ request()->routeIs('users.*') ? 'active' : '' }}"

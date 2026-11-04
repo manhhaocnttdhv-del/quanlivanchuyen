@@ -11,14 +11,14 @@ class CatalogSeeder extends Seeder
 {
     public function run(): void
     {
-        $permissions = ['users.manage' => 'Quản lý tài khoản', 'catalog.manage' => 'Quản lý danh mục', 'shops.review' => 'Duyệt shop', 'banks.verify' => 'Xác minh ngân hàng', 'orders.review' => 'Duyệt vận đơn', 'audit.view' => 'Đọc nhật ký'];
+        $permissions = ['users.manage' => 'Quản lý tài khoản', 'catalog.manage' => 'Quản lý danh mục', 'shops.review' => 'Duyệt shop', 'banks.verify' => 'Xác minh ngân hàng', 'orders.review' => 'Duyệt vận đơn', 'audit.view' => 'Đọc nhật ký', 'logistics.dispatch' => 'Điều phối nhiệm vụ', 'logistics.warehouse' => 'Nhập xuất và kiểm kê', 'logistics.approve' => 'Duyệt sai lệch và kiểm kê'];
         foreach ($permissions as $name => $label) {
             Permission::firstOrCreate(['name' => $name], ['label' => $label]);
         }
         $roles = [
             'admin' => ['Quản trị viên', array_keys($permissions)],
-            'dispatcher' => ['Điều phối', ['orders.review']],
-            'warehouse' => ['Nhân viên kho', []], 'shipper' => ['Nhân viên giao hàng', []],
+            'dispatcher' => ['Điều phối', ['orders.review', 'logistics.dispatch', 'logistics.approve']],
+            'warehouse' => ['Nhân viên kho', ['logistics.warehouse']], 'shipper' => ['Nhân viên giao hàng', []],
             'accountant' => ['Kế toán', ['banks.verify']], 'support' => ['Chăm sóc khách hàng', ['shops.review']],
             'shop' => ['Chủ cửa hàng', []],
         ];

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Area;
+use App\Models\DeliveryTask;
 use App\Models\Order;
 use App\Models\OrderChangeRequest;
 use App\Models\Shop;
@@ -159,24 +160,32 @@ class OrderService
             Gate::forUser($actor)->authorize('review', $order);
             $this->ensure($change->created_by !== $actor->id, 'reason', 'Người tạo đề nghị không được tự duyệt.');
             $this->ensure($change->status === 'pending' && in_array($decision, ['approved', 'rejected']), 'reason', 'Đề nghị đã xử lý hoặc kết quả không hợp lệ.');
-            $this->checkRevision($order, $change->order_revision);
+            // Từ chối không áp dụng dữ liệu cũ; vẫn cho đóng đề nghị khi kho vừa ghi sự kiện mới.
+            if ($decision === 'approved') {
+                $this->checkRevision($order, $change->order_revision);
+            }
             $before = $this->snapshot($order);
             if ($decision === 'approved') {
-                $this->ensure($order->status === 'approved' && $order->custody_status === 'uncollected', 'status', 'Kiện đã xử lý vận chuyển; cần quy trình thu hồi trước.');
-                if ($change->type === 'cancel') {
-                    $order->status = 'cancelled';
-                    $order->cancelled_at = now();
+                if ($change->type === 'measured_weight') {
+                    $this->applyMeasuredWeight($order, $change);
                 } else {
-                    $this->approvedShop($shop);
-                    $details = $this->validateDetails($shop, $change->changes, true);
-                    $this->fillDetails($order, $details);
-                    $this->applyQuote($order, $shop, $details);
-                    $this->replaceItems($order, $details['items']);
-                    // Mọi sửa sau duyệt đều xét duyệt lại, kể cả khi chỉ đổi thông tin người nhận.
-                    $order->status = 'submitted';
-                    $order->submitted_at = now();
-                    $order->approved_at = null;
-                    $order->approved_by = null;
+                    $this->ensure($order->status === 'approved' && $order->custody_status === 'uncollected', 'status', 'Kiện đã xử lý vận chuyển; cần quy trình thu hồi trước.');
+                    $this->ensure(! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists(), 'status', 'Thu hồi nhiệm vụ đang hiệu lực trước khi chấp nhận thay đổi.');
+                    if ($change->type === 'cancel') {
+                        $order->status = 'cancelled';
+                        $order->cancelled_at = now();
+                    } else {
+                        $this->approvedShop($shop);
+                        $details = $this->validateDetails($shop, $change->changes, true);
+                        $this->fillDetails($order, $details);
+                        $this->applyQuote($order, $shop, $details);
+                        $this->replaceItems($order, $details['items']);
+                        // Mọi sửa sau duyệt đều xét duyệt lại, kể cả khi chỉ đổi thông tin người nhận.
+                        $order->status = 'submitted';
+                        $order->submitted_at = now();
+                        $order->approved_at = null;
+                        $order->approved_by = null;
+                    }
                 }
             }
             $order->revision++;
@@ -185,6 +194,23 @@ class OrderService
             $this->history($actor, $order, $decision === 'approved' ? 'change_applied' : 'change_rejected', $before, $reason);
             $this->audit->record($actor, $change, 'order.change_reviewed', ['status' => 'pending'], ['status' => $decision], $reason);
         }, 3);
+    }
+
+    private function applyMeasuredWeight(Order $order, OrderChangeRequest $change): void
+    {
+        $this->ensure($order->status === 'at_warehouse' && $order->custody_status === 'warehouse' && ! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists(), 'status', 'Cần đủ kiện tại kho và không có nhiệm vụ hiệu lực.');
+        $grams = (int) $order->parcels()->sum('actual_weight_grams');
+        $this->ensure($grams === (int) $change->changes['weight_grams'], 'reason', 'Kết quả cân đã thay đổi; lập đề nghị mới.');
+        $this->ensure($order->discrepancies()->whereKey($change->changes['discrepancy_id'])->where('type', 'weight')->where('status', 'open')->exists(), 'reason', 'Sai lệch cân không còn mở.');
+        // Tái tính ở server theo biểu phí hiệu lực; phí cũ được lưu trong đề nghị và history.
+        $quote = $this->fees->calculate(Area::findOrFail($order->origin_area_id), Area::findOrFail($order->area_id), $grams, $order->service, (int) $order->cod_amount, $order->fee_payer);
+        $order->weight_grams = $grams;
+        $order->weight_kg = intdiv($grams, 1000).'.'.str_pad((string) ($grams % 1000), 3, '0', STR_PAD_LEFT);
+        $order->shipping_fee = $quote['total'];
+        $order->recipient_total = $quote['recipient_total'];
+        $order->fee_snapshot = $quote;
+        $order->fee_version_id = $quote['version_id'];
+        $order->fee_rule_id = $quote['rule_id'];
     }
 
     private function validateDetails(Shop $shop, array $data, bool $complete): array
@@ -268,6 +294,7 @@ class OrderService
 
     private function changeable(Order $order): void
     {
+        $this->ensure(! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists(), 'status', 'Liên hệ điều phối thu hồi nhiệm vụ trước khi đề nghị thay đổi.');
         $this->ensure($order->status === 'approved' && $order->custody_status === 'uncollected', 'status', 'Chỉ đề nghị khi đơn đã duyệt và chưa lấy kiện. Đơn đã giao không được hủy; kiện đang giữ cần thu hồi.');
         $this->ensure(! $order->pendingChange()->exists(), 'reason', 'Đã có đề nghị đang chờ xử lý.');
     }

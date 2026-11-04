@@ -4,6 +4,8 @@ Day la schema du kien cho 8 sprint. Sprint 01 da trien khai identity, roles/perm
 
 ## Nguyen tac
 
+Sprint 03 đã triển khai delivery_tasks, task_assignments, pickup_attempts, handover_documents/lines, warehouse_items/locations, stocktakes/lines và discrepancies. Thiết kế chi tiết, unique key, chuỗi người giữ và cách kiểm tra nằm trong [nghiệm thu Sprint 03](sprint-03-nghiem-thu.md). Các nhóm tài chính/giao hàng tiếp theo vẫn là dự kiến.
+
 - MySQL 8, InnoDB, utf8mb4.
 - Khoa chinh BIGINT unsigned; ma van don va ma chung tu co unique index rieng.
 - Tien dung `DECIMAL(15,2)`, can nang dung `DECIMAL(10,3)`.
