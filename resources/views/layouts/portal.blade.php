@@ -36,8 +36,7 @@
                         href="{{ route('profile.edit') }}"><i data-lucide="info"></i> Hồ sơ cá nhân</a>
                     @if (auth()->user()->shop)
                         <a class="{{ request()->routeIs('shop.*', 'pickups.*') ? 'active' : '' }}"
-                            href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> Cửa hàng & địa
-                            chỉ</a>
+                            href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> {{ auth()->user()->shop->isIndividual() ? 'Người gửi & địa chỉ' : 'Cửa hàng & địa chỉ' }}</a>
                     @endif
                     @can('viewAny', \App\Models\Order::class)
                         <a class="{{ request()->routeIs('orders.*') ? 'active' : '' }}"
@@ -73,7 +72,7 @@
                     @endcan
                     @can('any-shop-review')
                         <a class="{{ request()->routeIs('shops.*') ? 'active' : '' }}"
-                            href="{{ route('shops.index') }}"><i data-lucide="banknote"></i> Duyệt shop & ngân hàng</a>
+                            href="{{ route('shops.index') }}"><i data-lucide="banknote"></i> Duyệt người gửi & ngân hàng</a>
                     @endcan
                     @can('catalog.manage')
                         <a class="{{ request()->routeIs('catalog.*', 'areas.*', 'warehouses.*') ? 'active' : '' }}"
@@ -91,7 +90,7 @@
                 </nav>
             </div>
         </aside>
-        <main class="portal-main">
+        <main class="portal-main" tabindex="0" aria-label="Nội dung chính">
             @include('portal.partials.feedback')
             <div class="portal-heading">
                 <h1>@yield('heading')</h1>@yield('actions')
