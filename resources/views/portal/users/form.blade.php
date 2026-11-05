@@ -20,6 +20,7 @@
             <div class="col-lg-6">
                 <fieldset class="choice-list">
                     <legend>Vai trò</legend>
+                    <p class="form-text">Vận hành phụ trách điều phối, kho và CSKH. Admin kiêm kế toán. Chủ cửa hàng tự đăng ký ở trang khách hàng.</p>
                     @foreach ($roles as $role)
                         <label class="form-check"><input class="form-check-input" type="checkbox" name="role_ids[]"
                                 value="{{ $role->id }}"

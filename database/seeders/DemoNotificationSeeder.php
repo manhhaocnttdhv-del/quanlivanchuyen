@@ -19,7 +19,7 @@ class DemoNotificationSeeder extends Seeder
         }
         $this->call(CatalogSeeder::class);
         $owner = User::where('email', 'shop@guiviet.test')->firstOrFail();
-        $dispatcher = User::where('email', 'dispatcher@guiviet.test')->firstOrFail();
+        $dispatcher = User::where('email', 'operations@guiviet.test')->firstOrFail();
         $shipper = User::where('email', 'shipper@guiviet.test')->firstOrFail();
         foreach (['submitted', 'assigned'] as $index => $scenario) {
             $token = '00000008-0000-4000-8000-'.str_pad((string) ($index + 1), 12, '0', STR_PAD_LEFT);

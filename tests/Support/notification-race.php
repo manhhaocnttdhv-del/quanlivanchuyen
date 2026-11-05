@@ -42,7 +42,7 @@ $person = function (string $role): User {
 
     return $user->fresh();
 };
-$dispatcher = $person('dispatcher');
+$dispatcher = $person('operations');
 $owner = $person('shop');
 $depot = Warehouse::create(['code' => 'NT-'.Str::random(10), 'name' => 'Kho test thong bao',
     'area_id' => Area::where('code', 'HN')->value('id'), 'address' => 'Dia chi test']);

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Area;
 use App\Models\Order;
 use App\Models\Receivable;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\WarehouseLocation;
 use App\Services\AdjustmentService;
@@ -45,7 +46,14 @@ class DemoFinanceSeeder extends Seeder
             throw new \RuntimeException('Chỉ tạo dữ liệu demo ở local/testing.');
         }
         $this->call(CatalogSeeder::class);
-        foreach (['owner' => 'shop', 'admin' => 'admin', 'accountant' => 'accountant', 'dispatcher' => 'dispatcher', 'clerk' => 'warehouse', 'shipper' => 'shipper', 'support' => 'support'] as $property => $email) {
+        $password = env('DEMO_PASSWORD');
+        if (! User::where('email', 'finance-admin@guiviet.test')->exists() && (! $password || strlen($password) < 10)) {
+            throw new \RuntimeException('Đặt DEMO_PASSWORD dài ít nhất 10 ký tự để tạo Admin tài chính demo.');
+        }
+        // Hai tài khoản cùng vai trò Admin để giữ nguyên quy tắc người lập khác người duyệt.
+        $financeAdmin = User::firstOrCreate(['email' => 'finance-admin@guiviet.test'], ['name' => 'Admin tài chính demo', 'phone' => '0900000007', 'password' => $password]);
+        $financeAdmin->roles()->syncWithoutDetaching(Role::where('name', 'admin')->value('id'));
+        foreach (['owner' => 'shop', 'admin' => 'admin', 'accountant' => 'finance-admin', 'dispatcher' => 'operations', 'clerk' => 'operations', 'shipper' => 'shipper', 'support' => 'operations'] as $property => $email) {
             $this->$property = User::where('email', $email.'@guiviet.test')->firstOrFail();
         }
         $this->location = WarehouseLocation::whereHas('warehouse', fn ($q) => $q->where('code', 'KHO-HN'))->where('code', 'A-01')->firstOrFail();

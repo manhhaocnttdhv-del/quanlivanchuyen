@@ -20,14 +20,13 @@ class CatalogSeeder extends Seeder
             Permission::firstOrCreate(['name' => $name], ['label' => $label]);
         }
         $roles = [
-            'admin' => ['Quản trị viên', array_keys($permissions)],
-            'dispatcher' => ['Điều phối', ['orders.review', 'logistics.dispatch', 'logistics.approve', 'delivery.collections.view', 'incidents.manage', 'incidents.approve', 'reports.operations']],
-            'warehouse' => ['Nhân viên kho', ['logistics.warehouse', 'incidents.manage', 'reports.operations']], 'shipper' => ['Nhân viên giao hàng', []],
-            'accountant' => ['Kế toán', ['banks.verify', 'delivery.collections.view', 'finance.manage', 'finance.approve', 'reports.operations', 'reports.finance']], 'support' => ['Chăm sóc khách hàng', ['shops.review', 'incidents.manage', 'complaints.manage', 'reports.operations']],
-            'shop' => ['Chủ cửa hàng', []],
+            'admin' => array_keys($permissions),
+            'operations' => ['shops.review', 'orders.review', 'logistics.dispatch', 'logistics.warehouse', 'logistics.approve', 'delivery.collections.view', 'incidents.manage', 'incidents.approve', 'complaints.manage', 'reports.operations'],
+            'shipper' => [],
+            'shop' => [],
         ];
-        foreach ($roles as $name => [$label,$grants]) {
-            $role = Role::firstOrCreate(['name' => $name], ['label' => $label]);
+        foreach ($roles as $name => $grants) {
+            $role = Role::updateOrCreate(['name' => $name], ['label' => Role::LABELS[$name]]);
             $role->permissions()->sync(Permission::whereIn('name', $grants)->pluck('id'));
         }
         foreach (config('shipping.provinces') as $code => $province) {

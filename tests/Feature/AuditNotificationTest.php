@@ -47,7 +47,7 @@ class AuditNotificationTest extends DatabaseTestCase
         $this->travelTo(Carbon::parse('2026-10-30 12:00:00', 'Asia/Ho_Chi_Minh'));
         Bus::fake([DeliverBusinessNotification::class]);
         $this->admin = $this->person();
-        $this->dispatcher = $this->person('dispatcher');
+        $this->dispatcher = $this->person('operations');
         $this->owner = $this->shopOwner();
         $this->shipper = $this->person('shipper');
         $this->depot = $this->warehouse();
@@ -99,7 +99,7 @@ class AuditNotificationTest extends DatabaseTestCase
     public function test_only_admin_with_audit_permission_can_read_system_audit_even_if_permission_is_granted_to_staff(): void
     {
         $log = $this->record($this->order(), 'order.updated');
-        Role::where('name', 'dispatcher')->sole()->permissions()->attach(Permission::where('name', 'audit.view')->sole());
+        Role::where('name', 'operations')->sole()->permissions()->attach(Permission::where('name', 'audit.view')->sole());
         foreach ([$this->dispatcher, $this->shipper, $this->owner] as $user) {
             $this->actingAs($user)->get(route('audit.index'))->assertForbidden();
             $this->get(route('audit.show', $log))->assertForbidden();
@@ -162,7 +162,7 @@ class AuditNotificationTest extends DatabaseTestCase
 
     public function test_dispatch_happens_after_commit_and_retry_delivers_once_to_the_right_warehouse(): void
     {
-        $outsider = $this->person('dispatcher');
+        $outsider = $this->person('operations');
         $outsider->warehouses()->attach($this->warehouse('HCM'));
         $order = $this->order();
         DB::transaction(function () use ($order) {
@@ -231,7 +231,7 @@ class AuditNotificationTest extends DatabaseTestCase
 
     public function test_incident_notifications_are_private_to_current_case_staff(): void
     {
-        $support = $this->person('support');
+        $support = $this->person('operations');
         $support->warehouses()->attach($this->depot);
         $order = $this->order();
         $incident = Incident::create(['order_id' => $order->id, 'warehouse_id' => $this->depot->id, 'created_by' => $this->shipper->id,
@@ -245,9 +245,9 @@ class AuditNotificationTest extends DatabaseTestCase
 
     public function test_reconciliation_notifies_approvers_shop_and_creator_with_status_permissions(): void
     {
-        $accountant = $this->person('accountant');
+        $accountant = $this->person('admin');
         $accountant->warehouses()->attach($this->depot);
-        $reviewer = $this->person('accountant');
+        $reviewer = $this->person('admin');
         $reviewer->warehouses()->attach($this->depot);
         $bank = ShopBankAccount::create(['shop_id' => $this->owner->shop->id, 'version' => 1,
             'bank_name' => 'Bank test', 'holder_name' => 'SHOP', 'account_number' => '1234567890', 'last_four' => '7890', 'created_by' => $this->owner->id]);
@@ -258,10 +258,12 @@ class AuditNotificationTest extends DatabaseTestCase
         $this->assertSame(1, $reviewer->notifications()->count());
         $this->assertSame(1, $this->owner->notifications()->count());
         $this->assertSame(0, $accountant->notifications()->count());
+        $this->assertSame(0, $this->dispatcher->notifications()->count());
         $rec->update(['status' => 'approved']);
         $this->deliver($this->record($rec, 'finance.reconciliation_approve', $rec->toArray(), $reviewer));
         $this->assertSame(1, $accountant->notifications()->count());
         $this->assertSame(2, $this->owner->notifications()->count());
+        $this->assertSame(0, $this->dispatcher->notifications()->count());
         $this->assertArrayNotHasKey('bank_snapshot', $this->owner->notifications()->latest()->first()->data);
     }
 

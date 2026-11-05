@@ -21,7 +21,7 @@ class InternalUserController extends Controller
             ->when($data['role'] ?? null, fn ($q, $role) => $q->whereHas('roles', fn ($q) => $q->where('name', $role)))
             ->latest('id')->paginate(15)->withQueryString();
 
-        return view('portal.users.index', ['users' => $users, 'roles' => Role::pluck('label', 'name')]);
+        return view('portal.users.index', ['users' => $users, 'roles' => Role::whereIn('name', array_keys(Role::LABELS))->pluck('label', 'name')]);
     }
 
     public function create()
@@ -37,7 +37,7 @@ class InternalUserController extends Controller
     private function form(?User $user = null)
     {
         // Tài khoản shop đăng ký bằng luồng riêng, không gán vai trò shop từ form nhân sự.
-        return view('portal.users.form', ['record' => $user, 'roles' => Role::where('name', '!=', 'shop')->get(), 'warehouses' => Warehouse::where('is_active', true)->get()]);
+        return view('portal.users.form', ['record' => $user, 'roles' => Role::whereIn('name', Role::INTERNAL_NAMES)->get(), 'warehouses' => Warehouse::where('is_active', true)->get()]);
     }
 
     public function store(InternalUserRequest $request, IdentityService $service)

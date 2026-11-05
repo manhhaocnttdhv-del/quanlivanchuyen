@@ -77,9 +77,9 @@ $person = function (string $role): User {
 
     return $user->fresh();
 };
-$dispatcher = $person('dispatcher');
+$dispatcher = $person('operations');
 $shipper = $person('shipper');
-$clerk = $person('warehouse');
+$clerk = $person('operations');
 $owner = $person('shop');
 $area = Area::where('code', 'HN')->firstOrFail();
 $warehouse = Warehouse::create(['code' => 'RACE-'.Str::random(10), 'name' => 'Kho kiểm tra đồng thời', 'area_id' => $area->id, 'address' => 'Địa chỉ kiểm thử', 'is_active' => true]);

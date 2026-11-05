@@ -2,6 +2,8 @@
 
 Nhánh `sprint-08-nhat-ky-thong-bao`, phạm vi FR-40.1 đến FR-40.5 trong `docs/sprints.json`. Kế thừa Sprint 01–07 tại commit `5e766af`; review/merge các PR phụ thuộc trước khi merge Sprint 08 vào `main`.
 
+Phân quyền theo [ma trận bốn vai trò](role-matrix.md): chỉ Admin xem nhật ký; Admin, Vận hành, Shipper và Shop nhận thông báo đúng quyền hiện tại. Dùng `operations@guiviet.test` cho công việc điều phối/kho/CSKH. Thông báo tài chính dành cho Admin và chủ shop liên quan; Vận hành không nhận thông báo đối soát.
+
 ## Chức năng hoàn thành
 
 | FR | Kết quả | Màn hình / thành phần |
@@ -44,7 +46,7 @@ Production gọi `php artisan schedule:run` mỗi phút. Scheduler chạy `notif
 
 ## Kịch bản nghiệm thu
 
-1. Đăng nhập điều phối hoặc admin tại `http://127.0.0.1:8001/dang-nhap`. Chạy seeder và worker; hộp `/thong-bao` có đơn mới chờ duyệt. Điều phối kho khác không nhận được đơn ngoài phạm vi.
+1. Đăng nhập Vận hành (`operations@guiviet.test`) hoặc Admin tại `/dang-nhap`. Chạy seeder và worker; hộp `/thong-bao` có đơn mới chờ duyệt. Vận hành kho khác không nhận được đơn ngoài phạm vi.
 2. Admin mở `/quan-tri/nhat-ky`, tìm đúng mã vận đơn seeder in ra. Mở event `order.reviewed` để xem status/revision trước và sau; bấm “Cùng đối tượng” để đọc chuỗi lịch sử. Bấm request ID để xem các audit cùng request.
 3. Với đơn phân công, shipper vào hộp thư và mở nhiệm vụ lấy hàng. Shop có thông báo kết quả duyệt; người thực hiện thao tác không nhận lại thông báo của chính mình.
 4. Dùng nút đánh dấu đã đọc, kiểm tra số chuông giảm; đánh dấu chưa đọc để tăng lại. Chọn nhóm, tab đã/chưa đọc và chuyển trang. “Đọc tất cả” chỉ tác động hộp thư tài khoản hiện tại.
@@ -129,7 +131,7 @@ php artisan view:cache
 git diff --check
 ```
 
-Test dùng database MySQL kiểm thử riêng, không migrate:fresh database ứng dụng. Riêng `AuditNotificationTest` có 16 test, 96 assertions: lọc và biên ngày Việt Nam; admin/owner/scope; credential lồng nhau và tiền lớn; UUID tương quan; rollback; enqueue sau commit; retry; task thật; khóa tài khoản/thu hồi quyền; sự cố/giao thất bại/đối soát; phân trang/đọc hàng loạt; queue lỗi và outbox lỗi; model bất biến.
+Test dùng database MySQL kiểm thử riêng, không migrate:fresh database ứng dụng. Riêng `AuditNotificationTest` có 16 test, 98 assertions: lọc và biên ngày Việt Nam; admin/owner/scope; credential lồng nhau và tiền lớn; UUID tương quan; rollback; enqueue sau commit; retry; task thật; khóa tài khoản/thu hồi quyền; sự cố/giao thất bại/đối soát; phân trang/đọc hàng loạt; queue lỗi và outbox lỗi; model bất biến. Vận hành không đọc được audit dù được gán thêm audit.view, không nhận thông báo tài chính; hai Admin khác nhau nhận đúng thông báo lập/duyệt.
 
 Kiểm tra đồng thời dùng database verify riêng đã migrate:
 
@@ -139,7 +141,7 @@ php tests/Support/notification-race.php quanlivanchuyen_verify_2026103008
 
 Script chỉ chấp nhận tên `quanlivanchuyen_verify_` kèm chữ số, tạo fixture riêng và chạy hai PHP process cùng delivery một outbox trên MySQL thật. Kiểm tra rollback không phát job và commit có job, kết quả một thông báo cho mỗi người nhận. Chạy lại được; không dùng tên database ứng dụng hoặc testing đang chạy PHPUnit.
 
-Kết quả chốt: toàn bộ **163 test, 1.197 assertions** đạt; riêng Sprint 08 **16 test, 96 assertions**. Pint, Vite build, Blade cache và whitespace đạt. Đã kiểm tra migrate trên database mới và database demo, seeder chạy lại không trùng, worker thật xử lý job và hai process cạnh tranh trên MySQL verify. Trình duyệt bốn vai trò ở 1440px/375px xác nhận hộp thư, số đếm, đọc/chưa đọc, bộ lọc, link hồ sơ, chi tiết audit và header cố định hoạt động; không lỗi JS/assets hoặc tràn viewport.
+Kết quả đồng bộ bốn vai trò ngày 05/11/2026: toàn bộ **171 test, 1.289 assertions** đạt; riêng Sprint 08 **16 test, 98 assertions**. Pint, Vite build, Blade cache và whitespace đạt. Test chạy chuỗi seeder đến DemoNotificationSeeder với bốn vai trò mới. Các kiểm tra nghiệm thu trước đó gồm migrate database mới/demo, seeder không trùng, worker thật và hai process cạnh tranh trên MySQL verify; trình duyệt ở 1440px/375px xác nhận hộp thư, số đếm, đọc/chưa đọc, bộ lọc, link hồ sơ, chi tiết audit và header cố định hoạt động, không lỗi JS/assets hoặc tràn viewport.
 
 ## Câu hỏi bảo vệ
 

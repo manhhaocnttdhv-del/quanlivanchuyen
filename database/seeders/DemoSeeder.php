@@ -23,16 +23,20 @@ class DemoSeeder extends Seeder
         if (! $password || strlen($password) < 10) {
             throw new \RuntimeException('Đặt DEMO_PASSWORD trong .env trước khi tạo tài khoản demo.');
         }
-        $people = ['admin' => 'Quản trị demo', 'dispatcher' => 'Điều phối demo', 'warehouse' => 'Thủ kho demo', 'shipper' => 'Shipper demo', 'accountant' => 'Kế toán demo', 'support' => 'CSKH demo'];
-        foreach ($people as $role => $name) {
-            $user = User::firstOrCreate(['email' => $role.'@guiviet.test'], ['name' => $name, 'password' => $password, 'phone' => '09000000'.str_pad((string) array_search($role, array_keys($people)), 2, '0', STR_PAD_LEFT)]);
+        $people = [
+            'admin' => ['Admin demo', '0900000000'],
+            'operations' => ['Vận hành demo', '0900000006'],
+            'shipper' => ['Shipper demo', '0900000003'],
+        ];
+        foreach ($people as $role => [$name, $phone]) {
+            $user = User::firstOrCreate(['email' => $role.'@guiviet.test'], ['name' => $name, 'password' => $password, 'phone' => $phone]);
             $user->roles()->syncWithoutDetaching(Role::where('name', $role)->value('id'));
         }
         $admin = User::where('email', 'admin@guiviet.test')->firstOrFail();
         foreach (['HN', 'HCM'] as $code) {
             $area = Area::where('code', $code)->firstOrFail();
             $warehouse = Warehouse::firstOrCreate(['code' => 'KHO-'.$code], ['name' => 'Kho '.$area->name, 'address' => 'Địa chỉ demo '.$area->name, 'area_id' => $area->id]);
-            foreach (['admin', 'dispatcher', 'warehouse', 'shipper'] as $role) {
+            foreach (['admin', 'operations', 'shipper'] as $role) {
                 User::where('email', $role.'@guiviet.test')->first()->warehouses()->syncWithoutDetaching($warehouse->id);
             }
         }
