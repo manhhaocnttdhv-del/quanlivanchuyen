@@ -12,7 +12,7 @@ class Order extends Model
 
     public const EDITABLE = ['draft', 'needs_info', 'rejected'];
 
-    public const INPUT_FIELDS = ['pickup_address_id', 'area_id', 'recipient_name', 'recipient_phone', 'recipient_address', 'weight_grams', 'parcel_count', 'service', 'cod_amount', 'fee_payer', 'note'];
+    public const INPUT_FIELDS = ['pickup_address_id', 'warehouse_id', 'area_id', 'recipient_name', 'recipient_phone', 'recipient_address', 'weight_grams', 'parcel_count', 'service', 'cod_amount', 'fee_payer', 'note'];
 
     protected $guarded = ['id'];
 

@@ -4,11 +4,11 @@ import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
-    Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole,
+    Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
-const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole };
+const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store };
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -103,6 +103,58 @@ $(function () {
         });
     }).trigger('change');
     $('form[data-confirm]').on('submit', function (event) { if (!window.confirm(this.dataset.confirm)) event.preventDefault(); });
+
+    const $registration = $('[data-registration-form]');
+    if ($registration.length) {
+        const updateSenderType = () => {
+            const isBusiness = $registration.find('[name="account_type"]:checked').val() === 'business';
+            $registration.find('[data-business-field]').prop('hidden', !isBusiness)
+                .find('input').prop('disabled', !isBusiness).prop('required', isBusiness);
+            $registration.find('[data-sender-name]').toggleClass('col-md-6', isBusiness).toggleClass('col-12', !isBusiness);
+            if (!isBusiness) clearErrors($registration, ['shop_name']);
+        };
+        $registration.find('[name="account_type"]').on('change', updateSenderType);
+        updateSenderType();
+        const $area = $registration.find('[name="area_id"]');
+        const $warehouses = $registration.find('[data-warehouse-area]');
+        const updateRegistrationWarehouses = () => {
+            const areaId = String($area.val() ?? '');
+            let count = 0;
+            $warehouses.each((_, warehouse) => {
+                const matches = areaId !== '' && warehouse.dataset.warehouseArea === areaId;
+                warehouse.hidden = !matches;
+                if (matches) count++;
+            });
+            const areaName = $area.find('option:selected').text();
+            const message = !areaId ? 'Chưa chọn tỉnh/thành.'
+                : count === 0 ? `Chưa có kho tiếp nhận đang hoạt động tại ${areaName}.`
+                : `${areaName}: ${count} kho đang hoạt động.`;
+            $registration.find('[data-warehouse-summary]').text(message);
+        };
+        $area.on('change', updateRegistrationWarehouses);
+        updateRegistrationWarehouses();
+    }
+
+    const $pickup = $('#pickup_address_id');
+    const $warehouse = $('#warehouse_id');
+    if ($pickup.length && $warehouse.length) {
+        const pickupAreas = $pickup.data('areas');
+        const warehouseAreas = $warehouse.data('areas');
+        const $warehouseOptions = $warehouse.find('option[value!=""]').clone();
+        const updateReceivingWarehouses = () => {
+            const selectedWarehouse = $warehouse.val();
+            const area = pickupAreas[$pickup.val()];
+            const $options = $warehouseOptions.filter((_, option) => area && warehouseAreas[option.value] === area);
+            const placeholder = !area ? 'Chọn địa chỉ lấy hàng trước'
+                : !$options.length ? 'Chưa có kho tiếp nhận tại khu vực này' : 'Chọn kho tiếp nhận';
+            $warehouse.empty().append($('<option>', { value: '', text: placeholder })).append($options.clone());
+            $warehouse.val($options.toArray().some((option) => option.value === selectedWarehouse) ? selectedWarehouse : '');
+            $warehouse.prop('disabled', !$options.length);
+        };
+        $pickup.on('change', updateReceivingWarehouses);
+        updateReceivingWarehouses();
+    }
+
     let itemIndex = $('#order-item-rows .order-item-row').length;
     $('#add-order-item').on('click', function () {
         if ($('#order-item-rows .order-item-row').length >= 20) return;

@@ -59,17 +59,30 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         $fees->publish($this->admin, $fees->save($this->admin, $this->feeData()), 'Biểu phí kiểm thử');
     }
 
-    private function approved(): Order
+    private function approved(?Warehouse $warehouse = null): Order
     {
         $orders = app(OrderService::class);
         $order = $orders->saveDraft($this->owner, ['client_token' => (string) Str::uuid(), 'pickup_address_id' => $this->owner->shop->addresses()->value('id'),
+            'warehouse_id' => ($warehouse ?? $this->depot)->id,
             'area_id' => Area::where('code', 'HCM')->value('id'), 'recipient_name' => 'Người nhận', 'recipient_phone' => '0987656789', 'recipient_address' => '10 Đường kiểm thử',
             'weight_grams' => 1000, 'parcel_count' => 2, 'service' => 'standard', 'cod_amount' => 500000, 'fee_payer' => 'recipient', 'items' => [['name' => 'Sách', 'quantity' => 2]]]);
         $orders->submit($this->owner, $order, $order->revision);
         $orders->review($this->admin, $order->fresh(), $order->fresh()->revision, 'approved', 'Thông tin hợp lệ');
-        $order->refresh()->update(['warehouse_id' => $this->depot->id]);
 
         return $order->fresh();
+    }
+
+    public function test_dispatch_uses_customer_selected_warehouse_and_its_staff_scope(): void
+    {
+        $selected = $this->warehouse();
+        $order = $this->approved($selected);
+        $this->actingAs($this->dispatcher)->get('/van-hanh/don/'.$order->id)->assertForbidden();
+        $this->dispatcher->warehouses()->attach($selected);
+        $this->shipper->warehouses()->attach($selected);
+        $this->get('/van-hanh/don/'.$order->id)->assertOk();
+        $task = $this->assign($order);
+        $this->assertSame($selected->id, $task->warehouse_id);
+        $this->assertSame($selected->id, $order->fresh()->warehouse_id);
     }
 
     private function assign(Order $order, string $type = 'pickup', ?User $shipper = null): DeliveryTask

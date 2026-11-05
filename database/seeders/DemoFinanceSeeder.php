@@ -112,6 +112,7 @@ class DemoFinanceSeeder extends Seeder
         $dispatch = app(DispatchService::class);
         $stock = app(WarehouseService::class);
         $order = $orders->saveDraft($this->owner, ['client_token' => $token, 'pickup_address_id' => $this->owner->shop->addresses()->where('is_active', true)->value('id'),
+            'warehouse_id' => $this->location->warehouse_id,
             'area_id' => Area::where('code', 'HN')->value('id'), 'recipient_name' => 'Khách demo tài chính', 'recipient_phone' => '0987654321', 'recipient_address' => '60 Nguyễn Trãi, Hà Nội',
             'weight_grams' => 1000, 'parcel_count' => 1, 'service' => 'standard', 'cod_amount' => $cod, 'fee_payer' => 'sender', 'note' => 'Demo Sprint 6: '.$scenario, 'items' => [['name' => 'Sách demo tài chính', 'quantity' => 1]]]);
         $orders->submit($this->owner, $order, $order->revision);
