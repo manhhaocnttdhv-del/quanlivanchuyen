@@ -20,7 +20,7 @@ class DashboardController extends Controller
             'shop' => $request->user()->shop()->with(['currentBankAccount', 'addresses.area'])->first(),
             'stats' => $request->user()->can('users.manage') ? [
                 'Tài khoản hoạt động' => User::where('status', 'active')->count(),
-                'Shop chờ duyệt' => Shop::where('status', 'pending')->count(),
+                'Người gửi chờ duyệt' => Shop::where('status', 'pending')->count(),
                 'Kho hoạt động' => Warehouse::where('is_active', true)->count(),
                 'Biểu phí công bố' => FeeVersion::where('status', 'published')->count(),
             ] : [],

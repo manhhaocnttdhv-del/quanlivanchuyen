@@ -13,7 +13,7 @@
     @if ($shop)
         <section class="work-section">
             <h2>{{ $shop->name }}</h2>
-            <p class="mt-2"><span class="status-badge">{{ \App\Models\Shop::STATUSES[$shop->status] }}</span></p>
+            <p class="mt-2">{{ $shop->account_type_label }} · <span class="status-badge">{{ \App\Models\Shop::STATUSES[$shop->status] }}</span></p>
             @if ($shop->review_reason)
                 <p>{{ $shop->review_reason }}</p>
             @endif
@@ -25,7 +25,7 @@
                     {{ $shop->currentBankAccount?->masked_number }} ·
                     {{ $shop->currentBankAccount?->verified_at ? 'Đã xác minh' : 'Chờ xác minh' }}</dd>
             </dl>
-            <a href="{{ route('shop.profile') }}" class="btn btn-outline-primary">Quản lý cửa hàng</a>
+            <a href="{{ route('shop.profile') }}" class="btn btn-outline-primary">{{ $shop->isIndividual() ? 'Thông tin gửi hàng' : 'Quản lý cửa hàng' }}</a>
             @can('create', \App\Models\Order::class)
                 <a href="{{ route('orders.create') }}" class="btn btn-primary"><i data-lucide="plus"></i> Tạo vận đơn</a>
             @endcan

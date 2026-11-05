@@ -12,6 +12,7 @@ class OrderRules
 
         return [
             'pickup_address_id' => [$required, 'integer', 'min:1'],
+            'warehouse_id' => [$required, 'integer', 'min:1'],
             'area_id' => [$required, 'integer', 'min:1'],
             'recipient_name' => [$required, 'string', 'max:150'],
             'recipient_phone' => [$required, 'string', 'regex:/^0[0-9]{9}$/'],
@@ -31,7 +32,7 @@ class OrderRules
 
     public static function attributes(): array
     {
-        return ['pickup_address_id' => 'Địa chỉ lấy hàng', 'area_id' => 'Khu vực nhận', 'recipient_name' => 'Người nhận', 'recipient_phone' => 'Điện thoại nhận', 'recipient_address' => 'Địa chỉ nhận', 'weight_grams' => 'Khối lượng (g)', 'parcel_count' => 'Số kiện', 'service' => 'Dịch vụ', 'fee_payer' => 'Người trả phí', 'cod_amount' => 'COD', 'items' => 'Hàng hóa', 'items.*.name' => 'Tên hàng', 'items.*.quantity' => 'Số lượng', 'revision' => 'Phiên bản đơn'];
+        return ['pickup_address_id' => 'Địa chỉ lấy hàng', 'warehouse_id' => 'Kho tiếp nhận', 'area_id' => 'Khu vực nhận', 'recipient_name' => 'Người nhận', 'recipient_phone' => 'Điện thoại nhận', 'recipient_address' => 'Địa chỉ nhận', 'weight_grams' => 'Khối lượng (g)', 'parcel_count' => 'Số kiện', 'service' => 'Dịch vụ', 'fee_payer' => 'Người trả phí', 'cod_amount' => 'COD', 'items' => 'Hàng hóa', 'items.*.name' => 'Tên hàng', 'items.*.quantity' => 'Số lượng', 'revision' => 'Phiên bản đơn'];
     }
 
     public static function messages(): array

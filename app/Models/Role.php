@@ -10,7 +10,7 @@ class Role extends Model
         'admin' => 'Admin (kiêm kế toán)',
         'operations' => 'Nhân viên vận hành',
         'shipper' => 'Shipper',
-        'shop' => 'Chủ cửa hàng',
+        'shop' => 'Khách hàng gửi hàng',
     ];
 
     public const INTERNAL_NAMES = ['admin', 'operations', 'shipper'];
