@@ -2,6 +2,8 @@
 
 Nhánh `sprint-07-bao-cao-thong-ke`, phạm vi FR-38, FR-39 và FR-41 trong `docs/sprints.json`. Kế thừa Sprint 01–06; các PR phụ thuộc cần review và merge trước khi merge Sprint 07 vào `main`.
 
+Theo [ma trận bốn vai trò](role-matrix.md), Admin xem báo cáo vận hành và tài chính toàn hệ thống; Vận hành (`operations@guiviet.test`) chỉ xem báo cáo vận hành theo kho; Shop chỉ xem dữ liệu của mình. Shipper không có quyền báo cáo. Tệp xuất kiểm tra lại cùng quyền và phạm vi khi tải.
+
 ## Chức năng hoàn thành
 
 | FR | Kết quả | Màn hình |
@@ -38,7 +40,7 @@ Worker phải chạy để xử lý tệp trên 500 dòng; tệp nhỏ xử lý 
 
 ## Kịch bản nghiệm thu
 
-1. Admin mở dashboard, bấm chỉ tiêu để tới báo cáo. Điều phối chỉ thấy kho được gán; shop chỉ thấy đơn của mình. Shipper không có quyền báo cáo.
+1. Admin mở dashboard, bấm chỉ tiêu để tới báo cáo. Vận hành chỉ thấy báo cáo vận hành trong kho được gán và bị chặn khỏi tài chính nội bộ; Shop chỉ thấy dữ liệu của mình. Shipper không có quyền báo cáo.
 2. Chọn ngày giao mà DemoReportSeeder in ra. Chọn “Giao thành công”, tìm mã đơn demo; đổi sang “Đơn tạo trong kỳ” thì mã đó không có. Ngày lọc giao dựa trên lần giao, không dựa ngày tạo vận đơn.
 3. Nhóm theo shop, kho, khu vực, shipper; đổi bộ lọc. Hai shop trùng tên vẫn là hai dòng độc lập. Kết quả giao quy cho shipper thực hiện lần giao, kể cả sau đó đơn được phân công lại.
 4. Xem tỷ lệ thành công và mẫu số; một lần giao thành công cùng một lần thất bại tương ứng 1/2 = 50%. Hoàn không nằm trong mẫu số lượt giao.
@@ -123,7 +125,7 @@ git diff --check
 
 Nghiệm thu còn gồm migrate trên database mới và database demo, seeder chạy hai lần, worker database thật chuyển queued → ready, tải XLSX/PDF qua trình duyệt, kiểm tra bốn vai trò ở 1440px/375px và render PDF nhiều trang để kiểm tra chữ tiếng Việt/cột/số trang.
 
-Kết quả chốt: toàn bộ **147 test, 1.101 assertions** đạt; riêng báo cáo **22 test, 122 assertions**. Pint, build, Blade cache, whitespace và Composer audit đạt. Worker thật tạo Excel thành công; seeder chạy lại không trùng; trình duyệt bốn vai trò không lỗi JavaScript/assets hoặc tràn viewport. PDF hai trang giữ đủ cột, tiếng Việt và số trang ở chân trang.
+Kết quả đồng bộ bốn vai trò ngày 05/11/2026: toàn bộ **151 test, 1.151 assertions** đạt; Pint và build đạt. Các kiểm tra nghiệm thu trước đó gồm Blade cache, whitespace, Composer audit, worker thật tạo Excel, seeder không trùng và trình duyệt không lỗi JavaScript/assets hoặc tràn viewport. PDF hai trang giữ đủ cột, tiếng Việt và số trang ở chân trang.
 
 ## Câu hỏi bảo vệ
 
