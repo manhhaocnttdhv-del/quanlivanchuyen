@@ -15,6 +15,17 @@ Request -> Route -> Middleware/Policy -> Form Request -> Controller -> Service -
 - Model khai bao relation, cast va scope; tranh viet query phuc tap trong Blade.
 - Policy kiem tra quyen theo vai tro va pham vi kho/shop.
 
+## Bốn vai trò
+
+- `admin`: quản trị và kiêm kế toán; có quyền xác minh ngân hàng, quản lý tài khoản/danh mục/biểu phí và đọc audit.
+- `operations`: gộp điều phối, kho, CSKH; có `shops.review`, `orders.review`, `logistics.dispatch`, `logistics.warehouse`, `logistics.approve`. Thao tác vận đơn/kho vẫn giới hạn theo phạm vi kho được gán.
+- `shipper`: chỉ làm nhiệm vụ được phân công và bàn giao của chính mình; không có quyền quản trị hoặc xác nhận tiền đã nộp.
+- `shop`: chỉ quản lý hồ sơ, địa chỉ và vận đơn của mình; không tự duyệt hồ sơ.
+
+Số vai trò không thay thế việc kiểm tra người lập/người duyệt. Hai nhân viên cùng vai trò vận hành vẫn là hai người khác nhau; người lập kiểm kê không được tự duyệt. Nghiệp vụ tài chính triển khai sau phải giữ điều kiện người lập khác người duyệt kể cả khi cả hai là admin.
+
+Migration `2026_11_05_100000_consolidate_staff_roles` chuyển vai trò cũ, giữ ID tài khoản/phạm vi kho, ghi audit và tăng `auth_version`. Không dùng alias vai trò cũ trong Policy hoặc tái tạo vai trò cũ khi seed. Danh mục vai trò hiển thị và validation của tài khoản nội bộ cùng dùng whitelist trong model `Role`.
+
 ## Module de xuat
 
 `Identity`, `Catalog`, `Orders`, `Dispatch`, `Warehouse`, `Delivery`, `Incidents`, `Finance`, `Reports`, `Audit`.

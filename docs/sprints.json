@@ -9,13 +9,13 @@
     "tasks": [
       {"fr":"FR-01","work":"Đăng nhập email hoặc điện thoại bằng session; chỉ tài khoản active; giới hạn thử sai; đăng xuất POST và tạo lại session.","accept":"Đúng mật khẩu vào được; sai/khóa bị từ chối; rate limit trả 429 và đăng xuất vô hiệu phiên."},
       {"fr":"FR-02","work":"Form Request hồ sơ và đổi mật khẩu; kiểm tra mật khẩu hiện tại, xác nhận mật khẩu mới, email/phone unique.","accept":"Không thể sửa hồ sơ người khác; mật khẩu lưu hash; lỗi validation giữ dữ liệu hợp lệ."},
-      {"fr":"FR-03","work":"CRUD tài khoản nội bộ; vai trò và phạm vi kho; Policy ở server; khóa tài khoản phải ảnh hưởng phiên đang dùng.","accept":"Mỗi vai trò chỉ truy cập đúng chức năng/kho; không cho tự khóa tài khoản admin cuối cùng."},
+      {"fr":"FR-03","work":"CRUD tài khoản nội bộ; 4 vai trò admin (kiêm kế toán), vận hành (điều phối/kho/CSKH), shipper, shop; phạm vi kho; Policy ở server; khóa tài khoản phải ảnh hưởng phiên đang dùng.","accept":"Mỗi vai trò chỉ truy cập đúng chức năng/kho; không cho tự khóa tài khoản admin cuối cùng; người lập không tự duyệt chứng từ."},
       {"fr":"FR-04","work":"Shop đăng ký/cập nhật hồ sơ; pending, approved, rejected, suspended; liên kết chủ shop.","accept":"Shop chỉ thấy hồ sơ của mình; shop chưa approved chưa được gửi vận đơn."},
       {"fr":"FR-05","work":"Duyệt/từ chối shop có lý do; xác minh tài khoản nhận COD; lưu phiên bản tài khoản đã xác minh.","accept":"Thay đổi ngân hàng phải xác minh lại; hồ sơ cũ vẫn truy vết được khi đối soát."},
       {"fr":"FR-06","work":"CRUD địa chỉ lấy hàng thuộc shop; một địa chỉ mặc định; kiểm tra khu vực hoạt động; ngừng dùng thay vì xóa địa chỉ đã sử dụng.","accept":"Không có hai mặc định sau thao tác đồng thời; địa chỉ ngừng dùng không xuất hiện khi tạo đơn mới."},
       {"fr":"FR-07","work":"Khu vực và bậc cân, mức phí, COD tối đa; version biểu phí có ngày hiệu lực, không chồng khoảng quy tắc.","accept":"Kiểm tra đúng ranh giới cân/COD; sửa phiên bản mới không thay đổi phí đã chốt của đơn cũ."}
     ],
-    "demo":"Admin tạo điều phối/kho/shipper/kế toán, duyệt shop; shop tạo địa chỉ; công bố biểu phí; mở lịch sử duyệt.",
+    "demo":"Admin tạo vận hành và shipper; vận hành duyệt shop; shop tạo địa chỉ; admin công bố biểu phí; mở lịch sử duyệt.",
     "defense":"Vì sao quyền phải kiểm tra cả role và phạm vi dữ liệu? Vì sao biểu phí cần version?"
   },
   {

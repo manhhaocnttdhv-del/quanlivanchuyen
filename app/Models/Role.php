@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
+    public const LABELS = [
+        'admin' => 'Admin (kiêm kế toán)',
+        'operations' => 'Nhân viên vận hành',
+        'shipper' => 'Shipper',
+        'shop' => 'Chủ cửa hàng',
+    ];
+
+    public const INTERNAL_NAMES = ['admin', 'operations', 'shipper'];
+
     protected $fillable = ['name', 'label'];
 
     public function permissions()
