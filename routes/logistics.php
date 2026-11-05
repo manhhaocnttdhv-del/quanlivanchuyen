@@ -3,9 +3,15 @@
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\LogisticsController;
 use App\Http\Controllers\StocktakeController;
+use App\Http\Controllers\WarehouseTransferController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
+    Route::get('/chuyen-kho', [WarehouseTransferController::class, 'index'])->name('transfers.index');
+    Route::post('/van-hanh/don/{order}/chuyen-kho', [WarehouseTransferController::class, 'store'])->name('transfers.store');
+    Route::get('/chuyen-kho/{transfer}', [WarehouseTransferController::class, 'show'])->name('transfers.show');
+    Route::post('/chuyen-kho/{transfer}/nhan', [WarehouseTransferController::class, 'receive'])->name('transfers.receive');
+    Route::get('/chuyen-kho/{transfer}/bang-chung/{line}', [WarehouseTransferController::class, 'evidence'])->name('transfers.evidence');
     Route::get('/viec-cua-toi', [DeliveryController::class, 'mine'])->name('delivery.mine');
     Route::get('/so-thu-giao-hang', [DeliveryController::class, 'collections'])->name('delivery.collections');
     Route::post('/nhiem-vu/{task}/ket-qua-giao', [DeliveryController::class, 'record'])->name('delivery.record');

@@ -28,6 +28,7 @@ class WarehouseService
             $this->ledger->ensure(in_array($task->status, $inbound ? ['in_custody', 'recall_pending'] : ['assigned']), 'Nhiệm vụ không đủ điều kiện bàn giao.');
             $this->ledger->ensure(! $task->handovers()->where('status', 'pending')->exists(), 'Đã có phiếu bàn giao chờ xác nhận.');
             if (! $inbound) {
+                app(OrderRouting::class)->ensureReady($order, $task->type);
                 $this->ledger->ensure(in_array($task->type, ['delivery', 'return']) && $order->status === 'at_warehouse', 'Chỉ xuất giao/hoàn khi đơn tại kho.');
                 $this->unblocked($order);
             }
@@ -58,6 +59,7 @@ class WarehouseService
             $this->ledger->ensure($doc->created_by !== $actor->id, 'Hai phía bàn giao phải là hai tài khoản khác nhau.');
             $this->ledger->ensure($doc->status === 'pending' && in_array($task->status, $inbound ? ['in_custody', 'recall_pending'] : ['assigned']), 'Phiếu đã xử lý hoặc nhiệm vụ không còn phù hợp.');
             if (! $inbound) {
+                app(OrderRouting::class)->ensureReady($order, $task->type);
                 $this->unblocked($order);
             }
             $lines = $doc->lines()->with('item')->orderBy('id')->get();

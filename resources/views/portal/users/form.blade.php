@@ -29,11 +29,14 @@
                 </fieldset>
                 <fieldset class="choice-list">
                     <legend>Phạm vi kho</legend>
+                    <p class="form-text">Vận hành và shipper cần ít nhất một kho. Tài khoản từng kho chỉ chọn đúng kho phụ trách.</p>
                     @foreach ($warehouses as $warehouse)
                         <label class="form-check"><input class="form-check-input" type="checkbox" name="warehouse_ids[]"
                                 value="{{ $warehouse->id }}"
                                 @checked(in_array($warehouse->id, (array) old('warehouse_ids', $record?->warehouses->modelKeys() ?? [])))><span>{{ $warehouse->name }}</span></label>
                     @endforeach
+                    @error('warehouse_ids')<p class="text-danger small">{{ $message }}</p>@enderror
+                    @error('warehouse_ids.*')<p class="text-danger small">{{ $message }}</p>@enderror
                 </fieldset>
                 <x-field name="reason" label="Lý do tạo / thay đổi quyền" type="textarea" rows="3" required />
             </div>

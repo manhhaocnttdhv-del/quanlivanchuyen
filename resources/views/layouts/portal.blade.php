@@ -75,6 +75,8 @@
                             hàng</a>
                     @endif
                     @if ($warehouseAccess || $dispatchAccess)
+                        <a class="{{ request()->routeIs('transfers.*') ? 'active' : '' }}"
+                            href="{{ route('transfers.index') }}"><i data-lucide="arrow-right-left"></i> Chuyển kho</a>
                         <a class="{{ request()->routeIs('logistics.inventory') ? 'active' : '' }}"
                             href="{{ route('logistics.inventory') }}"><i data-lucide="package-check"></i> Tồn kho & sai
                             lệch</a>

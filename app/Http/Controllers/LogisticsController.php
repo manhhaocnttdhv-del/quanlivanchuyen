@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LogisticsFilterRequest;
 use App\Http\Requests\LogisticsRequest;
+use App\Models\DeliveryDecision;
 use App\Models\DeliveryTask;
 use App\Models\Discrepancy;
 use App\Models\HandoverDocument;
@@ -17,6 +18,7 @@ use App\Policies\LogisticsPolicy;
 use App\Services\AuditService;
 use App\Services\DispatchService;
 use App\Services\LogisticsEvidence;
+use App\Services\OrderRouting;
 use App\Services\WarehouseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,7 +65,21 @@ class LogisticsController extends Controller
         $loads = DeliveryTask::whereIn('status', DeliveryTask::ACTIVE)->whereIn('shipper_id', $shippers->pluck('id'))->selectRaw('shipper_id, COUNT(*) as total')->groupBy('shipper_id')->pluck('total', 'shipper_id');
         $options = $shippers->sortBy(fn ($u) => $loads[$u->id] ?? 0)->mapWithKeys(fn ($u) => [$u->id => $u->name.' · '.($loads[$u->id] ?? 0).' nhiệm vụ']);
 
-        return view('portal.logistics.order', ['order' => $order, 'shippers' => $options, 'policy' => $this->policy]);
+        $routing = app(OrderRouting::class);
+        $routeReady = $routing->ready($order, $order->return_authorized_by ? 'return' : 'delivery');
+        $decisions = ['return' => DeliveryDecision::TYPES['return']];
+        if ($routeReady && $order->deliveryAttempts->first()?->outcome === 'failed') {
+            if ($order->delivery_attempt_count < $order->delivery_attempt_limit) {
+                $decisions = ['retry' => DeliveryDecision::TYPES['retry']] + $decisions;
+            } elseif ($this->policy->approve($request->user(), $order->warehouse_id)) {
+                $decisions = ['retry_exception' => DeliveryDecision::TYPES['retry_exception']] + $decisions;
+            }
+        }
+
+        return view('portal.logistics.order', ['order' => $order, 'shippers' => $options, 'policy' => $this->policy,
+            'routeReady' => $routeReady, 'decisions' => $decisions,
+            'destinations' => $routing->destinations($order)->orderBy('name')->pluck('name', 'id'),
+            'transfers' => $order->transfers()->with(['source', 'destination'])->latest('id')->get()]);
     }
 
     public function show(Request $request, DeliveryTask $task)

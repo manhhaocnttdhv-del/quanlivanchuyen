@@ -32,7 +32,8 @@ class DispatchService
             if ($type === 'pickup') {
                 $this->ledger->ensure($order->status === 'approved' && $order->custody_status === 'uncollected' && ! $order->parcels()->exists(), 'Chỉ phân công lấy đơn đã duyệt, chưa nhận kiện.');
             } else {
-                $this->ledger->ensure($order->status === 'at_warehouse' && $order->parcels()->where('holder_type', 'warehouse')->count() === $order->parcel_count, 'Phải đủ kiện tại kho trước khi phân công giao/hoàn.');
+                app(OrderRouting::class)->ensureReady($order, $type);
+                $this->ledger->ensure($order->status === 'at_warehouse' && $order->parcels()->where('holder_type', 'warehouse')->where('warehouse_id', $order->warehouse_id)->count() === $order->parcel_count, 'Phải đủ kiện tại kho trước khi phân công giao/hoàn.');
                 $this->ledger->ensure($type === 'return' ? $order->return_authorized_by !== null : ($order->return_authorized_by === null && $order->delivery_attempt_count < $order->delivery_attempt_limit), 'Hoàn cần quyết định điều phối; giao phải còn lượt và chưa có quyết định hoàn.');
                 if ($type === 'delivery' && $order->delivery_attempt_count > 0) {
                     $this->ledger->ensure($order->retry_authorized_attempt === $order->delivery_attempt_count + 1, 'Cần quyết định giao lại và ý kiến shop trước nhiệm vụ mới.');

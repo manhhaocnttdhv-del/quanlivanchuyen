@@ -54,7 +54,13 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->put('auth_version', $user->auth_version);
 
-        return redirect()->intended(route('dashboard'));
+        // Một nhân viên có thể mở nút gửi hàng trước đăng nhập; đưa về công việc đúng vai trò.
+        $intendedPath = parse_url((string) $request->session()->get('url.intended', ''), PHP_URL_PATH);
+        if (! $user->shop && in_array($intendedPath, ['/gui-hang', '/don-hang', '/cua-hang'])) {
+            $request->session()->forget('url.intended');
+        }
+
+        return redirect()->intended(route($user->workspaceRoute()));
     }
 
     public function store(RegisterRequest $request, ShopService $service)

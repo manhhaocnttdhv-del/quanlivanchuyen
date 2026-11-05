@@ -14,7 +14,7 @@
             @forelse ($order->parcels as $item)
                 <tr>
                     <td>#{{ $item->parcel_number }}</td>
-                    <td>{{ match ($item->holder_type) {'warehouse' => $order->warehouse?->name ?? 'Kho','recipient' => 'Đã bàn giao người nhận','shop' => 'Đã hoàn về shop',default => $item->holder?->name ?? 'Chưa xác định'} }}
+                    <td>{{ match ($item->holder_type) {'warehouse' => $item->warehouse?->name ?? 'Kho','transfer' => 'Đang chuyển kho','recipient' => 'Đã bàn giao người nhận','shop' => 'Đã hoàn về shop',default => $item->holder?->name ?? 'Chưa xác định'} }}
                     </td>
                     <td>{{ $item->location?->code ?? '—' }}</td>
                     <td>{{ $item->actual_weight_grams ? number_format($item->actual_weight_grams) . ' g' : 'Chưa cân' }}

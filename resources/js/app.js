@@ -3,14 +3,14 @@ import $ from 'jquery';
 import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
-    Bell, Mail, MailCheck, CheckCheck, LogOut,
+    Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
     Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
 const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store };
-Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut });
+Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus });
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {

@@ -71,6 +71,24 @@ class User extends Authenticatable
         return $this->roles->contains('name', $role);
     }
 
+    public function workspaceRoute(): string
+    {
+        if ($this->hasRole('admin')) {
+            return 'dashboard';
+        }
+        if ($this->hasPermission('logistics.dispatch') || $this->hasPermission('logistics.warehouse')) {
+            return 'logistics.index';
+        }
+        if ($this->hasRole('shipper')) {
+            return 'delivery.mine';
+        }
+        if ($this->shop) {
+            return $this->shop->status === 'approved' ? 'orders.index' : 'shop.profile';
+        }
+
+        return 'dashboard';
+    }
+
     public function hasPermission(string $permission): bool
     {
         return $this->status === 'active' && $this->roles()->whereHas('permissions', fn ($query) => $query->where('name', $permission))->exists();

@@ -26,14 +26,16 @@
             <div class="collapse navbar-collapse" id="customer-nav">
                 <ul class="navbar-nav ms-auto align-items-lg-center">
                     @auth
-                        <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Không gian làm việc</a>
+                        <li class="nav-item"><a class="nav-link" href="{{ route(auth()->user()->workspaceRoute()) }}">Không gian làm việc</a>
                         </li>
                     @else
                         <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Đăng nhập</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Đăng ký gửi hàng</a></li>
                     @endauth
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#dich-vu">Dịch vụ</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#bang-cuoc">Bảng cước</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#ho-tro">Hỗ trợ</a></li>
+                    @if (auth()->guest() || auth()->user()->shop)
                     <li class="nav-item nav-account"><a
                             class="nav-link {{ request()->routeIs('orders.index') ? 'active' : '' }}"
                             href="{{ route('orders.index') }}"
@@ -41,6 +43,7 @@
                                 data-lucide="clipboard-list"></i> Đơn của tôi</a></li>
                     <li class="nav-item"><a class="btn btn-primary" href="{{ route('orders.create') }}"><i
                                 data-lucide="plus"></i> Tạo đơn hàng</a></li>
+                    @endif
                 </ul>
             </div>
         </div>
@@ -76,8 +79,12 @@
                 </div>
                 <div class="col-6 col-lg-3">
                     <h2>Gửi hàng</h2>
-                    <a href="{{ route('orders.create') }}">Tạo đơn hàng</a>
-                    <a href="{{ route('orders.index') }}">Đơn của tôi</a>
+                    @if (auth()->guest() || auth()->user()->shop)
+                        <a href="{{ route('orders.create') }}">Tạo đơn hàng</a>
+                        <a href="{{ route('orders.index') }}">Đơn của tôi</a>
+                    @else
+                        <a href="{{ route(auth()->user()->workspaceRoute()) }}">Không gian làm việc</a>
+                    @endif
                     <a href="{{ route('home') }}?tool=estimate#cong-cu">Ước tính cước</a>
                 </div>
                 <div class="col-6 col-lg-4">

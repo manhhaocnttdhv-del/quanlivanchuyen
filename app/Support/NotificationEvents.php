@@ -6,12 +6,15 @@ use App\Models\AuditLog;
 
 class NotificationEvents
 {
-    public const CATEGORIES = ['order' => 'Vận đơn', 'task' => 'Nhiệm vụ', 'delivery' => 'Giao hàng', 'incident' => 'Sự cố', 'finance' => 'Đối soát'];
+    public const CATEGORIES = ['order' => 'Vận đơn', 'task' => 'Nhiệm vụ', 'delivery' => 'Giao hàng', 'transfer' => 'Chuyển kho', 'incident' => 'Sự cố', 'finance' => 'Đối soát'];
 
     public const EVENTS = [
         'order.submitted' => ['order', 'Vận đơn mới chờ duyệt'],
         'order.reviewed' => ['order', 'Vận đơn đã được xét duyệt'],
         'logistics.task_assigned' => ['task', 'Bạn có nhiệm vụ mới'],
+        'logistics.transfer_dispatched' => ['transfer', 'Có chuyến chuyển kho chờ nhận'],
+        'logistics.transfer_partial' => ['transfer', 'Chuyển kho chưa nhận đủ kiện'],
+        'logistics.transfer_received' => ['transfer', 'Kho đích đã nhận đủ kiện'],
         'delivery.attempt_recorded' => ['delivery', 'Giao hoặc hoàn hàng thất bại'],
         'incident.created' => ['incident', 'Có sự cố cần xử lý'],
         'finance.reconciliation_submit' => ['finance', 'Đối soát chờ duyệt'],

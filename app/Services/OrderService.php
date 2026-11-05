@@ -255,6 +255,7 @@ class OrderService
         $quote = $this->fees->calculate($pickup->area, $destination, $details['weight_grams'], $details['service'], $details['cod_amount'], $details['fee_payer']);
         $order->origin_area_id = $pickup->area_id;
         $order->warehouse_id = $details['warehouse_id'];
+        $order->origin_warehouse_id = $details['warehouse_id'];
         $order->sender_snapshot = ['name' => $pickup->contact_name, 'phone' => $pickup->phone, 'address' => $pickup->address, 'area' => $pickup->area->name, 'shop' => $shop->name];
         $order->recipient_snapshot = ['name' => $details['recipient_name'], 'phone' => $details['recipient_phone'], 'address' => $details['recipient_address'], 'area' => $destination->name];
         $order->fee_snapshot = $quote;
@@ -267,6 +268,7 @@ class OrderService
     private function fillDetails(Order $order, array $details): void
     {
         $order->fill(Arr::only($details, Order::INPUT_FIELDS));
+        $order->origin_warehouse_id = $details['warehouse_id'];
         $grams = $details['weight_grams'] ?? null;
         $order->weight_kg = $grams ? intdiv($grams, 1000).'.'.str_pad((string) ($grams % 1000), 3, '0', STR_PAD_LEFT) : null;
     }
