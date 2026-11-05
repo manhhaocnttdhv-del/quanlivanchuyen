@@ -14,7 +14,7 @@ class PortalRequest extends FormRequest
     public function attributes(): array
     {
         return ['name' => 'Tên', 'email' => 'Email', 'phone' => 'Số điện thoại', 'password' => 'Mật khẩu', 'address' => 'Địa chỉ',
-            'area_id' => 'Khu vực', 'reason' => 'Lý do', 'contact_name' => 'Người liên hệ', 'shop_name' => 'Tên cửa hàng',
+            'area_id' => 'Khu vực', 'reason' => 'Lý do', 'contact_name' => 'Người liên hệ', 'shop_name' => 'Tên cửa hàng', 'account_type' => 'Loại người gửi',
             'bank_name' => 'Ngân hàng', 'holder_name' => 'Chủ tài khoản', 'account_number' => 'Số tài khoản', 'status' => 'Trạng thái',
             'identity' => 'Email hoặc điện thoại', 'current_password' => 'Mật khẩu hiện tại'];
     }
@@ -25,6 +25,7 @@ class PortalRequest extends FormRequest
             'exists' => ':attribute không hợp lệ.', 'in' => ':attribute không hợp lệ.', 'confirmed' => 'Xác nhận mật khẩu không khớp.',
             'min.string' => ':attribute cần ít nhất :min ký tự.', 'max.string' => ':attribute tối đa :max ký tự.',
             'regex' => ':attribute không đúng định dạng.', 'integer' => ':attribute phải là số nguyên.',
-            'boolean' => ':attribute phải là giá trị có/không.', 'string' => ':attribute phải là văn bản.'];
+            'boolean' => ':attribute phải là giá trị có/không.', 'string' => ':attribute phải là văn bản.',
+            'shop_name.required_if' => 'Vui lòng nhập tên cửa hàng.'];
     }
 }

@@ -5,7 +5,9 @@
         <section class="col-lg-6">
             <h2 class="h5 mb-3">Hồ sơ đăng ký</h2>
             <dl class="detail-grid">
-                <dt>Chủ shop</dt>
+                <dt>Loại người gửi</dt>
+                <dd>{{ $shop->account_type_label }}</dd>
+                <dt>Người đăng ký</dt>
                 <dd>{{ $shop->user->name }}</dd>
                 <dt>Liên hệ</dt>
                 <dd>{{ $shop->user->email }}<br>{{ $shop->user->phone }}</dd>
@@ -39,7 +41,7 @@
                                     class="btn btn-outline-primary mt-3">Xác nhận đã xác minh</button></form>
                         @endif
                     @endcan
-            </div>@empty<p class="text-secondary">Shop chưa đăng ký ngân hàng.</p>
+            </div>@empty<p class="text-secondary">Người gửi chưa đăng ký ngân hàng.</p>
             @endforelse
         </section>
     </div>

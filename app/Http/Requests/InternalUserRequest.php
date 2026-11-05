@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use Illuminate\Validation\Rule;
 
 class InternalUserRequest extends PortalRequest
@@ -20,7 +21,7 @@ class InternalUserRequest extends PortalRequest
             'phone' => ['required', 'regex:/^0[0-9]{9}$/', Rule::unique('users')->ignore($user?->id)],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:10', 'max:100', 'confirmed'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
-            'role_ids' => ['required', 'array', 'min:1'], 'role_ids.*' => ['integer', 'distinct', Rule::exists('roles', 'id')->whereNot('name', 'shop')],
+            'role_ids' => ['required', 'array', 'min:1'], 'role_ids.*' => ['integer', 'distinct', Rule::exists('roles', 'id')->whereIn('name', Role::INTERNAL_NAMES)],
             'warehouse_ids' => ['nullable', 'array'], 'warehouse_ids.*' => ['integer', 'distinct', Rule::exists('warehouses', 'id')->where('is_active', true)],
             'reason' => ['required', 'string', 'min:5', 'max:500']];
     }

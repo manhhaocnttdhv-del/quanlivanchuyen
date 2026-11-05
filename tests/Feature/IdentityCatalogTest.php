@@ -76,8 +76,8 @@ class IdentityCatalogTest extends DatabaseTestCase
         $admin = $this->person();
         $warehouse = $this->warehouse();
         $this->actingAs($admin)->post(route('users.store'), [
-            'name' => 'Điều phối mới', 'email' => 'new-staff@test.local', 'phone' => '0987000000', 'password' => 'NewPassword!2026', 'password_confirmation' => 'NewPassword!2026',
-            'status' => 'active', 'role_ids' => [Role::where('name', 'dispatcher')->value('id')], 'warehouse_ids' => [$warehouse->id], 'reason' => 'Bổ sung nhân sự điều phối',
+            'name' => 'Nhân viên vận hành mới', 'email' => 'new-staff@test.local', 'phone' => '0987000000', 'password' => 'NewPassword!2026', 'password_confirmation' => 'NewPassword!2026',
+            'status' => 'active', 'role_ids' => [Role::where('name', 'operations')->value('id')], 'warehouse_ids' => [$warehouse->id], 'reason' => 'Bổ sung nhân sự vận hành',
         ])->assertRedirect(route('users.index'));
         $staff = User::where('email', 'new-staff@test.local')->firstOrFail();
         $this->assertTrue($staff->hasPermission('orders.review'));
@@ -90,7 +90,7 @@ class IdentityCatalogTest extends DatabaseTestCase
         $admin = $this->person();
         $this->actingAs($admin)->put(route('users.update', $admin), [
             'name' => $admin->name, 'email' => $admin->email, 'phone' => $admin->phone, 'status' => 'inactive',
-            'role_ids' => [Role::where('name', 'dispatcher')->value('id')], 'reason' => 'Thử khóa quản trị cuối',
+            'role_ids' => [Role::where('name', 'operations')->value('id')], 'reason' => 'Thử khóa quản trị cuối',
         ])->assertSessionHasErrors('status');
         $this->assertSame('active', $admin->fresh()->status);
         $this->assertTrue($admin->fresh()->hasRole('admin'));
@@ -98,13 +98,49 @@ class IdentityCatalogTest extends DatabaseTestCase
 
     public function test_registration_creates_pending_shop_and_default_pickup(): void
     {
-        $this->post('/dang-ky', ['name' => 'Shop mới', 'shop_name' => 'Tên cửa hàng mới', 'email' => 'register@test.local', 'phone' => '0988111222',
+        $this->post('/dang-ky', ['account_type' => 'business', 'name' => 'Shop mới', 'shop_name' => 'Tên cửa hàng mới', 'email' => 'register@test.local', 'phone' => '0988111222',
             'password' => 'RegisterPass!2026', 'password_confirmation' => 'RegisterPass!2026', 'area_id' => Area::where('code', 'HN')->value('id'), 'address' => '10 Đường kiểm thử',
         ])->assertRedirect(route('shop.profile'));
         $user = User::where('email', 'register@test.local')->firstOrFail();
         $this->assertSame('pending', $user->shop->status);
+        $this->assertSame('business', $user->shop->account_type);
         $this->assertTrue($user->shop->addresses->first()->is_default);
         $this->assertTrue($user->hasRole('shop'));
+    }
+
+    public function test_registration_lists_only_active_warehouses_in_active_areas(): void
+    {
+        $first = $this->warehouse();
+        $first->update(['name' => 'Kho trung tâm', 'address' => '10 Đường trung tâm']);
+        $second = $this->warehouse();
+        $closed = $this->warehouse();
+        $closed->update(['is_active' => false]);
+        $inactiveAreaWarehouse = $this->warehouse('HP');
+        $inactiveAreaWarehouse->area->update(['is_active' => false]);
+
+        $this->get(route('register'))->assertOk()
+            ->assertViewHas('warehouses', fn ($warehouses) => $warehouses->count() === 2
+                && $warehouses->pluck('code')->diff([$first->code, $second->code])->isEmpty())
+            ->assertSee('Kho trung tâm')->assertSee('10 Đường trung tâm')
+            ->assertDontSee($closed->code)->assertDontSee($inactiveAreaWarehouse->code)
+            ->assertSee('Chưa chọn tỉnh/thành.');
+    }
+
+    public function test_registration_restores_warehouse_information_after_validation_failure(): void
+    {
+        $warehouse = $this->warehouse();
+        $this->from(route('register'))->post(route('register.store'), ['area_id' => $warehouse->area_id])
+            ->assertRedirect(route('register'))->assertSessionHasErrors('name');
+
+        $response = $this->get(route('register'))->assertOk()->assertSee('Hà Nội: 1 kho đang hoạt động.');
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+        $items = (new \DOMXPath($document))->query('//*[@data-warehouse-area and not(@hidden)]');
+        $this->assertCount(1, $items);
+        $this->assertStringContainsString($warehouse->code, $items->item(0)->textContent);
+
+        $this->withSession(['_old_input' => ['area_id' => Area::where('code', 'HT')->value('id')]])
+            ->get(route('register'))->assertOk()->assertSee('Chưa có kho tiếp nhận đang hoạt động tại Hà Tĩnh.');
     }
 
     public function test_bank_replacement_keeps_verified_history_and_requires_fresh_verification(): void

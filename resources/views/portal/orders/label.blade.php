@@ -29,7 +29,7 @@
                 <div><small>COD toàn
                         đơn</small><strong>{{ number_format((int) $order->cod_amount, 0, ',', '.') }}đ</strong></div>
                 <div><small>Cước ·
-                        {{ $order->fee_payer === 'sender' ? 'Shop trả' : 'Người nhận trả' }}</small><strong>{{ number_format((int) $order->shipping_fee, 0, ',', '.') }}đ</strong>
+                        {{ $order->fee_payer === 'sender' ? 'Người gửi trả' : 'Người nhận trả' }}</small><strong>{{ number_format((int) $order->shipping_fee, 0, ',', '.') }}đ</strong>
                 </div>
                 <div><small>TỔNG THU NGƯỜI NHẬN · MỘT LẦN /
                         ĐƠN</small><strong>{{ number_format((int) $order->recipient_total, 0, ',', '.') }}đ</strong>

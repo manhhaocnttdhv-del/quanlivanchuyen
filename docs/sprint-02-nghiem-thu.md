@@ -30,9 +30,9 @@ Nhánh `sprint-02-quan-ly-van-don` nhận code Sprint 01 từ commit `976180c`. 
 ## Cách demo
 
 1. Chạy migration; tạo tài khoản bằng DemoSeeder (xem README), sau đó `php artisan db:seed --class=DemoOrderSeeder` để có 8 đơn mẫu. Seeder chạy lại không nhân đôi.
-2. Đăng nhập `shop@guiviet.test`, mở Vận đơn. Tạo nháp thiếu người nhận để xem thông báo cần bổ sung; thêm đủ thông tin, chọn địa chỉ lấy hàng, nhập hàng hóa và tổng gram.
+2. Đăng nhập `shop@guiviet.test`, mở Vận đơn. Tạo nháp thiếu người nhận để xem thông báo cần bổ sung; thêm đủ thông tin, chọn địa chỉ lấy hàng và kho tiếp nhận trong cùng khu vực, nhập hàng hóa và tổng gram.
 3. Lưu và xem trước: ví dụ HN → HCM, 501g tiêu chuẩn theo biểu phí demo là 45.000đ. COD 500.000đ, người nhận trả phí: cần thu 545.000đ; shop trả phí: cần thu 500.000đ.
-4. Xác nhận gửi. Đăng nhập `dispatcher@guiviet.test`, mở đơn thuộc kho được gán, yêu cầu bổ sung kèm lý do; shop sửa và gửi lại; điều phối duyệt.
+4. Xác nhận gửi. Đăng nhập `operations@guiviet.test`, mở đơn thuộc kho được gán, yêu cầu bổ sung kèm lý do; shop sửa và gửi lại; điều phối duyệt.
 5. Shop đề nghị thay COD/cân nặng. Điều phối chấp nhận đề nghị, xem phí mới và trạng thái chờ duyệt lại; duyệt lần nữa. Timeline giữ thông tin trước/sau.
 6. Mở tem và bảng kê. Tra cứu công khai bằng mã cùng 4 số cuối điện thoại nhận; thử sai xác minh để thấy lỗi chung.
 7. Dùng hai tab mở cùng đơn, cập nhật ở tab một rồi thao tác tab hai: revision cũ bị từ chối; tải lại để tiếp tục.
@@ -53,5 +53,6 @@ Nhánh `sprint-02-quan-ly-van-don` nhận code Sprint 01 từ commit `976180c`. 
 - Tiền không dùng float: phí cơ bản + ceil(phần gram vượt cân cơ bản / bước gram) × phí bước. Cân kg là chuỗi DECIMAL suy ra từ gram, không có hai input cân độc lập.
 - Cần thu người nhận = COD + cước nếu recipient trả; nếu sender trả thì chỉ COD. Các khoản này chưa phải tiền đã thu; chỉ giao hàng thực tế ở Sprint 04 mới tạo collection.
 - Mỗi kho có phạm vi riêng. Có role điều phối không đồng nghĩa có quyền xem mọi đơn; query và policy cùng kiểm tra kho.
+- Khách chọn kho tiếp nhận đang hoạt động, thuộc khu vực địa chỉ lấy hàng. Lựa chọn được giữ khi lưu nháp, sửa và gửi duyệt; không tự chọn kho đầu tiên. Nháp được thiếu kho nhưng gửi duyệt phải đủ; server kiểm tra lại kho và khu vực. Đổi kho sau duyệt cần đề nghị, người khác chấp nhận, duyệt lại và lưu history/audit trước/sau.
 - Model append-only bảo vệ thao tác ứng dụng, không thay thế quyền MySQL. Không cung cấp UI sửa/xóa history/audit; người có quyền SQL trực tiếp vẫn cần kiểm soát riêng khi triển khai thực tế.
 - Bộ lọc shipper đã có, hiện rỗng khi chưa được phân công; nghiệp vụ gán shipper không được giả lập trong Sprint 02.
