@@ -2,6 +2,8 @@
 
 Nhánh: `sprint-06-cod-tai-chinh`. Phạm vi FR-32 đến FR-37 trong `docs/sprints.json`. Nhánh kế thừa Sprint 01–05; PR các sprint phụ thuộc cần được review và merge trước khi merge Sprint 06 vào `main`.
 
+Theo [ma trận bốn vai trò](role-matrix.md), Admin kiêm công việc kế toán; Vận hành không lập/duyệt chứng từ tài chính. Hai tài khoản Admin khác nhau thực hiện lập và duyệt. Shipper chỉ đề nghị nộp/xem tiền của mình, không tự xác nhận đã nộp; Shop chỉ theo dõi đối soát và công nợ của cửa hàng.
+
 ## Phạm vi hoàn thành
 
 | FR | Kết quả | Màn hình |
@@ -26,9 +28,9 @@ php artisan finance:accrue-fees
 npm run build
 ```
 
-`DemoFinanceSeeder` tạo sáu tình huống qua các Service giao nhận thật: chưa nộp, nộp thiếu, đối soát chờ duyệt, đã thanh toán một phần sau một giao dịch thất bại, shop còn nợ phí và điều chỉnh giảm phí chờ duyệt. Mỗi tình huống có token cố định; chạy lại bỏ qua đơn đã có, không ghi đè thao tác demo. Kế toán/CSKH mẫu được gán Kho Hà Nội. Ảnh kho là minh họa cho đồ án.
+`DemoFinanceSeeder` tạo sáu tình huống qua các Service giao nhận thật: chưa nộp, nộp thiếu, đối soát chờ duyệt, đã thanh toán một phần sau một giao dịch thất bại, shop còn nợ phí và điều chỉnh giảm phí chờ duyệt. Mỗi tình huống có token cố định; chạy lại bỏ qua đơn đã có, không ghi đè thao tác demo. Dữ liệu mẫu dùng Kho Hà Nội; công việc CSKH/kho do tài khoản Vận hành thực hiện. Ảnh kho là minh họa cho đồ án.
 
-Đăng nhập tại `http://127.0.0.1:8001/dang-nhap`, mở mục **COD & tài chính**. Tài khoản `{shipper,accountant,admin,shop}@guiviet.test` dùng mật khẩu đã đặt khi seed, không lưu mật khẩu trong repository. Muốn có hai kế toán cùng kho, admin tạo thêm tài khoản và gán vai trò/phạm vi kho.
+Đăng nhập tại `/dang-nhap`, mở mục **COD & tài chính**. Tài khoản `{shipper,finance-admin,admin,shop}@guiviet.test` dùng mật khẩu đã đặt khi seed, không lưu mật khẩu trong repository. Đặt `DEMO_PASSWORD` trong môi trường terminal trước lần đầu chạy DemoFinanceSeeder để tạo `finance-admin@guiviet.test` với vai trò Admin. Tài khoản này lập chứng từ, `admin@guiviet.test` xét duyệt; mật khẩu tài khoản đã có được giữ nguyên. Có thể tạo thêm tài khoản cùng vai trò Admin, không tạo vai trò kế toán riêng.
 
 ## Kịch bản nghiệm thu
 
@@ -36,7 +38,7 @@ npm run build
 2. Shipper lập đề nghị nộp 500.000đ. Kế toán xác nhận thực nhận 200.000đ, phân bổ đúng khoản gốc, nhập mã biên nhận và tải ảnh/PDF. Sổ còn giữ 300.000đ, quỹ có 200.000đ; đề nghị nộp không tự tạo tiền quỹ.
 3. Shipper lập phiếu bù 300.000đ; người khác xác nhận. Nếu thực nhận dư, để phần dư chưa phân bổ; sau xác minh có thể phân bổ thêm cho khoản thu cùng shipper/kho. Không tự ghi tăng doanh thu vì có tiền dư.
 4. Kế toán lập đối soát đúng shop/kho/kỳ: COD 500.000đ, phí shop chịu theo nguồn phí đã ghi nhận. Chỉ nguồn không tranh chấp và còn khả dụng được chọn. Số phải trả = COD + bồi thường − phí. Biểu phí mẫu hiện tại tính 32.000đ cho đơn 1 kg; màn hình lấy số thật từ vận đơn, không gán cứng 30.000đ.
-5. Gửi duyệt. Chính người lập bị chặn khi tự duyệt. Admin hoặc kế toán khác cùng kho duyệt; lịch sử ghi người/thời gian/lý do. Shop xem được bản chờ duyệt và đã duyệt, không xem nháp/nội dung sự cố nội bộ.
+5. Gửi duyệt. Chính người lập bị chặn khi tự duyệt. Đăng nhập tài khoản Admin khác để duyệt; lịch sử ghi người/thời gian/lý do. Shop xem được bản chờ duyệt và đã duyệt, không xem nháp/nội dung sự cố nội bộ.
 6. Ghi một giao dịch thất bại 50.000đ: số đã trả vẫn 0. Ghi thành công 100.000đ: chỉ giảm số còn phải trả 100.000đ. Gửi lại đúng token/nội dung/chứng từ trả giao dịch cũ; đổi nội dung hoặc dùng lại mã ngân hàng bị chặn.
 7. Shop đổi ngân hàng: xác minh ngân hàng mới chưa đủ để tiếp tục chi. Người có quyền mở duyệt lại ngân hàng, kế toán cập nhật snapshot rồi gửi, người khác duyệt lại. Nguồn tiền/số tiền đã chốt và số đã trả giữ nguyên; không tạo nợ phí lần hai. Lịch sử lưu mã phiên bản ngân hàng đã dùng.
 8. Với đối soát âm, hệ thống tạo **nợ sau đối soát**, không tạo khoản chi âm. Thu phí trực tiếp trên nợ mới; phần phí đã khấu trừ không thể thu lần hai.
@@ -91,7 +93,7 @@ Script race dùng database verify riêng và hai tiến trình PHP thật tranh 
 
 Kiểm tra UI gồm kế toán, shipper, shop ở desktop và mobile 375px; các sổ, chi tiết, form, trường căn cứ điều chỉnh, tài nguyên CSS/JS và tràn ngang trang. Bảng rộng cuộn trong khung.
 
-Kết quả nghiệm thu: toàn bộ **125 test, 979 assertions** đạt; riêng tài chính **21 test, 166 assertions**. Pint, frontend build, Blade cache và kiểm tra whitespace đều đạt. Script tranh chấp hai tiến trình trên MySQL verify đạt; seeder chạy lại không tạo trùng. Trình duyệt kiểm tra ba vai trò ở 1440px/375px không có lỗi JavaScript, tài nguyên hoặc tràn ngang trang. Trên điện thoại, tab tài chính chia ba cột và bảng nguồn trong form chuyển thành các dòng có nhãn để ô nhập tiền luôn nhìn thấy.
+Kết quả đồng bộ bốn vai trò ngày 05/11/2026: toàn bộ **129 test, 1.028 assertions** đạt; Pint và frontend build đạt. Các kiểm tra nghiệm thu trước đó gồm Blade cache, whitespace, script tranh chấp hai tiến trình trên MySQL verify, seeder không trùng và trình duyệt ở 1440px/375px không lỗi JavaScript, tài nguyên hoặc tràn ngang trang. Trên điện thoại, tab tài chính chia ba cột và bảng nguồn trong form chuyển thành các dòng có nhãn để ô nhập tiền luôn nhìn thấy.
 
 ## Câu hỏi bảo vệ
 
