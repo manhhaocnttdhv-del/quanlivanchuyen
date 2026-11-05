@@ -2,6 +2,8 @@
 
 Nhánh `sprint-04-giao-hang-hoan-hang`, nhận Sprint 03 tại `9e55add`. Phạm vi FR-25–29. Khi PR Sprint 03 chưa merge, PR Sprint 04 chứa cả commit phụ thuộc; review riêng bằng diff từ nhánh Sprint 03.
 
+Theo [ma trận bốn vai trò](role-matrix.md), Vận hành (`operations@guiviet.test`) làm điều phối/kho và xem sổ thu trong kho được gán; Shipper ghi kết quả giao/hoàn của mình, Shop xem đơn thuộc cửa hàng. Admin có quyền quản trị và kế toán; Sprint 04 chỉ ghi tiền thực thu, chưa xác nhận nộp quỹ hoặc thanh toán shop.
+
 ## Chức năng nghiệm thu
 
 | FR | Đầu ra | Kiểm soát |
@@ -34,7 +36,7 @@ Seeder tạo 7 tình huống qua service: đang giao, đã giao, giao thất b�
 ## Dữ liệu và tiền
 
 - delivery_attempts: unique task; unique (shipper, token); unique (order, type, attempt_number). Lưu dự kiến/thực thu, lý do, giờ server và hash. Attempt/proof/collection/decision append-only qua Eloquent.
-- delivery_proofs: một dòng/attempt, ảnh private và SHA-256. Chỉ shipper của task còn thuộc kho, nhân viên vận hành đúng phạm vi hoặc shop sở hữu đơn được xem. Kế toán đọc sổ thu không tự có quyền xem ảnh/địa chỉ đơn.
+- delivery_proofs: một dòng/attempt, ảnh private và SHA-256. Chỉ shipper của task còn thuộc kho, nhân viên vận hành đúng phạm vi, Admin hoặc shop sở hữu đơn được xem. Quyền đọc sổ thu riêng không thay thế Policy xem bằng chứng.
 - delivery_decisions: actor, quyết định, số lượt lúc quyết định, lượt cho phép, ý kiến shop và căn cứ.
 - return_records: một hồ sơ/đơn, người cho phép, số tiền/phương thức/snapshot phí, ngày hoàn và ngày phát sinh nghĩa vụ. Khóa các trường căn cứ/phí sau khi tạo; cho phép cập nhật trạng thái.
 - delivery_collections: unique (attempt, type) và idempotency_key; FK restrict delete, DECIMAL(15,2), CHECK không âm. Dòng 0đ thể hiện loại tiền đã được đối chiếu nhưng không có thực thu.
@@ -48,7 +50,7 @@ Seeder tạo 7 tình huống qua service: đang giao, đã giao, giao thất b�
 
 ## Kiểm tra kỹ thuật
 
-- MySQL quanlivanchuyen_testing: 82 bài / 632 assertions, gồm 19 bài Sprint 04, chạy bằng php artisan test.
+- Kiểm tra lại mô hình bốn vai trò ngày 05/11/2026 trên MySQL quanlivanchuyen_testing: 86 bài / 678 assertions đạt, gồm 19 bài Sprint 04, chạy bằng php artisan test. Pint và Vite build đạt.
 - Migration trên database có dữ liệu và database mới quanlivanchuyen_verify_2026102904; không xóa database ứng dụng.
 - php tests/Support/logistics-race.php quanlivanchuyen_verify_2026102904: hai tiến trình tranh khóa phân công, lấy, nhập, xuất, giao, thất bại. Hai token cùng task chỉ một accepted. Replay đúng token cả hai accepted nhưng tổng vẫn một attempt, hai collection, một event giao.
 - php vendor/bin/pint --test; npm run build; php artisan view:cache; git diff --check.
