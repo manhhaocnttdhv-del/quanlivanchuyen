@@ -2,6 +2,8 @@
 
 Nhánh `sprint-05-su-co-khieu-nai`, nhận Sprint 04 tại `5c768f5`. Phạm vi FR-30 và FR-31 theo `docs/sprints.json`. PR phụ thuộc Sprint 04 (#4); khi các PR trước chưa merge, diff vào main chứa cả phần phụ thuộc. Review riêng Sprint 05 bằng diff từ nhánh Sprint 04. Chưa triển khai nghiệp vụ Sprint 06.
 
+Theo [ma trận bốn vai trò](role-matrix.md), Vận hành gộp CSKH, điều phối và kho. Người lập/đề xuất không tự duyệt kết luận; dùng Admin hoặc tài khoản Vận hành khác trong phạm vi được giao. Shop chỉ xem hồ sơ của mình, Shipper chỉ báo/xem sự cố trong phạm vi nhiệm vụ.
+
 ## Chức năng nghiệm thu
 
 | FR | Đầu ra | Kiểm soát |
@@ -24,18 +26,18 @@ npm run build
 
 Seeder tạo bốn tình huống qua Service: đang xác minh, chờ duyệt bồi thường, đã duyệt chờ tài chính, khiếu nại chậm giao đã giải quyết. Token cố định nên chạy lại không nhân đôi và không ghi đè hồ sơ đã được demo thao tác. CSKH demo được gán Kho Hà Nội. Ảnh kho chỉ minh họa cho đồ án.
 
-Tài khoản `{shop,support,dispatcher,warehouse,shipper,admin}@guiviet.test` dùng mật khẩu đã đặt khi chạy DemoSeeder; không lưu mật khẩu trong mã nguồn.
+Tài khoản `{shop,operations,shipper,admin}@guiviet.test` dùng mật khẩu đã đặt khi chạy DemoSeeder; không lưu mật khẩu trong mã nguồn. DemoCaseSeeder dùng Vận hành làm người lập và Admin làm người duyệt.
 
 ## Quy trình demo
 
 1. Đăng nhập shop, mở `/khieu-nai`, chọn Gửi khiếu nại. Tìm mã vận đơn, chọn đơn của mình, nhập loại/tiêu đề/nội dung và gửi. Hạn xử lý là 48 giờ từ lúc server tiếp nhận.
-2. Đăng nhập CSKH (`support`), mở hồ sơ. Phân công người xử lý trong kho; ghi một phản hồi nội bộ và một phản hồi cho shop. Phản hồi công khai đầu tiên mới ghi `first_response_at`; việc phân công không giả lập đã phản hồi shop.
+2. Đăng nhập Vận hành (`operations`), mở hồ sơ để làm công việc CSKH. Phân công người xử lý trong kho; ghi một phản hồi nội bộ và một phản hồi cho shop. Phản hồi công khai đầu tiên mới ghi `first_response_at`; việc phân công không giả lập đã phản hồi shop.
 3. Với khiếu nại hàng hỏng/mất/sai tiền, chọn Mở sự cố. Chọn mức độ và phạm vi khóa. Các loại hàng mất/hỏng và sai tiền bắt buộc có tệp. Sai tiền luôn khóa đối soát dù bỏ chọn checkbox.
 4. Tùy chọn liên kết kiện, nhiệm vụ, khoản thu hoặc sai lệch kho. Backend từ chối ID thuộc đơn khác, kể cả khi người dùng biết ID thật.
 5. Quay lại khiếu nại, chọn sự cố cùng đơn và liên kết có căn cứ. Liên kết đã ghi không được thay thế để che hồ sơ cũ. Lý do nội bộ và tệp của thao tác phân công/liên kết không gửi cho shop.
 6. Mở vận hành đơn đang tại kho và có khóa giao: không phân công hoặc xuất được. Nếu sự cố mới xuất hiện sau khi lập phiếu xuất, shipper vẫn không xác nhận nhận kiện được. Nếu đang trên đường thì không ghi giao thành công; vẫn ghi thất bại và bàn giao lại kho được.
 7. CSKH ghi nhận xác minh. Đề xuất kết luận: không điều chỉnh tiền (0đ), bồi thường, giảm phí hoặc điều chỉnh tài chính (số tiền dương). Đề xuất tài chính cần bằng chứng trong hồ sơ hoặc tệp mới. Chưa duyệt thì chưa gỡ khóa.
-8. Đăng nhập điều phối hoặc admin khác người lập/đề xuất. Duyệt có căn cứ, hoặc trả lại để xác minh. Bản đề xuất cũ vẫn còn trong lịch sử; trả lại không gỡ khóa. Hai người mở cùng phiên bản chỉ người duyệt đầu tiên thành công.
+8. Đăng nhập Admin hoặc tài khoản Vận hành khác người lập/đề xuất. Duyệt có căn cứ, hoặc trả lại để xác minh. Bản đề xuất cũ vẫn còn trong lịch sử; trả lại không gỡ khóa. Hai người mở cùng phiên bản chỉ người duyệt đầu tiên thành công.
 9. Duyệt không tài chính: đóng xác minh và gỡ khóa của sự cố đó. Duyệt tài chính: đóng xác minh, gỡ khóa giao của sự cố đó, giữ khóa đối soát và hiện Chờ xử lý tài chính. Không thay COD/cước, tạo khoản thu, bồi thường hoặc sửa số dư.
 10. CSKH nhập kết quả và giải quyết khiếu nại. Khi tác động hàng/tiền, phải có sự cố liên kết đã được duyệt. Nếu còn chờ tài chính, hệ thống tự thêm câu cảnh báo chưa chi tiền/điều chỉnh vào kết quả gửi shop.
 11. Đăng nhập lại shop: thấy phản hồi/kết quả công khai, không thấy diễn biến/tệp nội bộ hoặc hồ sơ sự cố. Thử URL tệp nội bộ bị 403. Có thể mở lại khiếu nại trong 7 ngày, hạn gốc vẫn giữ để phản ánh tổng thời gian xử lý.
@@ -73,7 +75,7 @@ Schema đã chạy nằm trong hai migration `2026_10_29_180000_*` và `2026_10_
 
 ## Kiểm tra kỹ thuật
 
-- Toàn bộ suite: 103 bài, 807 assertions. Riêng CaseWorkflowTest: 21 bài, 175 assertions. Gồm quyền/kho/shop, bằng chứng, replay, stale revision, duyệt chéo, độc lập khóa, giao nhận tích hợp, SLA, mở lại, nội bộ, rollback file/audit và append-only.
+- Kiểm tra lại mô hình bốn vai trò ngày 05/11/2026: toàn bộ suite 107 bài, 856 assertions đạt. Gồm quyền/kho/shop, bằng chứng, replay, stale revision, duyệt chéo, độc lập khóa, giao nhận tích hợp, SLA, mở lại, nội bộ, rollback file/audit và append-only. Pint và Vite build đạt.
 - `php artisan dev:prepare-test-db --database=quanlivanchuyen_verify_2026102905`: migration toàn bộ trên database mới; cũng migrate thành công database ứng dụng có dữ liệu. Không xóa dữ liệu ứng dụng.
 - `php tests/Support/case-race.php quanlivanchuyen_verify_2026102905`: hai tiến trình MySQL thật. Replay cùng token tạo một hồ sơ/ảnh; cùng revision chỉ một đề xuất/duyệt/phản hồi; sự cố tranh với phân công vẫn giữ khóa và không cho nhận kiện sau đó.
 - `php artisan test`, `php vendor/bin/pint --test`, `npm run build`, `php artisan view:cache`, `git diff --check`.
