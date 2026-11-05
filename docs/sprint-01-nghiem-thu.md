@@ -1,5 +1,7 @@
 # Sprint 01: Tài khoản và danh mục
 
+Vai trò đã được gộp còn 4: Admin kiêm kế toán, Vận hành (điều phối/kho/CSKH), Shipper và Chủ cửa hàng. Chạy migration trước khi seed khi cập nhật database cũ. Chỉ có 3 vai trò nội bộ trong màn hình tạo tài khoản; shop tự đăng ký ở trang khách hàng.
+
 ## Các chức năng đã triển khai
 
 | Yêu cầu | Màn hình / luồng | Kiểm soát chính |
@@ -18,7 +20,7 @@ Audit writer có từ sprint này. Mọi thay đổi nghiệp vụ trong service
 
 1. Chọn PHP 8.2+, chạy `php artisan migrate`, `php artisan db:seed`.
 2. Tạo dữ liệu mẫu trên môi trường local: đặt biến `DEMO_PASSWORD` dài ít nhất 10 ký tự rồi chạy `php artisan db:seed --class=DemoSeeder`. Seeder không thay mật khẩu của tài khoản đã có.
-3. Tài khoản mẫu: `admin@guiviet.test`, `dispatcher@guiviet.test`, `warehouse@guiviet.test`, `shipper@guiviet.test`, `accountant@guiviet.test`, `support@guiviet.test`, `shop@guiviet.test`, `pending@guiviet.test`. Mật khẩu là giá trị DEMO_PASSWORD lúc tạo.
+3. Tài khoản mẫu: `admin@guiviet.test`, `operations@guiviet.test`, `shipper@guiviet.test`, `shop@guiviet.test`, `pending@guiviet.test`. Mật khẩu là giá trị DEMO_PASSWORD lúc tạo.
 4. Admin mở Tài khoản, Kho/khu vực, Shop, Ngân hàng, Biểu phí và Nhật ký. Shop mở Cửa hàng & địa chỉ. Shop pending chưa được gửi vận đơn khi tích hợp sprint 02.
 
 ## Kiểm thử

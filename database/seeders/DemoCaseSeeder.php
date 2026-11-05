@@ -21,8 +21,8 @@ class DemoCaseSeeder extends Seeder
         }
         $this->call(CatalogSeeder::class);
         $owner = User::where('email', 'shop@guiviet.test')->firstOrFail();
-        $support = User::where('email', 'support@guiviet.test')->firstOrFail();
-        $dispatcher = User::where('email', 'dispatcher@guiviet.test')->firstOrFail();
+        $support = User::where('email', 'operations@guiviet.test')->firstOrFail();
+        $dispatcher = User::where('email', 'admin@guiviet.test')->firstOrFail();
         $support->warehouses()->syncWithoutDetaching(Warehouse::where('code', 'KHO-HN')->value('id'));
         $incidents = app(IncidentService::class);
         $complaints = app(ComplaintService::class);

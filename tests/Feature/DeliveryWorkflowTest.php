@@ -48,8 +48,8 @@ class DeliveryWorkflowTest extends DatabaseTestCase
         parent::setUp();
         Storage::fake('local');
         $this->admin = $this->person();
-        $this->dispatcher = $this->person('dispatcher');
-        $this->clerk = $this->person('warehouse');
+        $this->dispatcher = $this->person('operations');
+        $this->clerk = $this->person('operations');
         $this->shipper = $this->person('shipper');
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
@@ -343,9 +343,8 @@ class DeliveryWorkflowTest extends DatabaseTestCase
         $url = route('delivery.proof', $attempt);
         $this->actingAs($outsider)->get($url)->assertForbidden();
         $this->actingAs($this->shopOwner())->get($url)->assertForbidden();
-        $accountant = $this->person('accountant');
-        $accountant->warehouses()->attach($this->depot);
-        $this->actingAs($accountant)->get($url)->assertForbidden();
+        $financeAdmin = $this->person('admin');
+        $this->actingAs($financeAdmin)->get($url)->assertOk();
         $this->actingAs($this->owner)->get($url)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->actingAs($this->shipper)->get($url)->assertOk();
         $this->shipper->warehouses()->detach($this->depot);
@@ -365,11 +364,11 @@ class DeliveryWorkflowTest extends DatabaseTestCase
             $this->actingAs($user)->get('/so-thu-giao-hang')->assertOk()->assertSee($task->order->tracking_code);
         }
         $this->actingAs($outsider)->get('/so-thu-giao-hang')->assertOk()->assertDontSee($task->order->tracking_code);
-        $accountant = $this->person('accountant');
+        $accountant = $this->person('operations');
         $this->actingAs($accountant)->get('/so-thu-giao-hang')->assertOk()->assertDontSee($task->order->tracking_code);
         $accountant->warehouses()->attach($this->depot);
         $this->get('/so-thu-giao-hang?type=cod')->assertOk()->assertSee($task->order->tracking_code);
-        $this->get('/don-hang/'.$task->order_id)->assertForbidden();
+        $this->get('/don-hang/'.$task->order_id)->assertOk();
         $this->actingAs($this->owner)->get('/don-hang/'.$task->order_id)->assertOk()->assertSee('Người nhận thực tế');
         $this->actingAs($this->dispatcher)->get('/van-hanh/don/'.$task->order_id)->assertOk()->assertSee('Thành công');
     }
@@ -455,14 +454,14 @@ class DeliveryWorkflowTest extends DatabaseTestCase
         $this->failure($task);
         $this->backToWarehouse($task);
         $order->refresh()->update(['delivery_attempt_limit' => 1]);
-        $limited = $this->person('support');
+        $limited = User::factory()->create(['password' => 'TestPassword!2026'])->refresh();
         $limited->warehouses()->attach($this->depot);
         $role = Role::create(['name' => 'dispatch-test', 'label' => 'Chỉ phân công']);
         $role->permissions()->attach(Permission::where('name', 'logistics.dispatch')->value('id'));
         $limited->roles()->attach($role);
         $data = ['decision' => 'retry_exception', 'revision' => $order->revision, 'shop_instruction' => 'Shop đề nghị thêm một lượt', 'reason' => 'Khách hẹn nhận vào ngày mới'];
         $this->actingAs($limited)->post(route('delivery.decide', $order), $data)->assertForbidden();
-        $foreign = $this->person('dispatcher');
+        $foreign = $this->person('operations');
         $this->actingAs($foreign)->post(route('delivery.decide', $order), $data)->assertForbidden();
         $this->assertSame(1, $order->fresh()->delivery_attempt_limit);
     }
