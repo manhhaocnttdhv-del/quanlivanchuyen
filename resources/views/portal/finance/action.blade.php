@@ -1,3 +1,4 @@
+{{-- Partial dùng route/operation do view cha chỉ định; CSRF và revision đi kèm mọi thao tác trạng thái tài chính. --}}
 <form method="post" action="{{ route($routeName, [$document, $operation]) }}" class="finance-action" data-confirm="{{ $label }}?">
     @csrf
     <input type="hidden" name="revision" value="{{ $document->revision }}">

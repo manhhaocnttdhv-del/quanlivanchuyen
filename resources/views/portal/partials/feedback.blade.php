@@ -1,3 +1,4 @@
+{{-- Tổng hợp lỗi có điểm focus để đọc bằng bàn phím; x-field vẫn hiển thị lỗi tại từng ô. --}}
 @if (session('status') || session('success'))
     <div class="alert alert-success" role="status">
         {{ session('status') ?? session('success') }}</div>

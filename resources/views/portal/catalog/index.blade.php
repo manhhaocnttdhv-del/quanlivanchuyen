@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Hiển thị khu vực/kho quản trị; trạng thái ngừng hoạt động giữ lại dữ liệu và lịch sử cũ. --}}
 @section('heading', 'Khu vực & kho vận hành')
 @section('content')
     <section class="work-section">

@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Các tham chiếu kiện/task/khoản thu thuộc đơn đã chọn; hai khóa giao và đối soát là độc lập. --}}
 @section('heading', 'Mở hồ sơ sự cố')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('incidents.index') }}"><i
         data-lucide="arrow-left"></i> Sự cố</a>@endsection
@@ -11,8 +12,7 @@
                 href="{{ route('incidents.create') }}">Đổi vận đơn</a></div>
         <form method="post" enctype="multipart/form-data" action="{{ route('incidents.store', $order) }}"
             class="narrow-form mt-4">
-            @csrf<input type="hidden" name="client_token"
-                value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
+            @csrf<x-client-token />
             <div class="row g-3">
                 <div class="col-12"><x-field name="title" label="Tiêu đề sự cố" minlength="5" maxlength="180" required />
                 </div>

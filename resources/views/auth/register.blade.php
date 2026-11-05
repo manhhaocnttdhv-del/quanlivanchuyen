@@ -1,4 +1,5 @@
 @extends('layouts.customer')
+{{-- Hồ sơ người gửi phải được duyệt trước khi gửi đơn. --}}
 @section('title', 'Đăng ký gửi hàng | Gửi Việt')
 @section('content')
     @php

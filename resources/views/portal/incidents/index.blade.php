@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Sự cố nội bộ chỉ nằm trong scope được cấp; nhãn khóa giao/đối soát phản ánh từng hồ sơ. --}}
 @section('heading', 'Sự cố vận chuyển')
 @section('actions')<a class="btn btn-primary" href="{{ route('incidents.create') }}">
     <i data-lucide="plus"></i> Mở sự cố</a>@endsection

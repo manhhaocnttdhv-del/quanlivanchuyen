@@ -10,6 +10,7 @@ use App\Models\PickupAddress;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
 
+/** Shop tự quản hồ sơ/địa chỉ; thay đổi ngân hàng tạo phiên bản mới và chờ xác minh lại. */
 class ShopController extends Controller
 {
     public function profile(Request $request)
@@ -48,6 +49,7 @@ class ShopController extends Controller
 
     public function saveAddress(PickupAddressRequest $request, ShopService $service, ?PickupAddress $pickup = null)
     {
+        // Shop lấy từ tài khoản; Policy chặn sửa địa chỉ của shop khác, Service giữ một mặc định.
         $shop = $request->user()->shop()->firstOrFail();
         if ($pickup) {
             $this->authorize('update', $pickup);

@@ -44,7 +44,7 @@ Seeder tạo 7 tình huống qua service: đang giao, đã giao, giao thất b�
 - Phí hoàn lấy fee_snapshot.return_fee đã chốt trên đơn, không đọc giá mới. Snapshot cũ thiếu trường này được miễn 0đ (legacy_waived), tránh tạo nghĩa vụ hồi tố.
 - reconciliation: phí hoàn có thể >0 nhưng dự kiến thu tại chỗ 0. collect_on_return: dự kiến thu đúng phí hoàn. Chỉ hoàn thành công mới có fee_charged_at.
 - Thu thiếu/thừa cần financial_reason và financial_hold/disputed. Hàng vẫn có thể delivered; tiền cần xử lý riêng ở sprint tài chính.
-- Tiền số nguyên đồng, không float. Giờ UTC, giao diện và bộ lọc ngày Asia/Ho_Chi_Minh.
+- Tiền số nguyên đồng, không float. DATETIME lưu theo timezone ứng dụng Asia/Ho_Chi_Minh; giao diện và bộ lọc ngày dùng cùng múi giờ. Mốc SQL không đổi sang UTC khi đối chiếu với DATETIME này.
 - Thành công cần shipper giữ toàn bộ kiện, không có bàn giao pending/đề nghị thay đổi/hold hàng mở. Lỗi rollback trạng thái, kiện, lượt, tiền, history, audit và xóa file mới.
 - Khóa shop → order → task → shipper; unique là lớp bảo vệ DB cuối cùng. Shipper lock bảo vệ token khi thao tác hai vận đơn.
 

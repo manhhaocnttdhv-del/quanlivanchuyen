@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Hidden 0 biểu diễn bỏ chọn; Service bảo đảm địa chỉ mặc định duy nhất và thuộc shop đăng nhập. --}}
 @section('heading', $record ? 'Cập nhật địa chỉ lấy hàng' : 'Thêm địa chỉ lấy hàng')
 @section('content')
     <form class="edit-form narrow-form" method="post"

@@ -1,3 +1,4 @@
+{{-- Controller giới hạn tối đa 100 đơn được in; tổng dùng số nguyên VND và bảng kê chưa xác nhận bàn giao. --}}
 <!doctype html>
 <html lang="vi">
 

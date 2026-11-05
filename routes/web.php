@@ -32,3 +32,4 @@ require __DIR__.'/logistics.php';
 require __DIR__.'/cases.php';
 require __DIR__.'/finance.php';
 require __DIR__.'/reports.php';
+require __DIR__.'/notifications.php';

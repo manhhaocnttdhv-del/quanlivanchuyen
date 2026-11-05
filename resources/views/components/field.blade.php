@@ -1,3 +1,4 @@
+{{-- Giá trị old() chỉ nhận scalar để lỗi input dạng mảng không làm vỡ Blade; nội dung luôn được escape. --}}
 @props([
     'name',
     'label',

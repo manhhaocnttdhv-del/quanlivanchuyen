@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Các tab đọc các sổ riêng trong scope; tổng không phụ thuộc phân trang và không cộng COD với phí. --}}
 @section('heading', ['collections' => 'Sổ tiền thu', 'deposits' => 'Phiếu nộp tiền', 'reconciliations' => 'Đối soát shop', 'fees' => 'Công nợ phí', 'receipts' => 'Phiếu thu phí', 'adjustments' => 'Điều chỉnh tài chính'][$section])
 @section('actions')
     @if ($section === 'deposits' && ($staff || auth()->user()->hasRole('shipper')))

@@ -1,3 +1,4 @@
+{{-- PDF dùng dữ liệu report đã áp dụng scope/bộ lọc; ReportValue định dạng, không tính lại số dư trong Blade. --}}
 <!doctype html>
 <html lang="vi">
 <head>

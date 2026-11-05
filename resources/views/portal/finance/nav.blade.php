@@ -1,3 +1,4 @@
+{{-- Tab theo vai trò chỉ là điều hướng; FinanceQueries và FinancePolicy tiếp tục giới hạn dữ liệu từng sổ. --}}
 @php
     $tabs = ['collections' => 'Sổ tiền thu', 'deposits' => 'Nộp tiền', 'reconciliations' => 'Đối soát', 'fees' => 'Nợ phí', 'receipts' => 'Thu phí', 'adjustments' => 'Điều chỉnh'];
     $financeUser = auth()->user();

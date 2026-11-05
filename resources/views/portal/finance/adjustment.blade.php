@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chứng từ điều chỉnh giữ khoản gốc; chỉ người khác có quyền được duyệt bản submitted và ghi sổ. --}}
 @section('heading', 'Chi tiết điều chỉnh tài chính')
 @section('content')
     @include('portal.finance.nav', ['section' => 'adjustments'])

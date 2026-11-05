@@ -12,6 +12,7 @@ use App\Services\AuditService;
 use App\Services\FeeCalculator;
 use App\Services\FeeVersionService;
 use App\Services\OrderService;
+use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -534,14 +535,15 @@ class OrderWorkflowTest extends DatabaseTestCase
 
     public function test_date_filter_uses_vietnam_midnight_and_until_can_be_used_alone(): void
     {
-        $included = $this->draft();
-        $included->created_at = '2026-10-27 18:00:00';
-        $included->save();
-        $excluded = $this->draft();
-        $excluded->created_at = '2026-10-27 16:59:59';
-        $excluded->save();
+        $ids = [];
+        foreach (['2026-10-27 23:59:59', '2026-10-28 00:00:00', '2026-10-28 23:59:59', '2026-10-29 00:00:00'] as $at) {
+            // Tao qua Service de timestamp cung quy uoc voi du lieu ung dung, khong gia dinh UTC.
+            $this->travelTo(Carbon::parse($at, config('app.timezone')));
+            $ids[] = $this->draft()->id;
+        }
         $this->actingAs($this->owner)->get('/don-hang?from=2026-10-28&until=2026-10-28')->assertOk()
-            ->assertViewHas('orders', fn ($list) => $list->total() === 1 && $list->first()->id === $included->id);
-        $this->get('/don-hang?until=2026-10-28')->assertOk()->assertViewHas('orders', fn ($list) => $list->total() === 2);
+            ->assertViewHas('orders', fn ($list) => $list->modelKeys() === [$ids[2], $ids[1]]);
+        $this->get('/don-hang?until=2026-10-28')->assertOk()->assertViewHas('orders', fn ($list) => $list->total() === 3);
+        $this->getJson('/don-hang?from=2026-10-29&until=2026-10-28')->assertUnprocessable()->assertJsonValidationErrors('until');
     }
 }

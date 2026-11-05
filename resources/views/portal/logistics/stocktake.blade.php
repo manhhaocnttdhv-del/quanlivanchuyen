@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Đếm theo snapshot và lưu từng trang; chỉ người khác duyệt, biến động sau snapshot được ghi riêng. --}}
 @section('heading', 'Biên bản kiểm kê')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('stocktakes.index') }}">
         <i data-lucide="arrow-left"></i> Kiểm kê</a><button class="btn btn-outline-primary" data-print><i

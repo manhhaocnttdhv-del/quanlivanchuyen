@@ -10,6 +10,7 @@ use Database\Seeders\DemoCaseSeeder;
 use Database\Seeders\DemoDeliverySeeder;
 use Database\Seeders\DemoFinanceSeeder;
 use Database\Seeders\DemoLogisticsSeeder;
+use Database\Seeders\DemoNotificationSeeder;
 use Database\Seeders\DemoOrderSeeder;
 use Database\Seeders\DemoReportSeeder;
 use Database\Seeders\DemoSeeder;
@@ -132,6 +133,9 @@ class RoleConsolidationTest extends DatabaseTestCase
             $this->assertDatabaseHas('reconciliations', ['status' => 'approved']);
             $this->seed(DemoReportSeeder::class);
             $this->assertDatabaseHas('orders', ['client_token' => '00000007-0000-4000-8000-000000000001', 'status' => 'delivered']);
+            $this->seed(DemoNotificationSeeder::class);
+            $this->assertDatabaseHas('orders', ['client_token' => '00000008-0000-4000-8000-000000000001', 'status' => 'submitted']);
+            $this->assertDatabaseHas('orders', ['client_token' => '00000008-0000-4000-8000-000000000002', 'status' => 'approved']);
 
             Env::getRepository()->set('DEMO_PASSWORD', 'AnotherDemoPassword!2026');
             $this->seed(DemoSeeder::class);

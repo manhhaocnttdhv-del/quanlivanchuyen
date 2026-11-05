@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Số đề nghị khác thực nhận; Policy ẩn thao tác tự duyệt, phần quỹ dư được phân bổ bằng giao dịch mới. --}}
 @section('heading', 'Chi tiết phiếu nộp tiền')
 @section('content')
     @include('portal.finance.nav', ['section' => 'deposits'])

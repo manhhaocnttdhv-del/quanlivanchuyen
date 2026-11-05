@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Phân biệt người xử lý và người duyệt kết luận; mỗi form mang revision, bằng chứng đi qua route private. --}}
 @section('heading', 'Chi tiết sự cố')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('incidents.index') }}">
     <i data-lucide="arrow-left"></i> Sự cố</a>@endsection

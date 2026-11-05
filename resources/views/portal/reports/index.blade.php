@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Tổng/nhóm tính trên toàn query, chi tiết mới phân trang; xuất giữ bộ lọc đã áp dụng, không chỉ trang hiện tại. --}}
 @section('heading', $report['title'])
 @section('actions')
     <a class="btn btn-outline-primary" href="{{ route('reports.history') }}"><i data-lucide="clock-3"></i> Tệp đã xuất</a>
@@ -18,20 +19,8 @@
         @endforeach
     </nav>
     <form method="get" action="{{ route('reports.index', $type) }}" class="report-filters" data-report-type="{{ $type }}">
-        <div class="field-group">
-            <label for="report-from">Từ ngày</label>
-            <input id="report-from" type="date" name="from" value="{{ old('from', $filters['from']) }}" class="form-control @error('from') is-invalid @enderror" required>
-            @error('from')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="field-group">
-            <label for="report-until">Đến ngày</label>
-            <input id="report-until" type="date" name="until" value="{{ old('until', $filters['until']) }}" class="form-control @error('until') is-invalid @enderror" required>
-            @error('until')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+        <x-field id="report-from" type="date" name="from" label="Từ ngày" :value="$filters['from']" required />
+        <x-field id="report-until" type="date" name="until" label="Đến ngày" :value="$filters['until']" required />
         @if ($type === 'operations')
             <div class="field-group">
                 <label for="report-metric">Chi tiết chỉ tiêu</label>
@@ -62,6 +51,7 @@
                 @endforeach
             </select>
         </div>
+        {{-- Ô không có ý nghĩa với sổ hiện tại phải disabled để form không gửi giá trị lọc cũ. --}}
         @foreach (['warehouse_id' => 'Kho', 'shop_id' => 'Shop', 'area_id' => 'Khu vực', 'shipper_id' => 'Shipper'] as $field => $label)
             @php($disabled = (! $orderFilters && in_array($field, ['area_id', 'shipper_id'])) || ($type === 'finance' && $filters['ledger'] === 'deposits' && $field === 'shop_id'))
             <div class="field-group" @if(in_array($field, ['area_id', 'shipper_id'])) data-report-order-filter @endif @if($field === 'shop_id') data-report-shop-filter @endif @if($disabled) hidden @endif>

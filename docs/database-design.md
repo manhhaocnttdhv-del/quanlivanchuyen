@@ -1,6 +1,6 @@
 # Thiet ke database
 
-Đây là thiết kế cho 8 sprint, kèm mô tả schema thực tế đã triển khai từ Sprint 01 đến 07 ở các phần bên dưới. Migration là nguồn xác định tên bảng/cột/ràng buộc đã có; bảng đề xuất không thay thế migration. Sprint 08 còn thông báo và hoàn thiện tra cứu nhật ký. Backlog chuẩn nằm trong `docs/sprints.json`.
+Đây là thiết kế cho 8 sprint, kèm mô tả schema thực tế đã triển khai từ Sprint 01 đến 08 ở các phần bên dưới. Migration là nguồn xác định tên bảng/cột/ràng buộc đã có; bảng đề xuất không thay thế migration. Backlog chuẩn nằm trong `docs/sprints.json`.
 
 ## Nguyen tac
 
@@ -23,7 +23,7 @@ Sprint 03 đã triển khai delivery_tasks, task_assignments, pickup_attempts, h
 | Warehouse | warehouse_items, warehouse_locations, stocktakes, stocktake_lines, discrepancies | Ton kho, sai lech |
 | Delivery | delivery_attempts, delivery_proofs, return_records, delivery_collections | Giao, giao lai, hoan va khoan thu goc |
 | Finance | cash_deposits, deposit_allocations, reconciliations, reconciliation_lines, payments, payment_allocations, fee_receipts, receivables, adjustments, adjustment_lines | Nop tien, doi soat, thanh toan va dieu chinh |
-| Control | incidents, complaints, audit_logs, notifications, attachments | Su co, khieu nai, nhat ky |
+| Control | incidents, complaints, audit_logs, notification_dispatches, notifications, attachments | Su co, khieu nai, nhat ky va thong bao |
 | Reports | export_logs, jobs | Lich su tep bao cao private va hang doi database |
 
 ## Index quan trong
@@ -39,7 +39,7 @@ Sprint 03 đã triển khai delivery_tasks, task_assignments, pickup_attempts, h
 - `delivery_collections(shipper_id, collected_at, status)`.
 - `cash_deposits(shipper_id, status, received_at)`.
 - `reconciliations(shop_id, period_start, period_end, status)`.
-- `audit_logs(actor_id, event_type, created_at)` va index polymorphic object.
+- `audit_logs(actor_id, event, created_at)` va index polymorphic object.
 
 ## Quy tac tai chinh
 
@@ -119,6 +119,19 @@ Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` 
 - Quyền áp dụng ngay trong SQL và kiểm tra lại khi tạo/tải tệp; scope_hash thay đổi khi phạm vi kho hoặc chế độ staff/shop đổi. Link signed không thay thế kiểm tra owner, trạng thái tài khoản và hạn tải.
 
 Xem [nghiệm thu Sprint 07](sprint-07-nghiem-thu.md) về công thức, ý nghĩa ngày lọc, giới hạn export và kịch bản đối chiếu.
+
+## Dữ liệu Sprint 08 đã triển khai
+
+- Migration `2026_10_30_140000_complete_audit_and_notifications.php` bổ sung audit và hai bảng thông báo; tái sử dụng `jobs` và `failed_jobs`, không tạo hàng đợi riêng bằng bảng thứ hai.
+- `audit_logs`: thêm `result` mặc định `succeeded`; giữ actor, event, subject type/id, JSON before/after, reason, request_id và created_at. Các dòng được tạo bởi thao tác thành công; lỗi validation/rollback không tạo dòng thành công. Không sửa hoặc xóa log cũ để bổ sung dữ liệu chưa từng ghi.
+- Index mới `(created_at, id)`, `(event, created_at)` và `request_id`; giữ `(actor_id, event, created_at)` và `(subject_type, subject_id, created_at)` từ Sprint 01. Lọc ngày bằng khoảng đầu ngày và đầu ngày tiếp theo theo timezone thực tế; không bọc cột trong DATE(). Tìm mã vận đơn dùng mã chính xác và các tham chiếu order_id đã có.
+- `notification_dispatches`: FK `audit_log_id` unique/restrict, queued_at, delivered_at, timestamps; index `(delivered_at, queued_at)` để phục hồi. Đây là outbox: ghi cùng transaction với audit, enqueue sau commit. Khóa dòng khi delivery và đánh delivered trong cùng transaction với các dòng người nhận.
+- `notifications`: UUID khóa chính, type, notifiable_type, notifiable_id FK users/restrict, audit_log_id FK/restrict, JSON data, read_at và timestamps. Unique `(notifiable_type, notifiable_id, audit_log_id)` bảo vệ mỗi người nhận/sự kiện; index `(notifiable_type, notifiable_id, read_at, created_at)` phục vụ hộp thư và số chưa đọc. Project chỉ gửi cho User dù dùng quan hệ Notifiable của Laravel.
+- Payload thông báo gồm nhóm, tên event, tiêu đề chung, mã tham chiếu, target_type/target_id. Không sao chép lý do nội bộ, ảnh/bằng chứng, số tiền hoặc ngân hàng. URL được dựng từ allowlist model/route và Policy tại thời điểm mở, không lưu URL tùy ý trong JSON.
+- Audit lọc allowlist đệ quy trước khi lưu và khi hiển thị log cũ. Không lưu password/token/session/bank_snapshot/account_number; tiền DECIMAL giữ nguyên chuỗi. Model chặn sửa/xóa audit và nội dung thông báo, nhưng đây không thay thế quyền DB: query SQL trực tiếp có thể bỏ qua Eloquent.
+- Chưa có partition, xóa tự động audit hay benchmark hàng triệu dòng. JSON category chưa có index riêng; cần đo truy vấn trên dữ liệu đại diện trước khi thêm generated column/index. Mỗi sự kiện xử lý người nhận theo lô 100 trong một transaction; quy mô lớn cần đo thời gian job và điều chỉnh thiết kế fan-out.
+
+Xem [nghiệm thu Sprint 08](sprint-08-nghiem-thu.md) về phạm vi người nhận, retry/outbox và bảo vệ dữ liệu nhật ký.
 
 ## Cong thuc va dong thoi
 

@@ -1,3 +1,4 @@
+{{-- Hoàn không thu COD; phí thu tại chỗ lấy snapshot/cách thu, token giữ lại khi form lỗi để chống ghi nhận hai lần. --}}
 @php
     $isReturn = $task->type === 'return';
     $return = $order->returnRecord;
@@ -10,7 +11,7 @@
             ? (int) $order->shipping_fee
             : 0);
     $failed = old('outcome') === 'failed';
-    $clientToken = old('client_token', (string) \Illuminate\Support\Str::uuid());
+    $clientToken = (string) \Illuminate\Support\Str::uuid();
 @endphp
 <section class="work-section delivery-result">
     <h2>Kết quả {{ $isReturn ? 'hoàn hàng' : 'giao hàng' }}</h2>
@@ -47,8 +48,7 @@
             aria-labelledby="success-tab" tabindex="0">
             <form method="post" enctype="multipart/form-data" action="{{ route('delivery.record', $task) }}"
                 data-confirm="Xác nhận đã bàn giao đủ kiện và kiểm tra tiền thực thu?">
-                @csrf<input type="hidden" name="outcome" value="success"><input type="hidden" name="client_token"
-                    value="{{ $clientToken }}">
+                @csrf<input type="hidden" name="outcome" value="success"><x-client-token :value="$clientToken" />
                 <div class="row g-3">
                     <div class="col-12"><x-field name="receiver_name" label="Tên người nhận thực tế" required
                             maxlength="150" autocomplete="off" /></div>
@@ -76,8 +76,7 @@
             aria-labelledby="failure-tab" tabindex="0">
             <form method="post" enctype="multipart/form-data" action="{{ route('delivery.record', $task) }}"
                 data-confirm="Ghi nhận thất bại và chuyển nhiệm vụ sang chờ trả kiện về kho?">
-                @csrf<input type="hidden" name="outcome" value="failed"><input type="hidden" name="client_token"
-                    value="{{ $clientToken }}">
+                @csrf<input type="hidden" name="outcome" value="failed"><x-client-token :value="$clientToken" />
                 <div class="row g-3">
                     <div class="col-12"><x-field name="reason_code" label="Lý do thất bại" :options="\App\Models\DeliveryAttempt::REASONS"
                             placeholder="Chọn lý do" required /></div>

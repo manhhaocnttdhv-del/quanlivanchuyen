@@ -132,8 +132,9 @@ class Order extends Model
         foreach (['status', 'shop_id', 'area_id', 'assigned_shipper_id'] as $field) {
             $query->when($filters[$field] ?? null, fn ($q, $value) => $q->where($field, $value));
         }
-        $query->when($filters['from'] ?? null, fn ($q, $v) => $q->where('created_at', '>=', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->startOfDay()->utc()))
-            ->when($filters['until'] ?? null, fn ($q, $v) => $q->where('created_at', '<', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->addDay()->startOfDay()->utc()));
+        // DATETIME hien luu theo timezone ung dung; can tren la dau ngay ke tiep, khong gom ngay sau.
+        $query->when($filters['from'] ?? null, fn ($q, $v) => $q->where('created_at', '>=', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->startOfDay()->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s')))
+            ->when($filters['until'] ?? null, fn ($q, $v) => $q->where('created_at', '<', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->addDay()->startOfDay()->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s')));
     }
 
     public function inputData(): array

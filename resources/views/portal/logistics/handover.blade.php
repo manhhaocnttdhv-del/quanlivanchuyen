@@ -1,9 +1,11 @@
 @extends('layouts.portal')
+{{-- Bên nhận khác người lập kiểm từng kiện; xác nhận mới đổi người giữ, không suy ra từ lúc lập phiếu. --}}
 @section('heading', $doc->direction === 'inbound' ? 'Phiếu nhập kho' : 'Phiếu xuất kho')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('logistics.show', $doc->task) }}">
         <i data-lucide="arrow-left"></i> Nhiệm vụ</a><button class="btn btn-outline-primary" data-print><i
         data-lucide="printer"></i> In phiếu</button>@endsection
 @section('content')
+    {{-- Nhập: kho nhận; xuất: shipper nhận. Người lập phiếu không tự xác nhận phía nhận. --}}
     @php($canConfirm = $doc->status === 'pending' && $doc->created_by !== auth()->id() && ($doc->direction === 'inbound' ? $policy->warehouse(auth()->user(), $doc->warehouse_id) : $policy->shipper(auth()->user(), $doc->task)))
     <div class="order-identity">
         <div><strong class="order-code logistics-code">{{ $doc->code }}</strong>

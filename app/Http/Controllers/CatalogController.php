@@ -8,6 +8,7 @@ use App\Models\Area;
 use App\Models\Warehouse;
 use App\Services\CatalogService;
 
+/** Quản lý khu vực/kho qua middleware catalog.manage; Service ghi thay đổi và audit cùng lúc. */
 class CatalogController extends Controller
 {
     public function index()

@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Nhiệm vụ và đơn chờ có hai phân trang riêng; danh sách chờ đã loại đơn bị khóa hoặc có nhiệm vụ. --}}
 @section('heading', auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Điều phối & bàn giao')
 @section('content')
     <form class="filter-bar" method="get">

@@ -51,11 +51,46 @@
 .report-bars progress { width: 100%; height: 12px; accent-color: #087c70; }
 .report-export-form { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; padding-block: 22px; border-top: 1px solid #dce5e3; }
 .report-export-form .field-group { width: 220px; max-width: 100%; }
+.audit-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.audit-result-count { color: #5c6e70; font-size: 12px; margin-bottom: 12px; }
+.audit-table { min-width: 950px; }
+.audit-table td:first-child { white-space: nowrap; min-width: 160px; }
+.audit-table td:nth-child(2) { min-width: 150px; }
+.audit-table td:nth-child(3) { min-width: 230px; }
+.audit-event-name { overflow-wrap: anywhere; }
+.audit-changes { min-width: 680px; table-layout: fixed; }
+.audit-changes th:first-child { width: 22%; }
+.audit-changes pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.audit-changed { background: #edf7f2; }
+.notification-bell { position: relative; flex: 0 0 42px; width: 42px; height: 42px; }
+.notification-bell [data-unread-count] { position: absolute; top: -3px; right: -5px; border: 2px solid white; border-radius: 12px; padding: 1px 4px; min-width: 20px; font-size: 10px; line-height: 15px; background: #b63344; color: white; }
+.notification-bell [hidden] { display: none; }
+.notification-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 14px; margin-block: 20px; }
+.notification-filters .field-group { width: 240px; max-width: 100%; }
+.notification-list { border-block: 1px solid #dce5e3; margin-bottom: 24px; }
+.notification-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 42px; gap: 16px; align-items: start; padding: 20px 12px; border-bottom: 1px solid #dce5e3; }
+.notification-row:last-child { border-bottom: 0; }
+.notification-row.is-unread { background: #edf7f2; border-left: 3px solid #087c70; padding-left: 9px; }
+.notification-symbol { display: grid; place-items: center; width: 40px; height: 40px; color: #087c70; background: #e4efeb; border-radius: 6px; }
+.notification-body { min-width: 0; }
+.notification-body a { display: block; font-size: 14px; color: #203635; text-decoration: none; overflow-wrap: anywhere; }
+.is-unread .notification-body a { font-weight: 700; }
+.notification-reference { display: block; margin-block: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.notification-body time { font-size: 11px; color: #5c6e70; }
+.notification-empty { text-align: center; padding-block: 48px; color: #5c6e70; }
+.notification-empty p { margin: 16px 0 0; }
 @media (max-width: 767.98px) {
+    .audit-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .notification-row { grid-template-columns: 32px minmax(0, 1fr) 42px; gap: 10px; }
+    .notification-symbol { width: 32px; height: 32px; }
     .report-filters, .report-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .report-metric { padding: 14px; }
     .report-metric strong { font-size: 21px; }
     .report-bars > div { grid-template-columns: minmax(0, 110px) minmax(0, 1fr) 36px; gap: 8px; }
+}
+@media (max-width: 575.98px) {
+    .portal-topbar > .d-flex { gap: 10px !important; }
+    .portal-topbar form .btn { white-space: nowrap; }
 }
 @media (max-width: 575.98px) {
     .finance-form .finance-table { min-width: 0; width: 100%; }
@@ -107,7 +142,9 @@
     .parcel-check-row, .stocktake-check-row { break-inside: avoid; }
 }
 .portal-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 26px; }
-.portal-heading h1 { font-size: 24px; margin: 0; }
+.portal-heading > * { min-width: 0; }
+.portal-heading h1 { font-size: 24px; margin: 0; overflow-wrap: anywhere; }
+.portal-account-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .work-section { padding: 26px 0; border-top: 1px solid #dce5e3; }
 .work-section h2 { font-size: 18px; }
 .case-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 18px 0; border-block: 1px solid #dce5e3; overflow-wrap: anywhere; }
@@ -268,4 +305,8 @@ aside .work-section .field-group + .field-group { margin-top: 14px; }
 @media (max-width: 767.98px) { .order-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .order-form-section { grid-template-columns: minmax(0, 1fr); gap: 8px; } .section-number { display: none; } .order-goods { grid-template-columns: 1fr; gap: 12px; } .order-identity { flex-wrap: wrap; margin-bottom: 20px; gap: 0; } .order-identity .order-code { font-size: 14px; } .order-item-row { grid-template-columns: minmax(0, 1fr) 75px 40px; gap: 8px; } .order-item-row button { width: 40px; } .order-item-row label { font-size: 11px; } .print-body { padding: 12px; } }
 @media print { @page { margin: 10mm; } .print-body { padding: 0; background: #fff; } .print-actions { display: none !important; } .shipping-label { margin: 0 auto; max-width: none; break-after: page; border: 1px solid #000; } .shipping-label:last-child { break-after: auto; } .shipping-label section { break-inside: avoid; } .manifest-sheet { padding: 0; width: 100%; max-width: none; } .manifest-sheet .table-responsive { overflow: visible; } .manifest-table { width: 100%; min-width: 0; table-layout: fixed; font-size: 9px; } .manifest-table th, .manifest-table td { padding: 6px 4px; } .manifest-table th:nth-child(1) { width: 5%; } .manifest-table th:nth-child(2) { width: 22%; } .manifest-table th:nth-child(3) { width: 28%; } .manifest-table tr { break-inside: avoid; } .manifest-table thead { display: table-header-group; } }
 @media (max-width: 991.98px) { .portal-main { padding: 24px 20px; } .portal-heading { flex-wrap: wrap; } .portal-topbar { padding: 12px 20px; } }
+@media (max-width: 575.98px) {
+    .portal-topbar { padding-inline: 12px; gap: 8px; }
+    .portal-topbar .portal-logout { width: 44px; height: 44px; padding: 0; }
+}
 @media (max-width: 575.98px) { .portal-topbar .brand { font-size: 20px; } .portal-topbar .btn { padding: 8px; font-size: 11px; } .portal-topbar .brand-symbol { width: 28px; height: 32px; } .portal-heading h1 { font-size: 22px; } .auth-form { padding: 24px; } .detail-grid { grid-template-columns: 1fr; gap: 6px; } .detail-grid dd { margin-bottom: 10px; } }

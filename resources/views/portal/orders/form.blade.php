@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Nháp được sửa trực tiếp; đơn approved gửi đề nghị. Token chống tạo lặp, revision chống ghi đè bản cũ. --}}
 @section('heading', $order ? ($order->status === 'approved' ? 'Đề nghị chỉnh sửa vận đơn' : 'Chỉnh sửa vận đơn') : 'Tạo
     vận đơn')
 @section('actions')<a class="btn btn-outline-primary"
@@ -13,6 +14,7 @@
             'fee_payer' => 'sender',
             'parcel_count' => 1,
         ];
+        // Chỉ giữ dòng dạng mảng và đánh lại chỉ số sau lỗi validation để JS thêm/xóa không trùng name.
         $items = collect((array) old('items', $data['items'] ?? [['name' => '', 'quantity' => '']]))
             ->filter(fn($item) => is_array($item))
             ->values();
@@ -43,8 +45,7 @@
         @if ($order && !$isChange)
             @method('PUT')
         @endif
-        <input type="hidden" name="client_token"
-            value="{{ is_string(old('client_token')) ? old('client_token') : $clientToken }}">
+        <x-client-token :value="$clientToken" />
         @if ($order)
             <input type="hidden" name="revision" value="{{ $order->revision }}">
         @endif

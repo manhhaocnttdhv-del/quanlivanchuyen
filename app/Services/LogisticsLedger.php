@@ -28,13 +28,13 @@ class LogisticsLedger
         ];
     }
 
-    public function record(User $actor, Order $order, string $event, array $before, string $reason): void
+    public function record(User $actor, Order $order, string $event, array $before, string $reason, array $context = []): void
     {
         $holders = WarehouseItem::where('order_id', $order->id)->lockForUpdate()->get(['holder_type'])->pluck('holder_type')->unique();
         $order->custody_status = $holders->isEmpty() ? 'uncollected' : ($holders->count() === 1 ? $holders->first() : 'mixed');
         $order->revision++;
         $order->save();
-        $after = $this->snapshot($order);
+        $after = array_merge($this->snapshot($order), $context);
         $order->histories()->create(['event' => $event, 'created_by' => $actor->id, 'from_status' => $before['status'], 'to_status' => $order->status,
             'revision' => $order->revision, 'reason' => $reason, 'before_values' => $before, 'after_values' => $after, 'created_at' => now()]);
         $this->audit->record($actor, $order, 'logistics.'.$event, $before, $after, $reason);

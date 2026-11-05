@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Tổng lấy từ toàn query đã lọc, tách COD/cước/phí hoàn; đây là khoản thu gốc, không phải tiền quỹ đã nhận. --}}
 @section('heading', 'Sổ thu giao hàng')
 @section('content')
     <p class="text-secondary">

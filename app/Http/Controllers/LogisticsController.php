@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
+/** Điều phối, bàn giao và tồn; Service thay đổi nghiệp vụ, Controller chuẩn bị dữ liệu trong phạm vi kho. */
 class LogisticsController extends Controller
 {
     public function __construct(private LogisticsPolicy $policy) {}
@@ -38,6 +39,7 @@ class LogisticsController extends Controller
         foreach (['warehouse_id', 'status', 'type'] as $field) {
             $tasks->when($filters[$field] ?? null, fn ($q, $v) => $q->where($field, $v));
         }
+        // Loại đơn có nhiệm vụ, đề nghị sửa hoặc khóa sự cố; Service kiểm tra lại lúc phân công.
         $waiting = Order::with('shop')->whereIn('warehouse_id', $this->warehouseIds($user))->whereIn('status', ['approved', 'at_warehouse'])
             ->whereDoesntHave('tasks', fn ($q) => $q->whereIn('status', DeliveryTask::ACTIVE))->whereDoesntHave('pendingChange')
             ->whereDoesntHave('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
@@ -81,6 +83,7 @@ class LogisticsController extends Controller
 
     public function pickup(LogisticsRequest $request, DeliveryTask $task, DispatchService $service, LogisticsEvidence $evidence)
     {
+        // Evidence wrapper dọn ảnh mới khi Service thất bại, tránh tệp mồ côi sau rollback.
         $evidence->run($request->file('evidence'), fn ($path) => $service->pickup($request->user(), $task, $request->validated(), $path));
 
         return back()->with('success', 'Đã ghi nhận kết quả lấy hàng.');
@@ -129,6 +132,7 @@ class LogisticsController extends Controller
         abort_unless($user->hasPermission('logistics.warehouse') || $user->hasPermission('logistics.dispatch'), 403);
         $ids = $this->warehouseIds($user);
         $filters = $request->validated();
+        // Tồn chỉ gồm kiện kho đang thực giữ, không chỉ dựa vào trạng thái vận đơn.
         $items = WarehouseItem::with(['order', 'location'])->withCount(['discrepancies as hold_count' => fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true)])
             ->whereIn('warehouse_id', $ids)->where('holder_type', 'warehouse')
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%')))
@@ -145,6 +149,7 @@ class LogisticsController extends Controller
     {
         $data = $request->validated();
         abort_unless($this->policy->warehouse($request->user(), (int) $data['warehouse_id']), 403);
+        // Khóa kho để kiểm tra mã vị trí trùng và ghi audit trong cùng giao dịch.
         DB::transaction(function () use ($data, $request, $audit) {
             Warehouse::lockForUpdate()->findOrFail($data['warehouse_id']);
             if (WarehouseLocation::where('warehouse_id', $data['warehouse_id'])->where('code', $data['code'])->exists()) {
@@ -173,6 +178,7 @@ class LogisticsController extends Controller
 
     public function evidence(Request $request, string $kind, int $id)
     {
+        // kind là allowlist nghiệp vụ; quyền kiểm tra theo hồ sơ cha trước khi mở tệp private.
         if ($kind === 'pickup') {
             $attempt = PickupAttempt::findOrFail($id);
             $task = DeliveryTask::findOrFail($attempt->delivery_task_id);

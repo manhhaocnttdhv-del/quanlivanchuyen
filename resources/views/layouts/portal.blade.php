@@ -1,3 +1,4 @@
+{{-- Menu theo quyền chỉ phục vụ điều hướng; route/Policy vẫn kiểm quyền, khung nội dung và sidebar cuộn riêng. --}}
 <!doctype html>
 <html lang="vi">
 
@@ -10,14 +11,24 @@
 </head>
 
 <body class="portal-body">
+    <a class="skip-link" href="#portal-main">Đến nội dung chính</a>
     <header class="portal-topbar">
         <a class="brand" href="{{ route('dashboard') }}"><span class="brand-symbol"><i
                     data-lucide="package-check"></i></span>Gửi Việt.</a>
         <div class="d-flex align-items-center gap-3">
+            {{-- Đếm từ quan hệ user; JS chỉ cập nhật huy hiệu, không tải nội dung thông báo toàn hệ thống. --}}
+            @php
+                $notificationCount = auth()->user()->unreadNotifications()->count();
+            @endphp
+            <a class="btn icon-button notification-bell" href="{{ route('notifications.index') }}" aria-label="Thông báo, {{ $notificationCount }} chưa đọc" title="Thông báo"
+                data-notification-counter="{{ route('notifications.count') }}">
+                <i data-lucide="bell"></i>
+                <span data-unread-count @if ($notificationCount === 0) hidden @endif>{{ $notificationCount > 99 ? '99+' : $notificationCount }}</span>
+            </a>
             <a href="{{ route('home') }}" class="small d-none d-sm-inline">Trang khách hàng</a>
-            <span class="small d-none d-md-inline">{{ auth()->user()->name }}</span>
-            <form method="post" action="{{ route('logout') }}">@csrf<button class="btn btn-outline-primary">Đăng
-                    xuất</button></form>
+            <span class="small d-none d-md-inline portal-account-name" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</span>
+            <form method="post" action="{{ route('logout') }}">@csrf<button class="btn btn-outline-primary portal-logout" aria-label="Đăng xuất" title="Đăng xuất">
+                    <i data-lucide="log-out" class="d-sm-none"></i><span class="d-none d-sm-inline">Đăng xuất</span></button></form>
             <button class="btn icon-button d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#portal-nav"
                 aria-label="Mở điều hướng"><i data-lucide="menu"></i></button>
         </div>
@@ -29,11 +40,18 @@
                     data-bs-dismiss="offcanvas" data-bs-target="#portal-nav" aria-label="Đóng"></button></div>
             <div class="offcanvas-body">
                 <nav class="portal-nav">
+                    @php
+                        // Tính một lần cho menu; không lặp query quyền ở từng nhóm điều hướng.
+                        $warehouseAccess = auth()->user()->hasPermission('logistics.warehouse');
+                        $dispatchAccess = auth()->user()->hasPermission('logistics.dispatch');
+                        $stocktakeAccess = $warehouseAccess || auth()->user()->hasPermission('logistics.approve');
+                    @endphp
                     <p class="nav-group-label">Không gian làm việc</p>
                     <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i
                             data-lucide="package"></i> Tổng quan</a>
                     <a class="{{ request()->routeIs('profile.*') ? 'active' : '' }}"
                         href="{{ route('profile.edit') }}"><i data-lucide="info"></i> Hồ sơ cá nhân</a>
+                    <a class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><i data-lucide="bell"></i> Thông báo</a>
                     @if (auth()->user()->shop)
                         <a class="{{ request()->routeIs('shop.*', 'pickups.*') ? 'active' : '' }}"
                             href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> {{ auth()->user()->shop->isIndividual() ? 'Người gửi & địa chỉ' : 'Cửa hàng & địa chỉ' }}</a>
@@ -42,9 +60,7 @@
                         <a class="{{ request()->routeIs('orders.*') ? 'active' : '' }}"
                             href="{{ route('orders.index') }}"><i data-lucide="clipboard-list"></i> Vận đơn</a>
                     @endcan
-                    @if (auth()->user()->hasPermission('logistics.dispatch') ||
-                            auth()->user()->hasPermission('logistics.warehouse') ||
-                            auth()->user()->hasRole('shipper'))
+                    @if ($dispatchAccess || $warehouseAccess || auth()->user()->hasRole('shipper'))
                         <a class="{{ request()->routeIs('logistics.index', 'logistics.show', 'logistics.order', 'logistics.handover', 'delivery.mine') ? 'active' : '' }}"
                             href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}"><i
                                 data-lucide="truck"></i>
@@ -58,10 +74,12 @@
                             href="{{ route('delivery.collections') }}"><i data-lucide="banknote"></i> Sổ thu giao
                             hàng</a>
                     @endif
-                    @if (auth()->user()->hasPermission('logistics.warehouse') || auth()->user()->hasPermission('logistics.dispatch'))
+                    @if ($warehouseAccess || $dispatchAccess)
                         <a class="{{ request()->routeIs('logistics.inventory') ? 'active' : '' }}"
                             href="{{ route('logistics.inventory') }}"><i data-lucide="package-check"></i> Tồn kho & sai
                             lệch</a>
+                    @endif
+                    @if ($stocktakeAccess)
                         <a class="{{ request()->routeIs('stocktakes.*') ? 'active' : '' }}"
                             href="{{ route('stocktakes.index') }}"><i data-lucide="clipboard-list"></i> Kiểm kê kho</a>
                     @endif
@@ -106,7 +124,7 @@
                 </nav>
             </div>
         </aside>
-        <main class="portal-main" tabindex="0" aria-label="Nội dung chính">
+        <main class="portal-main" id="portal-main" tabindex="0" aria-label="Nội dung chính">
             @include('portal.partials.feedback')
             <div class="portal-heading">
                 <h1>@yield('heading')</h1>@yield('actions')

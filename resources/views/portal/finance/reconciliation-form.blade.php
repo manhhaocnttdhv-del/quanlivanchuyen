@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Bản mới có token; thay dòng bản nháp có revision; nguồn khả dụng loại phần đang giữ ở đối soát khác. --}}
 @section('heading', $document ? 'Cập nhật đối soát nháp' : 'Lập đối soát shop')
 @section('content')
     @include('portal.finance.nav', ['section' => 'reconciliations'])
@@ -17,7 +18,7 @@
         @csrf
         @if ($document)<input type="hidden" name="revision" value="{{ $document->revision }}">
         @else
-            <input type="hidden" name="client_token" value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
+            <x-client-token />
             <input type="hidden" name="warehouse_id" value="{{ $filters['warehouse_id'] }}"><input type="hidden" name="shop_id" value="{{ $filters['shop_id'] }}">
             <input type="hidden" name="period_start" value="{{ $filters['from'] }}"><input type="hidden" name="period_end" value="{{ $filters['until'] }}">
         @endif
@@ -25,6 +26,7 @@
             <section class="work-section"><h2>{{ $set['label'] }}</h2>
                 <div class="table-responsive"><table class="table align-middle finance-table"><thead><tr><th>Vận đơn / nguồn</th><th class="text-end">Khả dụng</th><th class="text-end">Đối soát (đ)</th></tr></thead><tbody>
                     @forelse ($set['sources'] as $source)
+                        {{-- lines của document đã lọc phiên bản hiện hành, tránh lấy lại số của phiên bản thay thế. --}}
                         @php($selected = $document?->lines->firstWhere($group === 'cod' ? 'delivery_collection_id' : 'receivable_id', $source->id))
                         <tr><td><span class="order-code">{{ $source->order->tracking_code }}</span><small class="d-block">#{{ $source->id }} · {{ $group === 'cod' ? 'COD thu hộ' : \App\Models\Receivable::TYPES[$source->type] }}</small></td>
                             <td class="text-end" data-label="Khả dụng">{{ number_format($queries->available($source), 0, ',', '.') }}đ</td><td data-label="Đối soát (đ)"><x-finance-amount :group="$group" :source="$source->id" :label="'Đối soát '.$group.' #'.$source->id" :value="(int) ($selected?->amount ?? 0)" :max="$queries->available($source)" /></td></tr>
@@ -35,7 +37,7 @@
         @endforeach
         <section class="work-section"><h2>Bồi thường đã duyệt</h2>
             @forelse ($adjustments as $adjustment)
-                <label class="finance-source-row"><span><input class="form-check-input me-2" type="checkbox" name="adjustment_ids[]" value="{{ $adjustment->id }}" @checked(in_array($adjustment->id, old('adjustment_ids', $document?->lines->pluck('adjustment_id')->filter()->all() ?? [])))>{{ $adjustment->code }}<small class="d-block text-secondary">{{ $adjustment->order->tracking_code }}</small></span><strong>{{ number_format((int) $adjustment->amount, 0, ',', '.') }}đ</strong></label>
+                <label class="finance-source-row"><span><input class="form-check-input me-2" type="checkbox" name="adjustment_ids[]" value="{{ $adjustment->id }}" @checked(in_array($adjustment->id, (array) old('adjustment_ids', $document?->lines->pluck('adjustment_id')->filter()->all() ?? [])))>{{ $adjustment->code }}<small class="d-block text-secondary">{{ $adjustment->order->tracking_code }}</small></span><strong>{{ number_format((int) $adjustment->amount, 0, ',', '.') }}đ</strong></label>
             @empty<p class="small text-secondary">Không có khoản bồi thường khả dụng.</p>@endforelse
         </section>
         <x-field name="reason" label="Căn cứ lập / cập nhật đối soát" type="textarea" rows="3" minlength="5" maxlength="2000" required />

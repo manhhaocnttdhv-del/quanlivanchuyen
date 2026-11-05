@@ -7,6 +7,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Models\Area;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\AuditService;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+/** Xác thực tài khoản; ShopService chịu trách nhiệm tạo shop và lịch sử đăng ký. */
 class AuthController extends Controller
 {
     public function login()
@@ -31,9 +33,10 @@ class AuthController extends Controller
         ]);
     }
 
-    public function authenticate(LoginRequest $request)
+    public function authenticate(LoginRequest $request, AuditService $audit)
     {
         $data = $request->validated();
+        // Giới hạn theo danh tính + IP; thông báo chung tránh tiết lộ tài khoản có tồn tại.
         $key = 'login:'.hash('sha256', Str::lower($data['identity']).'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($key, 5)) {
             abort(429, 'Thử đăng nhập quá nhiều lần. Vui lòng đợi một phút.');
@@ -45,6 +48,8 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['identity' => 'Thông tin đăng nhập không đúng hoặc tài khoản đã bị khóa.']);
         }
         RateLimiter::clear($key);
+        $audit->record($user, $user, 'auth.logged_in', [], ['status' => $user->status], 'Đăng nhập thành công');
+        // Đổi session ID chống session fixation; auth_version dùng thu hồi các phiên cũ.
         Auth::login($user);
         $request->session()->regenerate();
         $request->session()->put('auth_version', $user->auth_version);
@@ -62,8 +67,10 @@ class AuthController extends Controller
         return redirect()->route('shop.profile')->with('status', 'Đăng ký thành công. Hồ sơ người gửi đang chờ duyệt.');
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request, AuditService $audit)
     {
+        // Ghi actor trước khi xóa phiên; hủy cả dữ liệu phiên và token CSRF khi đăng xuất.
+        $audit->record($request->user(), $request->user(), 'auth.logged_out', [], [], 'Người dùng đăng xuất');
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

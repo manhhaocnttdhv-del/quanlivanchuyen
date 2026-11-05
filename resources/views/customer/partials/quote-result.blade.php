@@ -1,3 +1,4 @@
+{{-- Kết quả từ FeeCalculator cho form thường; cước chỉ được chốt lại khi gửi duyệt vận đơn. --}}
 <div class="quote-label">Cước tham khảo · {{ $quote['route'] }}</div>
 <div class="quote-price">{{ number_format($quote['total'], 0, ',', '.') }} <small>đ</small></div>
 <p class="small mb-3">{{ $quote['service'] }} · Dự kiến {{ $quote['days'] }}</p>

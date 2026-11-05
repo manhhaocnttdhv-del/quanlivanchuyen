@@ -9,10 +9,12 @@ use App\Models\FeeVersion;
 use App\Services\FeeCalculator;
 use App\Services\PublicTrackingService;
 
+/** Công cụ công khai: cước lấy từ biểu phí hiệu lực, tra cứu chỉ trả dữ liệu đã rút gọn. */
 class CustomerPortalController extends Controller
 {
     public function index()
     {
+        // Cùng khoảng hiệu lực [active_from, active_until) với bộ tính cước trong Service.
         $version = FeeVersion::with('rules')->where('status', 'published')->where('active_from', '<=', now())
             ->where(fn ($q) => $q->whereNull('active_until')->orWhere('active_until', '>', now()))->first();
 
@@ -41,6 +43,7 @@ class CustomerPortalController extends Controller
         $input = $request->validated();
         $result = $tracking->track($input['tracking_code'], $input['phone_suffix']);
 
+        // Hỗ trợ cả AJAX và form thường; Service kiểm tra mã + đuôi điện thoại, ẩn dữ liệu riêng tư.
         return $request->expectsJson() ? response()->json($result)
             : redirect()->to(route('home').'#cong-cu')->withInput()->with('tracking', $result);
     }

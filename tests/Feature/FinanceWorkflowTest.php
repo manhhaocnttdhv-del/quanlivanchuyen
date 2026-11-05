@@ -158,6 +158,19 @@ class FinanceWorkflowTest extends DatabaseTestCase
         app(AdjustmentService::class)->review($this->admin, $doc, 'approve', ['revision' => 1, 'reason' => 'Đã kiểm tra nguồn và chứng từ điều chỉnh']);
     }
 
+    public function test_finance_form_recovers_after_nested_amount_and_token_validation_errors(): void
+    {
+        $source = $this->collection();
+        $form = route('finance.deposits.create', ['warehouse_id' => $this->depot->id, 'shipper_id' => $this->shipper->id]);
+        $data = $this->depositData([$source->id => ['invalid']]);
+        $data['client_token'] = ['invalid'];
+        $this->actingAs($this->shipper)->from($form)->post(route('finance.deposits.store'), $data)
+            ->assertRedirect($form)->assertSessionHasErrors(['client_token', 'allocations.'.$source->id]);
+        $this->get($form)->assertOk()->assertSee('id="allocations-'.$source->id.'-error"', false)
+            ->assertSee('aria-invalid="true"', false);
+        $this->assertSame(0, CashDeposit::count());
+    }
+
     public function test_partial_and_excess_deposit_allocations_preserve_cod_fee_and_cash_identity(): void
     {
         $c = $this->collection();

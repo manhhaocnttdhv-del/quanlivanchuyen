@@ -204,6 +204,21 @@ class IdentityCatalogTest extends DatabaseTestCase
         $this->assertSame('published', $adjacent->fresh()->status);
     }
 
+    public function test_fee_editor_recovers_empty_rows_and_keeps_error_indexes_after_deleting_rows(): void
+    {
+        $this->actingAs($this->person());
+        $data = $this->feeData();
+        $data['rules'] = array_combine(range(10, 15), $data['rules']);
+        $data['rules'][10]['max_cod'] = 100000001;
+        $this->from(route('fees.create'))->post(route('fees.store'), $data)
+            ->assertRedirect(route('fees.create'))->assertSessionHasErrors('rules.0.max_cod');
+        $this->get(route('fees.create'))->assertOk()->assertSee('id="fee-rule-0-max_cod-error"', false);
+
+        $data['rules'] = [];
+        $this->post(route('fees.store'), $data)->assertSessionHasErrors('rules');
+        $this->get(route('fees.create'))->assertOk()->assertSee('id="fee-rule-template"', false);
+    }
+
     public function test_fee_rules_reject_overlapping_weight_and_extra_keys(): void
     {
         $admin = $this->person();

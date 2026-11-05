@@ -1,3 +1,4 @@
+{{-- Kết quả giao/hoàn là lịch sử đã ghi; bằng chứng mở qua route kiểm quyền, không dùng path storage trực tiếp. --}}
 <section class="work-section">
     <h2>Kết quả giao / hoàn</h2>
     @if ($order->financial_hold)

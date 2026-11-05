@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chọn căn cứ cùng vận đơn; JS đổi nhóm ô nhập, Service kiểm tra lại số tiền/căn cứ và người duyệt. --}}
 @section('heading', 'Lập điều chỉnh tài chính')
 @section('content')
     @include('portal.finance.nav', ['section' => 'adjustments'])
@@ -9,7 +10,7 @@
     @else
         <p class="order-code">{{ $order->tracking_code }}</p>
         <form method="post" action="{{ route('finance.adjustments.store', $order) }}" enctype="multipart/form-data" class="finance-form">
-            @csrf<input type="hidden" name="client_token" value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
+            @csrf<x-client-token />
             <div class="row g-3"><div class="col-md-7"><x-field name="kind" label="Loại điều chỉnh" :options="\App\Models\Adjustment::KINDS" data-finance-kind required /></div><div class="col-md-5"><x-field name="amount" type="number" label="Số tiền theo căn cứ (đ)" min="1" max="9999999999999" step="1" required /></div></div>
             <div data-finance-basis="incident"><x-field name="incident_id" label="Kết luận sự cố đã duyệt" :options="['' => 'Chọn căn cứ'] + $incidents->mapWithKeys(fn ($item) => [$item->id => $item->code.' · '.\App\Models\Incident::OUTCOMES[$item->approvedAction->payload['outcome']].' · '.number_format((int) $item->approvedAction->proposed_amount, 0, ',', '.').'đ'])->all()" /></div>
             <div data-finance-basis="reversal"><x-field name="reverses_adjustment_id" label="Điều chỉnh gốc cần đảo" :options="['' => 'Chọn chứng từ gốc'] + $originals->mapWithKeys(fn ($item) => [$item->id => $item->code.' · '.\App\Models\Adjustment::KINDS[$item->kind].' · '.number_format((int) $item->amount, 0, ',', '.').'đ'])->all()" /></div>

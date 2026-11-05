@@ -8,10 +8,12 @@ use App\Policies\IncidentPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+/** Phục vụ bằng chứng private qua quyền hồ sơ cha, không công khai đường dẫn storage. */
 class CaseAttachmentController extends Controller
 {
     public function show(Request $request, Attachment $attachment, IncidentPolicy $incidents, ComplaintPolicy $complaints)
     {
+        // Quyền xem khiếu nại chưa đủ để đọc tệp gắn với trao đổi nội bộ.
         if ($attachment->incident_action_id) {
             abort_unless($incidents->view($request->user(), $attachment->incidentAction->incident), 403);
         } else {
@@ -22,6 +24,7 @@ class CaseAttachmentController extends Controller
         abort_unless(Storage::disk('local')->exists($path), 404);
         $headers = ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; sandbox", 'Content-Type' => $attachment->mime];
 
+        // PDF tải xuống; ảnh xem trực tiếp với MIME đã kiểm tra khi upload.
         return $attachment->mime === 'application/pdf'
             ? response()->download(Storage::disk('local')->path($path), 'bang-chung-'.$attachment->id.'.pdf', $headers)->setPrivate()
             : response()->file(Storage::disk('local')->path($path), $headers)->setPrivate();

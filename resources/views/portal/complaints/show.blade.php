@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Controller đã loại trao đổi nội bộ khỏi query của shop; revision bảo vệ các form cập nhật đồng thời. --}}
 @section('heading', 'Chi tiết khiếu nại')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('complaints.index') }}">
     <i data-lucide="arrow-left"></i> Khiếu nại</a>@endsection
@@ -68,6 +69,7 @@
             @endif
             <section class="work-section">
                 <h2>Lịch sử trao đổi</h2>
+                {{-- Đây đã là tập tin nhắn được lọc quyền trước paginate; không dùng CSS để giấu tin nội bộ. --}}
                 @foreach ($messages as $message)
                     <article class="case-entry {{ $message->is_internal ? 'case-internal' : '' }}">
                         <div class="case-entry-heading">

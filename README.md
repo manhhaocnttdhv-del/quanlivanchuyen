@@ -2,7 +2,7 @@
 
 He thong quan ly van chuyen COD xay dung bang Laravel 12, MySQL, Bootstrap 5 va jQuery. Project duoc chia thanh 8 sprint nghiep vu de de phat trien, review va bao ve do an.
 
-Sprint 01 đến 07 đã triển khai trên các nhánh riêng: tài khoản/danh mục, vận đơn, điều phối/kho, giao/hoàn hàng, sự cố/khiếu nại, COD/tài chính, báo cáo/thống kê. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Sprint 07 có dashboard vận hành, báo cáo theo phạm vi kho/shop và xuất Excel/PDF private.
+Sprint 01 đến 08 đã triển khai trên các nhánh riêng: tài khoản/danh mục, vận đơn, điều phối/kho, giao/hoàn hàng, sự cố/khiếu nại, COD/tài chính, báo cáo/thống kê, nhật ký/thông báo. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Sprint 08 có nhật ký quản trị, so sánh trước/sau và hộp thông báo theo phạm vi kho/shop; các PR vẫn cần review trước khi merge vào `main`.
 
 ## Cong nghe
 
@@ -136,8 +136,20 @@ php artisan schedule:work
 
 Tệp private hết hạn sau 24 giờ từ lúc yêu cầu, chỉ người yêu cầu còn đúng quyền/phạm vi mới tải được. `reports:prune-exports` chạy hằng giờ qua scheduler; có thể chạy lệnh này thủ công. Không cần đổi `QUEUE_CONNECTION` cho queue báo cáo.
 
+Sprint 08: chạy `php artisan migrate`, rồi `php artisan db:seed --class=DemoNotificationSeeder` sau các seeder nghiệp vụ trên. Admin tra cứu `/quan-tri/nhat-ky` theo người dùng, ngày, event, đối tượng, mã vận đơn hoặc request ID; mở chi tiết để xem thay đổi trước/sau. Mỗi tài khoản có hộp `/thong-bao`, số chưa đọc và nút đánh dấu đã đọc/chưa đọc. Mở thông báo kiểm tra lại quyền hiện tại, không tự đổi trạng thái đã đọc. Xem [nghiệm thu, luồng queue và câu hỏi bảo vệ Sprint 08](docs/sprint-08-nghiem-thu.md).
+
+Worker thông báo chạy ở terminal riêng, độc lập với worker báo cáo:
+
+```shell
+php artisan queue:work notifications --queue=notifications --tries=3 --timeout=60
+```
+
+Không cần đổi `QUEUE_CONNECTION`. Thông báo tạo sau commit, có outbox và khóa chống trùng khi retry. Scheduler đã chạy ở trên sẽ phục hồi sự kiện chưa gửi mỗi 5 phút; có thể gọi `php artisan notifications:dispatch-pending` thủ công. Seeder chạy lại không tạo trùng, không phát lại toàn bộ lịch sử cũ. Đây là thông báo trong ứng dụng, chưa gửi email/SMS.
+
 ## Tai lieu ky thuat
 
+- [Rà soát logic và UI/UX lần hai](docs/ra-soat-logic-ui-ux-2026-10-30.md): khôi phục form, bậc cân, quyền menu và kiểm tra màn hình nhỏ.
+- [Rà soát tổng thể 30/10/2026](docs/ra-soat-tong-the-2026-10-30.md): lỗi đã sửa, phạm vi comment Controller/Blade, kiểm thử và cách đọc code khi bảo vệ.
 - `docs/Ke-hoach-chi-tiet-he-thong-quan-ly-van-chuyen-COD.docx`: ke hoach nghiep vu, database, phan quyen, test va tieu chi nghiem thu.
 - `docs/architecture.md`: kien truc va quy uoc code.
 - `docs/database-design.md`: dinh huong thiet ke database va index.
@@ -168,4 +180,4 @@ git switch sprint-02-quan-ly-van-don
 git merge main
 ```
 
-Sprint 08 trien khai man hinh tra cuu va thong bao day du; helper ghi audit phai duoc tao tu sprint 01 va goi trong moi nghiep vu quan trong.
+Sprint 08 đã hoàn thiện tra cứu audit và thông báo trên nền helper audit có từ Sprint 01. Nhánh Sprint 08 kế thừa Sprint 01–07; sau khi các PR phụ thuộc được merge, cập nhật từ `main` trước khi merge PR Sprint 08.

@@ -1,7 +1,8 @@
 @extends('layouts.portal')
+{{-- Sửa hồ sơ cần duyệt lại; ngân hàng tạo version mới, địa chỉ và tài khoản cũ vẫn giữ lịch sử. --}}
 @section('heading', $shop->isIndividual() ? 'Người gửi & địa chỉ' : 'Cửa hàng & địa chỉ')
 @section('content')
-    <div class="row g-5">
+    <div class="row g-4 g-lg-5">
         <section class="col-lg-6">
             <h2 class="h5 mb-3">{{ $shop->isIndividual() ? 'Hồ sơ người gửi' : 'Hồ sơ cửa hàng' }} <span
                     class="status-badge">{{ \App\Models\Shop::STATUSES[$shop->status] }}</span></h2>

@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+/** Màn hình shipper và sổ thu gốc; DeliveryService ghi kết quả, người giữ kiện và tiền cùng transaction. */
 class DeliveryController extends Controller
 {
     public function mine(DeliveryFilterRequest $request)
@@ -22,6 +23,7 @@ class DeliveryController extends Controller
         $user = $request->user();
         abort_unless($user->hasRole('shipper'), 403);
         $filters = $request->validated();
+        // Kiểm tra cả người được giao việc và phạm vi kho hiện tại, kể cả với nhiệm vụ cũ.
         $base = DeliveryTask::where('shipper_id', $user->id)->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id'));
         $active = ($filters['view'] ?? 'active') === 'active';
         $base = $active ? $base->whereIn('status', DeliveryTask::ACTIVE) : $base->whereNotIn('status', DeliveryTask::ACTIVE);
@@ -52,12 +54,13 @@ class DeliveryController extends Controller
         $user = $request->user();
         abort_unless($user->hasRole('admin') || $user->hasRole('shipper') || $user->hasPermission('delivery.collections.view') || $user->shop, 403);
         $filters = $request->validated();
+        // Ngày lọc theo Việt Nam và timezone DATETIME đang lưu, không ép mốc SQL sang UTC.
         $query = DeliveryCollection::visibleTo($user)
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%')))
             ->when($filters['type'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['financial_status'] ?? null, fn ($q, $v) => $q->where('financial_status', $v))
-            ->when($filters['from'] ?? null, fn ($q, $v) => $q->where('collected_at', '>=', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->startOfDay()->utc()))
-            ->when($filters['until'] ?? null, fn ($q, $v) => $q->where('collected_at', '<', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->addDay()->startOfDay()->utc()));
+            ->when($filters['from'] ?? null, fn ($q, $v) => $q->where('collected_at', '>=', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->startOfDay()->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s')))
+            ->when($filters['until'] ?? null, fn ($q, $v) => $q->where('collected_at', '<', Carbon::parse($v, 'Asia/Ho_Chi_Minh')->addDay()->startOfDay()->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s')));
         // Cộng trong MySQL DECIMAL; không chuyển số tiền sang float ở PHP.
         $totals = (clone $query)->selectRaw('type, SUM(amount) as amount, SUM(expected_amount) as expected')->groupBy('type')->get()->keyBy('type');
         $collections = $query->with(['order', 'shipper', 'attempt'])->latest('id')->paginate(20)->withQueryString();
@@ -67,6 +70,7 @@ class DeliveryController extends Controller
 
     public function proof(Request $request, DeliveryAttempt $attempt, LogisticsPolicy $policy)
     {
+        // Shop chỉ xem bằng chứng đơn của mình; nhân viên phải còn quyền của nhiệm vụ/kho.
         $ownsShop = $attempt->order->shop->user_id === $request->user()->id;
         abort_unless($ownsShop || $policy->view($request->user(), $attempt->task), 403);
         $path = $attempt->proof?->getRawOriginal('evidence_path');

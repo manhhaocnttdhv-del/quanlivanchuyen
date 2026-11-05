@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Chỉ điều phối đúng kho thấy form phân công/phương án; Service vẫn kiểm tra revision, khóa và lượt thử. --}}
 @section('heading', 'Điều phối vận đơn')
 @section('actions')<a class="btn btn-outline-primary" href="{{ route('logistics.index') }}">
     <i data-lucide="arrow-left"></i> Điều phối</a>@endsection

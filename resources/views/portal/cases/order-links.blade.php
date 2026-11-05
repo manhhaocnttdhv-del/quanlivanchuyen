@@ -1,3 +1,4 @@
+{{-- Quyền báo sự cố và gửi khiếu nại kiểm riêng theo đơn; không suy ra từ việc xem được vận đơn. --}}
 <div class="case-links">
     @if (app(\App\Policies\IncidentPolicy::class)->createForOrder(auth()->user(), $order))
         <a class="btn btn-outline-danger" href="{{ route('incidents.create', ['order_id' => $order->id]) }}"><i

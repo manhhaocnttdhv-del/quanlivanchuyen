@@ -1,3 +1,4 @@
+{{-- Lịch sử finance_events đã phân trang; đây là căn cứ diễn biến, không cho sửa/xóa trực tiếp. --}}
 <section class="work-section">
     <h2>Lịch sử chứng từ</h2>
     @foreach ($events as $event)

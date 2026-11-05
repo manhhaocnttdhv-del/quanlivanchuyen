@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- Các phiên bản phí có kỳ hiệu lực riêng; tạo phiên bản mới thay vì ghi đè bản đã công bố. --}}
 @section('heading', 'Phiên bản biểu phí')
 @section('actions')<a class="btn btn-primary" href="{{ route('fees.create') }}">
     <i data-lucide="plus"></i> Tạo phiên bản</a>@endsection

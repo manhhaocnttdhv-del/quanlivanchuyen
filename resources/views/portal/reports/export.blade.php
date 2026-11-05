@@ -1,4 +1,5 @@
 @extends('layouts.portal')
+{{-- JS chỉ thăm dò trạng thái tệp; link tải có chữ ký/hạn và route tải vẫn kiểm tra owner/scope. --}}
 @section('heading', 'Tệp báo cáo')
 @section('actions')
     <a href="{{ route('reports.history') }}" class="btn btn-outline-primary"><i data-lucide="arrow-left"></i> Tệp đã xuất</a>

@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
+/** Báo cáo dùng chung Service/scope cho màn hình và tệp; không cập nhật số dư từ dữ liệu báo cáo. */
 class ReportController extends Controller
 {
     public function home(Request $request, ReportPolicy $policy)
@@ -47,6 +48,7 @@ class ReportController extends Controller
 
     public function history(Request $request, ReportPolicy $policy)
     {
+        // Lịch sử xuất là của người yêu cầu; admin cũng không tải thay tệp private của người khác.
         abort_unless($policy->any($request->user()), 403);
 
         return view('portal.reports.history', ['exports' => ExportLog::where('user_id', $request->user()->id)->latest('id')->paginate(20)]);
@@ -67,6 +69,7 @@ class ReportController extends Controller
 
     public function download(Request $request, ExportLog $export, ReportExportService $exports)
     {
+        // Middleware kiểm chữ ký URL; Service kiểm tiếp owner, tài khoản và phạm vi quyền hiện tại.
         $exports->authorize($request->user(), $export);
         abort_unless($export->status === 'ready' && $export->expires_at->isFuture(), 410);
         abort_unless($export->path && Storage::disk('local')->exists($export->path), 404);

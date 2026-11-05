@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
+/** Đọc sổ tài chính theo scope; khoản gốc, điều chỉnh và phân bổ được hiển thị riêng để đối chiếu. */
 class FinanceController extends Controller
 {
     public function index(FinanceFilterRequest $request, FinanceQueries $queries, string $section = 'collections')
@@ -59,6 +60,7 @@ class FinanceController extends Controller
 
     public function collection(FinanceFilterRequest $request, DeliveryCollection $collection, FinanceQueries $queries)
     {
+        // ID từ URL không thay thế scope: truy vấn lại nguồn với quyền người đang đăng nhập.
         abort_unless(DeliveryCollection::visibleTo($request->user())->whereKey($collection->id)->exists(), 403);
         $source = $queries->collections($request->user(), [])->findOrFail($collection->id);
         $source->load(['depositAllocations.deposit', 'adjustmentLines.adjustment', 'reconciliationLines.reconciliation']);
@@ -76,6 +78,7 @@ class FinanceController extends Controller
 
     public function attachment(Request $request, FinanceAttachment $attachment, FinancePolicy $policy)
     {
+        // Tệp gắn chứng từ private: kiểm tra Policy trước khi đọc path, dùng tên tải do server tạo.
         abort_unless($policy->view($request->user(), $attachment->document()), 403);
         $path = $attachment->getRawOriginal('path');
         abort_unless(Storage::disk('local')->exists($path), 404);
