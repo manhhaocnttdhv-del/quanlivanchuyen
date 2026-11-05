@@ -1,16 +1,17 @@
 @extends('layouts.portal')
 {{-- Sửa hồ sơ cần duyệt lại; ngân hàng tạo version mới, địa chỉ và tài khoản cũ vẫn giữ lịch sử. --}}
-@section('heading', 'Cửa hàng & địa chỉ')
+@section('heading', $shop->isIndividual() ? 'Người gửi & địa chỉ' : 'Cửa hàng & địa chỉ')
 @section('content')
     <div class="row g-4 g-lg-5">
         <section class="col-lg-6">
-            <h2 class="h5 mb-3">Hồ sơ cửa hàng <span
+            <h2 class="h5 mb-3">{{ $shop->isIndividual() ? 'Hồ sơ người gửi' : 'Hồ sơ cửa hàng' }} <span
                     class="status-badge">{{ \App\Models\Shop::STATUSES[$shop->status] }}</span></h2>
+            <p class="small text-secondary">{{ $shop->account_type_label }}</p>
             @if ($shop->review_reason)
                 <p class="alert alert-info">{{ $shop->review_reason }}</p>
             @endif
             <form method="post" action="{{ route('shop.update') }}">@csrf @method('PUT')
-                <x-field name="name" label="Tên cửa hàng" :value="$shop->name" required />
+                <x-field name="name" :label="$shop->isIndividual() ? 'Tên người gửi' : 'Tên cửa hàng'" :value="$shop->name" required />
                 <x-field name="area_id" label="Tỉnh/thành" :value="$shop->area_id" :options="$areas" required />
                 <x-field name="address" label="Địa chỉ" :value="$shop->address" required />
                 <button class="btn btn-primary mt-3">Cập nhật hồ sơ</button>

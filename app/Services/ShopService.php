@@ -19,13 +19,16 @@ class ShopService
         return DB::transaction(function () use ($data) {
             $user = User::create(collect($data)->only(['name', 'email', 'phone', 'password'])->all());
             $user->roles()->attach(Role::where('name', 'shop')->firstOrFail());
-            $shop = new Shop(['name' => $data['shop_name'], 'area_id' => $data['area_id'], 'address' => $data['address']]);
+            $accountType = $data['account_type'] ?? 'business';
+            $shop = new Shop(['name' => $accountType === 'individual' ? $data['name'] : $data['shop_name'],
+                'area_id' => $data['area_id'], 'address' => $data['address']]);
+            $shop->account_type = $accountType;
             $shop->user()->associate($user);
             $shop->save();
             $shop->addresses()->create(['contact_name' => $data['name'], 'phone' => $data['phone'], 'address' => $data['address'], 'area_id' => $data['area_id'], 'is_active' => true, 'is_default' => true]);
-            $this->audit->record($user, $shop, 'shop.registered', [], ['name' => $shop->name, 'status' => 'pending']);
+            $this->audit->record($user, $shop, 'shop.registered', [], ['name' => $shop->name, 'account_type' => $shop->account_type, 'status' => 'pending']);
 
-            return $user;
+            return $user->refresh();
         });
     }
 
@@ -49,7 +52,7 @@ class ShopService
         DB::transaction(function () use ($actor, $shop, $data) {
             $shop = Shop::lockForUpdate()->findOrFail($shop->id);
             if ($shop->status === $data['status']) {
-                throw ValidationException::withMessages(['status' => 'Shop đã ở trạng thái này.']);
+                throw ValidationException::withMessages(['status' => 'Hồ sơ người gửi đã ở trạng thái này.']);
             }
             $before = ['status' => $shop->status];
             $shop->status = $data['status'];

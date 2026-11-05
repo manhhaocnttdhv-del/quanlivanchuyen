@@ -76,11 +76,12 @@ class DeliveryWorkflowTest extends DatabaseTestCase
     {
         $orders = app(OrderService::class);
         $order = $orders->saveDraft($this->owner, ['client_token' => (string) Str::uuid(), 'pickup_address_id' => $this->owner->shop->addresses()->value('id'),
+            'warehouse_id' => $this->depot->id,
             'area_id' => Area::where('code', 'HN')->value('id'), 'recipient_name' => 'Khách nhận hàng', 'recipient_phone' => '0987656789', 'recipient_address' => '10 Đường thử nghiệm',
             'weight_grams' => 1000, 'parcel_count' => 2, 'service' => 'standard', 'cod_amount' => 500000, 'fee_payer' => $payer, 'items' => [['name' => 'Sách', 'quantity' => 2]]]);
         $orders->submit($this->owner, $order, $order->revision);
         $orders->review($this->admin, $order->fresh(), $order->fresh()->revision, 'approved', 'Đủ điều kiện tiếp nhận');
-        $order->refresh()->update(['warehouse_id' => $this->depot->id]);
+        $order->refresh();
         $task = $this->assign($order, 'pickup');
         app(DispatchService::class)->pickup($this->shipper, $task, ['successful' => true, 'condition' => 'good', 'reason' => 'Đã lấy đủ hai kiện'], 'proof.png');
         $this->backToWarehouse($task);

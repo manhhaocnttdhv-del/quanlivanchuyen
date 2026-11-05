@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderChangeRequest;
 use App\Models\Shop;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -54,10 +55,12 @@ class OrderController extends Controller
     private function form(Request $request, ?Order $order)
     {
         $shop = $request->user()->shop()->firstOrFail();
+        $pickups = $shop->addresses()->with('area')->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true))->get();
 
         return view('portal.orders.form', [
             'order' => $order, 'shop' => $shop, 'clientToken' => (string) Str::uuid(),
-            'pickups' => $shop->addresses()->with('area')->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true))->get(),
+            'pickups' => $pickups,
+            'warehouses' => Warehouse::where('is_active', true)->whereIn('area_id', $pickups->pluck('area_id'))->orderBy('name')->get(),
             'areas' => Area::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
         ]);
     }
@@ -80,6 +83,9 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
         $order->load(['shop', 'area', 'warehouse', 'items', 'pickupAddress.area', 'histories.actor', 'changeRequests.creator', 'changeRequests.reviewer', 'pendingChange', 'deliveryAttempts.proof', 'deliveryAttempts.shipper', 'returnRecord']);
+        $warehouseIds = $order->histories->flatMap(fn ($history) => [$history->before_values['warehouse_id'] ?? null, $history->after_values['warehouse_id'] ?? null])
+            ->merge($order->changeRequests->map(fn ($change) => $change->changes['warehouse_id'] ?? null))->filter()->unique();
+        $warehouseNames = Warehouse::whereIn('id', $warehouseIds)->pluck('name', 'id');
         $quote = $order->fee_snapshot;
         $previewErrors = [];
         // Nháp chỉ tính thử; đơn đã gửi giữ fee_snapshot, không lấy biểu phí mới để sửa lịch sử.
@@ -91,7 +97,7 @@ class OrderController extends Controller
             }
         }
 
-        return view('portal.orders.show', compact('order', 'quote', 'previewErrors'));
+        return view('portal.orders.show', compact('order', 'quote', 'previewErrors', 'warehouseNames'));
     }
 
     public function submit(OrderActionRequest $request, Order $order, OrderService $service)

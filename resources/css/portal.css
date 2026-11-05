@@ -1,4 +1,4 @@
-/* Keep the header at its natural height; workspace panels scroll within the viewport. */
+/* Keep the header visible while workspace panels scroll independently. */
 .portal-body {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
@@ -122,7 +122,7 @@
 .portal-user { border-top: 1px solid #dce5e3; margin: 26px 12px 0; padding-top: 20px; overflow-wrap: anywhere; }
 .portal-user strong, .portal-user small { display: block; font-size: 11px; }
 .portal-user small { color: #657a75; margin-top: 7px; }
-/* Anchor absolute form labels inside this scroller so they cannot extend the page. */
+/* Keep absolutely positioned form labels inside the content scroller. */
 .portal-main { position: relative; padding: 30px; flex: 1; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior-y: contain; }
 .logistics-code { overflow-wrap: anywhere; font-size: 12px; }
 .task-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto auto; align-items: center; gap: 18px; padding: 20px 0; border-bottom: 1px solid #dce5e3; }
@@ -215,6 +215,14 @@ aside .work-section .field-group + .field-group { margin-top: 14px; }
 .auth-form h1 { font-size: 26px; }
 .auth-wide { max-width: 820px; }
 .auth-wide .row .field-group { margin: 0; }
+.registration-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 360px; max-width: 100%; }
+.registration-types .btn { min-width: 0; }
+.registration-warehouses { padding-top: 20px; border-top: 1px solid #dce5e3; }
+.registration-warehouses h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+.registration-warehouse { padding: 12px 0; border-bottom: 1px solid #e4ebe8; overflow-wrap: anywhere; }
+.registration-warehouse[hidden] { display: none; }
+.registration-warehouse:last-child { border-bottom: 0; padding-bottom: 0; }
+.registration-warehouse strong { font-size: 13px; font-weight: 500; }
 .bank-version { padding: 18px 0; border-bottom: 1px solid #dce5e3; }
 .fee-editor { min-width: 1200px; }
 .fee-editor td { padding: 8px; }

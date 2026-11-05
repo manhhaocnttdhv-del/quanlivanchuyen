@@ -1,8 +1,8 @@
 @extends('layouts.portal')
 {{-- Nhân viên có quyền xét shop/ngân hàng mới tới danh sách; mỗi hồ sơ vẫn được Policy kiểm tra riêng. --}}
-@section('heading', 'Duyệt cửa hàng & ngân hàng')
+@section('heading', 'Duyệt người gửi & ngân hàng')
 @section('content')
-    <form class="filter-bar" method="get"><x-field name="q" label="Tên cửa hàng" :value="request('q')" /><x-field
+    <form class="filter-bar" method="get"><x-field name="q" label="Tên người gửi / cửa hàng" :value="request('q')" /><x-field
             name="status" label="Trạng thái" :value="request('status')" :options="['' => 'Tất cả'] + \App\Models\Shop::STATUSES" /><button
             class="btn btn-outline-primary">Lọc</button><a class="btn btn-link" href="{{ route('shops.index') }}">Xóa lọc</a>
     </form>
@@ -10,8 +10,8 @@
         <table class="table work-table">
             <thead>
                 <tr>
-                    <th>Cửa hàng</th>
-                    <th>Chủ shop</th>
+                    <th>Người gửi / cửa hàng</th>
+                    <th>Người đăng ký</th>
                     <th>Khu vực</th>
                     <th>Hồ sơ</th>
                     <th>Ngân hàng</th>
@@ -21,7 +21,7 @@
             <tbody>
                 @forelse($shops as $shop)
                     <tr>
-                        <td>{{ $shop->name }}</td>
+                        <td>{{ $shop->name }}<small>{{ $shop->account_type_label }}</small></td>
                         <td>{{ $shop->user->name }}<small>{{ $shop->user->phone }}</small></td>
                         <td>{{ $shop->area->name }}</td>
                         <td><span class="status-badge">{{ \App\Models\Shop::STATUSES[$shop->status] }}</span></td>

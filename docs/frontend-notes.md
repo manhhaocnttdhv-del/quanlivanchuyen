@@ -18,6 +18,8 @@ Tham khảo thông tin: [GHTK](https://ghtk.vn/) (truy cập ngày 28/10/2026, c
 - Nháp lưu trong MySQL theo shop, cho phép thiếu thông tin; có xem trước và xác nhận gửi. Khi đã duyệt, chỉnh sửa phải tạo đề nghị và đưa đơn về chờ duyệt lại sau khi đề nghị được chấp nhận.
 - Khu làm việc có bộ lọc, phân trang, timeline, kiểm tra dữ liệu ở từng trường, tem CODE128 theo từng kiện và bảng kê có CSS in. Menu dùng offcanvas trên mobile; bảng dữ liệu cuộn trong vùng riêng.
 - Giao diện dùng Bootstrap 5, Blade, jQuery, Vite, Be Vietnam Pro và Lucide icons.
+- Đăng ký gửi hàng có hai lựa chọn Cá nhân/Cửa hàng, mặc định Cá nhân. Tên cửa hàng chỉ hiện và bắt buộc khi chọn Cửa hàng; lỗi validation giữ lựa chọn và dữ liệu. Hồ sơ, duyệt người gửi và vận đơn dùng nhãn phù hợp cho cả hai loại; quyền và phạm vi dữ liệu dùng chung vai trò `shop`.
+- Form đăng ký hiển thị tên, mã và địa chỉ các kho đang hoạt động theo tỉnh/thành đã chọn; khôi phục khi validation lỗi và có thông báo nếu khu vực chưa có kho. Đây là thông tin khu vực, không tính khoảng cách địa lý hoặc lưu kho phụ trách vào hồ sơ shop.
 
 ## Kiểm tra giao diện
 

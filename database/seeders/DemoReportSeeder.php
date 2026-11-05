@@ -53,7 +53,7 @@ class DemoReportSeeder extends Seeder
                 $orders = app(OrderService::class);
                 $dispatch = app(DispatchService::class);
                 $stock = app(WarehouseService::class);
-                $order = $this->draft($owner);
+                $order = $this->draft($owner, $location->warehouse_id);
                 $orders->submit($owner, $order, $order->revision);
                 $orders->review($operator, $order->fresh(), $order->fresh()->revision, 'approved', 'Demo: duyệt đơn cuối tháng');
 
@@ -97,11 +97,12 @@ class DemoReportSeeder extends Seeder
         }
     }
 
-    private function draft(User $owner): Order
+    private function draft(User $owner, int $warehouseId): Order
     {
         return app(OrderService::class)->saveDraft($owner, [
             'client_token' => self::TOKEN,
             'pickup_address_id' => $owner->shop->addresses()->where('is_active', true)->value('id'),
+            'warehouse_id' => $warehouseId,
             'area_id' => Area::where('code', 'HN')->value('id'),
             'recipient_name' => 'Khách demo báo cáo', 'recipient_phone' => '0987654321',
             'recipient_address' => '70 Nguyễn Trãi, Hà Nội', 'weight_grams' => 1000, 'parcel_count' => 1,

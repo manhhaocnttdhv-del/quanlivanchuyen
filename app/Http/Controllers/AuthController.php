@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\Area;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\AuditService;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
@@ -25,7 +26,11 @@ class AuthController extends Controller
 
     public function register()
     {
-        return view('auth.register', ['areas' => Area::where('is_active', true)->orderBy('name')->pluck('name', 'id')]);
+        return view('auth.register', [
+            'areas' => Area::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
+            'warehouses' => Warehouse::where('is_active', true)->whereHas('area', fn ($query) => $query->where('is_active', true))
+                ->orderBy('name')->get(['area_id', 'code', 'name', 'address']),
+        ]);
     }
 
     public function authenticate(LoginRequest $request, AuditService $audit)
@@ -59,7 +64,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->put('auth_version', $user->auth_version);
 
-        return redirect()->route('shop.profile')->with('status', 'Đăng ký thành công. Hồ sơ cửa hàng đang chờ duyệt.');
+        return redirect()->route('shop.profile')->with('status', 'Đăng ký thành công. Hồ sơ người gửi đang chờ duyệt.');
     }
 
     public function logout(Request $request, AuditService $audit)

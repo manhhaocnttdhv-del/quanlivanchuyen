@@ -24,7 +24,7 @@
     <form method="get" class="order-filters">
         <x-field name="q" label="Mã vận đơn" :value="request('q')" placeholder="GV..." maxlength="32" />
         <x-field name="status" label="Trạng thái" :value="request('status')" :options="$statuses" placeholder="Tất cả" />
-        <x-field name="shop_id" label="Cửa hàng" :value="request('shop_id')" :options="$shops" placeholder="Tất cả" />
+        <x-field name="shop_id" label="Người gửi / cửa hàng" :value="request('shop_id')" :options="$shops" placeholder="Tất cả" />
         <x-field name="area_id" label="Khu vực nhận" :value="request('area_id')" :options="$areas" placeholder="Tất cả" />
         <x-field name="from" label="Tạo từ ngày" type="date" :value="request('from')" />
         <x-field name="until" label="Đến ngày" type="date" :value="request('until')" />
@@ -40,7 +40,7 @@
         <table class="table work-table order-table">
             <thead>
                 <tr>
-                    <th>Vận đơn / cửa hàng</th>
+                    <th>Vận đơn / người gửi</th>
                     <th>Người nhận</th>
                     <th>Kiện hàng</th>
                     <th>COD / cước</th>
@@ -60,7 +60,7 @@
                             kiện<small>{{ $order->weight_grams ? number_format($order->weight_grams) . ' g' : 'Chưa có cân nặng' }}</small><small>{{ $order->warehouse?->name }}</small>
                         </td>
                         <td class="text-nowrap">{{ number_format((int) $order->cod_amount, 0, ',', '.') }}đ<small>Cước:
-                                {{ $order->shipping_fee !== null ? number_format((int) $order->shipping_fee, 0, ',', '.') . 'đ' : 'Chưa chốt' }}</small><small>{{ $order->fee_payer === 'sender' ? 'Shop trả phí' : 'Người nhận trả phí' }}</small>
+                                {{ $order->shipping_fee !== null ? number_format((int) $order->shipping_fee, 0, ',', '.') . 'đ' : 'Chưa chốt' }}</small><small>{{ $order->fee_payer === 'sender' ? 'Người gửi trả phí' : 'Người nhận trả phí' }}</small>
                         </td>
                         <td><span
                                 class="status-badge order-state state-{{ $order->status }}">{{ $statuses[$order->status] ?? $order->status }}</span>

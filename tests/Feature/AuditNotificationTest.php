@@ -130,6 +130,7 @@ class AuditNotificationTest extends DatabaseTestCase
         app(FeeVersionService::class)->publish($this->admin, $version, 'Công bố phí kiểm thử');
         $order = app(OrderService::class)->saveDraft($this->owner, [
             'client_token' => (string) Str::uuid(), 'pickup_address_id' => $this->owner->shop->addresses()->value('id'),
+            'warehouse_id' => $this->depot->id,
             'area_id' => $this->depot->area_id, 'recipient_name' => 'Khách kiểm thử', 'recipient_phone' => '0987654321',
             'recipient_address' => 'Địa chỉ kiểm thử', 'weight_grams' => 500, 'parcel_count' => 1, 'service' => 'standard',
             'cod_amount' => 500000, 'fee_payer' => 'sender', 'items' => [['name' => 'Sách', 'quantity' => 1]],

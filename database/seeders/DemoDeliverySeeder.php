@@ -46,8 +46,9 @@ class DemoDeliverySeeder extends Seeder
             if (Order::where('shop_id', $owner->shop->id)->where('client_token', $token)->exists()) {
                 continue;
             }
-            DB::transaction(function () use ($owner, $operator, $shipper, $orders, $dispatch, $delivery, $assign, $inbound, $outbound, $photo, $scenario, $index, $token) {
+            DB::transaction(function () use ($owner, $operator, $shipper, $location, $orders, $dispatch, $delivery, $assign, $inbound, $outbound, $photo, $scenario, $index, $token) {
                 $order = $orders->saveDraft($owner, ['client_token' => $token, 'pickup_address_id' => $owner->shop->addresses()->where('is_active', true)->value('id'),
+                    'warehouse_id' => $location->warehouse_id,
                     'area_id' => Area::where('code', 'HN')->value('id'), 'recipient_name' => ['Hà Linh', 'Tuấn Minh', 'Ngọc Ánh', 'Hồng Hà', 'Phương Thảo', 'Đức Anh', 'Minh Châu'][$index],
                     'recipient_phone' => '098765'.(6800 + $index), 'recipient_address' => (48 + $index).' Nguyễn Trãi, Hà Nội', 'weight_grams' => 1000, 'parcel_count' => 2,
                     'service' => 'standard', 'cod_amount' => 300000 + $index * 50000, 'fee_payer' => 'recipient', 'note' => 'Demo Sprint 4: '.$scenario,

@@ -25,7 +25,7 @@
                 <thead>
                     <tr>
                         <th>STT</th>
-                        <th>Mã / shop</th>
+                        <th>Mã / người gửi</th>
                         <th>Người nhận</th>
                         <th>Kiện / g</th>
                         <th>COD</th>
@@ -43,7 +43,7 @@
                                 {{ $order->recipient_snapshot['area'] }}</td>
                             <td>{{ $order->parcel_count }} / {{ $order->weight_grams }}</td>
                             <td>{{ number_format((int) $order->cod_amount, 0, ',', '.') }}</td>
-                            <td>{{ number_format((int) $order->shipping_fee, 0, ',', '.') }}<br>{{ $order->fee_payer === 'sender' ? 'Shop trả' : 'Người nhận trả' }}
+                            <td>{{ number_format((int) $order->shipping_fee, 0, ',', '.') }}<br>{{ $order->fee_payer === 'sender' ? 'Người gửi trả' : 'Người nhận trả' }}
                             </td>
                             <td>{{ number_format((int) $order->recipient_total, 0, ',', '.') }}</td>
                     </tr>@empty<tr>
