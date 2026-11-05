@@ -48,9 +48,9 @@ class CaseWorkflowTest extends DatabaseTestCase
         parent::setUp();
         Storage::fake('local');
         $this->admin = $this->person();
-        $this->dispatcher = $this->person('dispatcher');
-        $this->support = $this->person('support');
-        $this->clerk = $this->person('warehouse');
+        $this->dispatcher = $this->person('operations');
+        $this->support = $this->person('operations');
+        $this->clerk = $this->person('operations');
         $this->shipper = $this->person('shipper');
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
@@ -189,14 +189,15 @@ class CaseWorkflowTest extends DatabaseTestCase
         $order = $this->order();
         $incident = $this->incident($order);
         $complaint = $this->complaint($order);
-        $foreignSupport = $this->person('support');
+        $foreignSupport = $this->person('operations');
         $this->actingAs($foreignSupport)->get(route('incidents.show', $incident))->assertForbidden();
         $this->get(route('complaints.show', $complaint))->assertForbidden();
         $this->get(route('incidents.index'))->assertOk()->assertDontSee($incident->code);
         $this->get(route('complaints.index'))->assertOk()->assertDontSee($complaint->code);
         $this->actingAs($this->owner)->get(route('incidents.show', $incident))->assertForbidden();
         $this->actingAs($this->shopOwner())->get(route('complaints.show', $complaint))->assertForbidden();
-        $this->actingAs($this->clerk)->get(route('complaints.show', $complaint))->assertForbidden();
+        $this->actingAs($this->clerk)->get(route('complaints.show', $complaint))->assertOk();
+        $this->actingAs($this->shipper)->get(route('complaints.show', $complaint))->assertForbidden();
         $this->support->warehouses()->detach();
         $this->actingAs($this->support)->post(route('incidents.action', [$incident, 'note']), ['revision' => 1, 'reason' => 'Quyền kho đã bị thu hồi'])->assertForbidden();
         $this->get(route('complaints.show', $complaint))->assertForbidden();
@@ -367,7 +368,9 @@ class CaseWorkflowTest extends DatabaseTestCase
         $this->assertSame('in_progress', $complaint->status);
         $this->assertTrue(Attachment::sole()->complaintMessage->is_internal);
         $this->actingAs($this->owner)->get(route('complaints.show', $complaint))->assertOk()->assertDontSee('CĂN CỨ PHÂN CÔNG RIÊNG');
-        $this->invalid(fn () => $this->complaintAct($complaint, 'assign', ['assigned_to' => $this->clerk->id, 'reason' => 'Kho không có quyền tiếp nhận CSKH']), 'assigned_to');
+        $this->complaintAct($complaint, 'assign', ['assigned_to' => $this->clerk->id, 'reason' => 'Nhân viên vận hành tiếp nhận khiếu nại']);
+        $this->assertSame($this->clerk->id, $complaint->fresh()->assigned_to);
+        $this->invalid(fn () => $this->complaintAct($complaint, 'assign', ['assigned_to' => $this->shipper->id, 'reason' => 'Shipper không có quyền tiếp nhận khiếu nại']), 'assigned_to');
     }
 
     public function test_goods_complaint_requires_same_order_approved_incident_before_closing(): void

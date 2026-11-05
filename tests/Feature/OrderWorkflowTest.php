@@ -192,10 +192,10 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->postJson('/don-hang', $this->details(['items' => [['name' => 'Hàng', 'quantity' => 1, 'price' => 1]]]))->assertUnprocessable()->assertJsonValidationErrors('items.0');
     }
 
-    public function test_scoped_dispatcher_cannot_see_or_approve_other_warehouse_or_drafts(): void
+    public function test_scoped_operations_cannot_see_or_approve_other_warehouse_or_drafts(): void
     {
         $order = $this->submitted();
-        $dispatcher = $this->person('dispatcher');
+        $dispatcher = $this->person('operations');
         $this->actingAs($dispatcher)->get(route('orders.show', $order))->assertForbidden();
         $this->postJson(route('orders.review', $order), ['revision' => $order->revision, 'decision' => 'approved', 'reason' => 'Đã kiểm tra hồ sơ'])->assertForbidden();
         $dispatcher->warehouses()->attach($order->warehouse_id);

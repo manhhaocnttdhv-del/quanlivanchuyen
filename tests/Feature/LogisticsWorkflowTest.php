@@ -46,8 +46,8 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         parent::setUp();
         Storage::fake('local');
         $this->admin = $this->person();
-        $this->dispatcher = $this->person('dispatcher');
-        $this->clerk = $this->person('warehouse');
+        $this->dispatcher = $this->person('operations');
+        $this->clerk = $this->person('operations');
         $this->shipper = $this->person('shipper');
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
@@ -145,7 +145,7 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         $this->get('/dieu-phoi')->assertOk()->assertDontSee($task->order->tracking_code);
         $this->actingAs($this->shipper)->get('/dieu-phoi')->assertOk()->assertSee($task->order->tracking_code);
         $this->get('/ton-kho')->assertForbidden();
-        $this->actingAs($this->person('dispatcher'))->get('/van-hanh/don/'.$task->order_id)->assertForbidden();
+        $this->actingAs($this->person('operations'))->get('/van-hanh/don/'.$task->order_id)->assertForbidden();
         $this->actingAs($this->clerk)->get('/dieu-phoi?status[]=assigned')->assertSessionHasErrors('status');
         $this->actingAs($outsider)->post('/nhiem-vu/'.$task->id.'/lay-hang', ['successful' => 1, 'condition' => 'good', 'reason' => 'Không thuộc nhiệm vụ', 'evidence' => $this->photo()])->assertForbidden();
         $this->assertSame([], Storage::disk('local')->allFiles());
@@ -258,7 +258,8 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         $this->assertSame($fee, $task->order->fresh()->shipping_fee);
         $this->assertSame(1000, $task->order->fresh()->weight_grams);
         $this->invalid(fn () => $this->assign($task->order, 'delivery'));
-        $this->actingAs($this->clerk)->post('/sai-lech/'.$difference->id.'/xu-ly', ['reason' => 'Tự xác nhận sai lệch'])->assertForbidden();
+        $this->actingAs($this->clerk)->post('/sai-lech/'.$difference->id.'/xu-ly', ['reason' => 'Tự xác nhận sai lệch'])->assertSessionHasErrors('reason');
+        $this->assertSame('open', $difference->fresh()->status);
         app(WarehouseService::class)->resolve($this->dispatcher, $difference, 'Cân đối chứng, giữ cước đã thỏa thuận với shop');
         $this->assertSame('resolved', $difference->fresh()->status);
         $this->assertSame('assigned', $this->assign($task->order, 'delivery')->status);
@@ -466,7 +467,7 @@ class LogisticsWorkflowTest extends DatabaseTestCase
             $this->actingAs($this->clerk)->get($url)->assertOk();
             $this->actingAs($this->dispatcher)->get($url)->assertOk();
         }
-        $outsider = $this->person('warehouse');
+        $outsider = $this->person('operations');
         $this->actingAs($outsider)->get('/ton-kho')->assertOk()->assertDontSee($order->tracking_code);
         $this->get('/van-hanh/don/'.$order->id)->assertForbidden();
         $this->assertTrue(AuditLog::where('event', 'logistics.handover_confirmed')->exists());

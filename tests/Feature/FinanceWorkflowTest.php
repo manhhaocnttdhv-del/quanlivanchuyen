@@ -53,9 +53,9 @@ class FinanceWorkflowTest extends DatabaseTestCase
         parent::setUp();
         Storage::fake('local');
         $this->admin = $this->person();
-        $this->accountant = $this->person('accountant');
+        $this->accountant = $this->person('admin');
         $this->shipper = $this->person('shipper');
-        $this->support = $this->person('support');
+        $this->support = $this->person('operations');
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
         foreach ([$this->accountant, $this->shipper, $this->support] as $user) {
@@ -452,11 +452,17 @@ class FinanceWorkflowTest extends DatabaseTestCase
         $deposit = CashDeposit::sole();
         $rec = app(ReconciliationService::class)->create($this->accountant, $this->reconciliationData([$c->id => 500000]));
         $this->approve($rec);
-        $outsider = $this->person('accountant');
+        $outsider = $this->person('operations');
+        $outsider->warehouses()->attach($this->depot);
         $otherOwner = $this->shopOwner();
         foreach ([$outsider, $otherOwner] as $user) {
-            $this->actingAs($user)->get(route('finance.index', 'deposits'))->assertOk()->assertDontSee($deposit->code);
-            $this->get(route('finance.index', 'collections'))->assertOk()->assertDontSee($c->order->tracking_code);
+            if ($user->hasRole('operations')) {
+                $this->actingAs($user)->get(route('finance.index', 'deposits'))->assertForbidden();
+                $this->get(route('finance.index', 'collections'))->assertForbidden();
+            } else {
+                $this->actingAs($user)->get(route('finance.index', 'deposits'))->assertOk()->assertDontSee($deposit->code);
+                $this->get(route('finance.index', 'collections'))->assertOk()->assertDontSee($c->order->tracking_code);
+            }
             $this->get(route('finance.deposits.show', $deposit))->assertForbidden();
             $this->get(route('finance.reconciliations.show', $rec))->assertForbidden();
             $this->get(route('finance.attachment', FinanceAttachment::sole()))->assertForbidden();
