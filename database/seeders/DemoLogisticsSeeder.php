@@ -25,8 +25,7 @@ class DemoLogisticsSeeder extends Seeder
         }
         $this->call(CatalogSeeder::class);
         $owner = User::where('email', 'shop@guiviet.test')->firstOrFail();
-        $dispatcher = User::where('email', 'dispatcher@guiviet.test')->firstOrFail();
-        $clerk = User::where('email', 'warehouse@guiviet.test')->firstOrFail();
+        $operator = User::where('email', 'operations@guiviet.test')->firstOrFail();
         $shipper = User::where('email', 'shipper@guiviet.test')->firstOrFail();
         $warehouse = Warehouse::where('code', 'KHO-HN')->firstOrFail();
         $location = WarehouseLocation::firstOrCreate(['warehouse_id' => $warehouse->id, 'code' => 'A-01'], ['name' => 'Kệ hàng chờ giao A-01']);
@@ -43,18 +42,18 @@ class DemoLogisticsSeeder extends Seeder
             if (Order::where('shop_id', $owner->shop->id)->where('client_token', $token)->exists()) {
                 continue;
             }
-            DB::transaction(function () use ($owner, $dispatcher, $clerk, $shipper, $orders, $dispatch, $stock, $scenario, $index, $token, $location, $proof) {
+            DB::transaction(function () use ($owner, $operator, $shipper, $orders, $dispatch, $stock, $scenario, $index, $token, $location, $proof) {
                 $order = $orders->saveDraft($owner, ['client_token' => $token, 'pickup_address_id' => $owner->shop->addresses()->where('is_active', true)->value('id'),
                     'area_id' => Area::where('code', 'HN')->value('id'), 'recipient_name' => ['Minh Hạnh', 'Hoàng Phúc', 'Thu Thảo', 'Ngọc Mai', 'Tuấn Anh', 'Bảo Trâm', 'Gia Khánh'][$index],
                     'recipient_phone' => '098765'.(6700 + $index), 'recipient_address' => (30 + $index).' Đường mẫu, Hà Nội', 'weight_grams' => 1000, 'parcel_count' => 2,
                     'service' => 'standard', 'cod_amount' => 250000 + $index * 50000, 'fee_payer' => 'recipient', 'note' => 'Demo Sprint 3: '.$scenario,
                     'items' => [['name' => 'Sách và phụ kiện demo', 'quantity' => 2]]]);
                 $orders->submit($owner, $order, $order->revision);
-                $orders->review($dispatcher, $order->fresh(), $order->fresh()->revision, 'approved', 'Demo: kiểm tra và duyệt thông tin');
+                $orders->review($operator, $order->fresh(), $order->fresh()->revision, 'approved', 'Demo: kiểm tra và duyệt thông tin');
                 if ($scenario === 'waiting') {
                     return;
                 }
-                $task = $dispatch->assign($dispatcher, $order->fresh(), ['revision' => $order->fresh()->revision, 'type' => 'pickup', 'shipper_id' => $shipper->id, 'reason' => 'Demo: tuyến lấy hàng nội thành']);
+                $task = $dispatch->assign($operator, $order->fresh(), ['revision' => $order->fresh()->revision, 'type' => 'pickup', 'shipper_id' => $shipper->id, 'reason' => 'Demo: tuyến lấy hàng nội thành']);
                 if ($scenario === 'pickup') {
                     return;
                 }
@@ -64,12 +63,12 @@ class DemoLogisticsSeeder extends Seeder
                     return;
                 }
                 $lines = $doc->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => true, 'condition' => $scenario === 'damaged' && $line->id === $doc->lines->first()->id ? 'damaged' : 'good', 'weight_grams' => 500]])->all();
-                $stock->confirm($clerk, $doc, ['lines' => $lines, 'location_id' => $location->id, 'reason' => 'Demo: kiểm đếm, cân thực tế từng kiện'], $proof);
+                $stock->confirm($operator, $doc, ['lines' => $lines, 'location_id' => $location->id, 'reason' => 'Demo: kiểm đếm, cân thực tế từng kiện'], $proof);
                 if (in_array($scenario, ['stocked', 'damaged'])) {
                     return;
                 }
-                $task = $dispatch->assign($dispatcher, $order->fresh(), ['revision' => $order->fresh()->revision, 'type' => 'delivery', 'shipper_id' => $shipper->id, 'reason' => 'Demo: phân công giao tuyến nội thành']);
-                $doc = $stock->prepare($clerk, $task, 'outbound', 'Demo: kho giao đủ 2 kiện cho shipper');
+                $task = $dispatch->assign($operator, $order->fresh(), ['revision' => $order->fresh()->revision, 'type' => 'delivery', 'shipper_id' => $shipper->id, 'reason' => 'Demo: phân công giao tuyến nội thành']);
+                $doc = $stock->prepare($operator, $task, 'outbound', 'Demo: kho giao đủ 2 kiện cho shipper');
                 if ($scenario === 'on_route') {
                     $lines = $doc->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => true, 'condition' => 'good']])->all();
                     $stock->confirm($shipper, $doc, ['lines' => $lines, 'reason' => 'Demo: shipper xác nhận đủ 2 kiện'], $proof);
@@ -78,9 +77,9 @@ class DemoLogisticsSeeder extends Seeder
         }
         if (! Stocktake::where('reason', 'Demo Sprint 3: kiểm kê chờ điều phối xác nhận')->exists()) {
             $service = app(StocktakeService::class);
-            $stocktake = $service->start($clerk, ['warehouse_id' => $warehouse->id, 'location_id' => $location->id, 'reason' => 'Demo Sprint 3: kiểm kê chờ điều phối xác nhận']);
+            $stocktake = $service->start($operator, ['warehouse_id' => $warehouse->id, 'location_id' => $location->id, 'reason' => 'Demo Sprint 3: kiểm kê chờ điều phối xác nhận']);
             $lines = $stocktake->lines->mapWithKeys(fn ($line) => [$line->id => ['actual_present' => true, 'note' => 'Đã đếm tại kệ demo']])->all();
-            $service->submit($clerk, $stocktake, ['lines' => $lines]);
+            $service->submit($operator, $stocktake, ['lines' => $lines]);
         }
     }
 }

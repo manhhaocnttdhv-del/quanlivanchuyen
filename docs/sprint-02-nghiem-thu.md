@@ -32,7 +32,7 @@ Nhánh `sprint-02-quan-ly-van-don` nhận code Sprint 01 từ commit `976180c`. 
 1. Chạy migration; tạo tài khoản bằng DemoSeeder (xem README), sau đó `php artisan db:seed --class=DemoOrderSeeder` để có 8 đơn mẫu. Seeder chạy lại không nhân đôi.
 2. Đăng nhập `shop@guiviet.test`, mở Vận đơn. Tạo nháp thiếu người nhận để xem thông báo cần bổ sung; thêm đủ thông tin, chọn địa chỉ lấy hàng, nhập hàng hóa và tổng gram.
 3. Lưu và xem trước: ví dụ HN → HCM, 501g tiêu chuẩn theo biểu phí demo là 45.000đ. COD 500.000đ, người nhận trả phí: cần thu 545.000đ; shop trả phí: cần thu 500.000đ.
-4. Xác nhận gửi. Đăng nhập `dispatcher@guiviet.test`, mở đơn thuộc kho được gán, yêu cầu bổ sung kèm lý do; shop sửa và gửi lại; điều phối duyệt.
+4. Xác nhận gửi. Đăng nhập `operations@guiviet.test`, mở đơn thuộc kho được gán, yêu cầu bổ sung kèm lý do; shop sửa và gửi lại; điều phối duyệt.
 5. Shop đề nghị thay COD/cân nặng. Điều phối chấp nhận đề nghị, xem phí mới và trạng thái chờ duyệt lại; duyệt lần nữa. Timeline giữ thông tin trước/sau.
 6. Mở tem và bảng kê. Tra cứu công khai bằng mã cùng 4 số cuối điện thoại nhận; thử sai xác minh để thấy lỗi chung.
 7. Dùng hai tab mở cùng đơn, cập nhật ở tab một rồi thao tác tab hai: revision cũ bị từ chối; tải lại để tiếp tục.

@@ -16,14 +16,13 @@ class CatalogSeeder extends Seeder
             Permission::firstOrCreate(['name' => $name], ['label' => $label]);
         }
         $roles = [
-            'admin' => ['Quản trị viên', array_keys($permissions)],
-            'dispatcher' => ['Điều phối', ['orders.review', 'logistics.dispatch', 'logistics.approve']],
-            'warehouse' => ['Nhân viên kho', ['logistics.warehouse']], 'shipper' => ['Nhân viên giao hàng', []],
-            'accountant' => ['Kế toán', ['banks.verify']], 'support' => ['Chăm sóc khách hàng', ['shops.review']],
-            'shop' => ['Chủ cửa hàng', []],
+            'admin' => array_keys($permissions),
+            'operations' => ['shops.review', 'orders.review', 'logistics.dispatch', 'logistics.warehouse', 'logistics.approve'],
+            'shipper' => [],
+            'shop' => [],
         ];
-        foreach ($roles as $name => [$label,$grants]) {
-            $role = Role::firstOrCreate(['name' => $name], ['label' => $label]);
+        foreach ($roles as $name => $grants) {
+            $role = Role::updateOrCreate(['name' => $name], ['label' => Role::LABELS[$name]]);
             $role->permissions()->sync(Permission::whereIn('name', $grants)->pluck('id'));
         }
         foreach (config('shipping.provinces') as $code => $province) {
