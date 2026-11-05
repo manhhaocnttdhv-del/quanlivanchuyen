@@ -39,7 +39,7 @@
                     </div>
                     <div>
                         <dt>Người trả phí</dt>
-                        <dd>{{ $order->fee_payer === 'sender' ? 'Cửa hàng' : 'Người nhận' }}</dd>
+                        <dd>{{ $order->fee_payer === 'sender' ? 'Người gửi' : 'Người nhận' }}</dd>
                     </div>
                     <div class="charge-total">
                         <dt>Cần thu người nhận</dt>
@@ -74,7 +74,7 @@
                     </ul>
                 @endif
                 @if ($order->shop->status !== 'approved')
-                    <p class="text-warning-emphasis mt-3">Cửa hàng chưa được duyệt. Cập nhật hồ sơ và chờ xét duyệt trước khi
+                    <p class="text-warning-emphasis mt-3">Hồ sơ người gửi chưa được duyệt. Cập nhật hồ sơ và chờ xét duyệt trước khi
                         gửi.</p>
                 @endif
                 <form method="post" action="{{ route('orders.submit', $order) }}">@csrf<input type="hidden" name="revision"
@@ -132,7 +132,7 @@
                                 @foreach (\App\Support\OrderRules::attributes() as $field => $label)
                                     @if (isset($change->changes[$field]) && is_scalar($change->changes[$field]))
                                         <dt>{{ $label }}</dt>
-                                        <dd>{{ $change->changes[$field] }}</dd>
+                                        <dd>{{ $field === 'warehouse_id' ? $warehouseNames->get($change->changes[$field], $change->changes[$field]) : $change->changes[$field] }}</dd>
                                     @endif
                                 @endforeach
                             </dl>
@@ -181,12 +181,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (['cod_amount' => 'COD', 'shipping_fee' => 'Cước', 'fee_payer' => 'Người trả phí', 'weight_grams' => 'Cân nặng', 'recipient_name' => 'Người nhận', 'recipient_phone' => 'Điện thoại nhận', 'recipient_address' => 'Địa chỉ nhận', 'fee_version_id' => 'Phiên bản phí'] as $field => $label)
+                                    @foreach (['warehouse_id' => 'Kho tiếp nhận', 'cod_amount' => 'COD', 'shipping_fee' => 'Cước', 'fee_payer' => 'Người trả phí', 'weight_grams' => 'Cân nặng', 'recipient_name' => 'Người nhận', 'recipient_phone' => 'Điện thoại nhận', 'recipient_address' => 'Địa chỉ nhận', 'fee_version_id' => 'Phiên bản phí'] as $field => $label)
                                         @if (($history->before_values[$field] ?? null) != ($history->after_values[$field] ?? null))
                                             <tr>
                                                 <td>{{ $label }}</td>
-                                                <td>{{ $history->before_values[$field] ?? '—' }}</td>
-                                                <td>{{ $history->after_values[$field] ?? '—' }}</td>
+                                                <td>{{ $field === 'warehouse_id' ? $warehouseNames->get($history->before_values[$field] ?? null, $history->before_values[$field] ?? '—') : $history->before_values[$field] ?? '—' }}</td>
+                                                <td>{{ $field === 'warehouse_id' ? $warehouseNames->get($history->after_values[$field] ?? null, $history->after_values[$field] ?? '—') : $history->after_values[$field] ?? '—' }}</td>
                                             </tr>
                                         @endif
                                     @endforeach

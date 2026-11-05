@@ -68,6 +68,14 @@
 .auth-form h1 { font-size: 26px; }
 .auth-wide { max-width: 820px; }
 .auth-wide .row .field-group { margin: 0; }
+.registration-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 360px; max-width: 100%; }
+.registration-types .btn { min-width: 0; }
+.registration-warehouses { padding-top: 20px; border-top: 1px solid #dce5e3; }
+.registration-warehouses h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+.registration-warehouse { padding: 12px 0; border-bottom: 1px solid #e4ebe8; overflow-wrap: anywhere; }
+.registration-warehouse[hidden] { display: none; }
+.registration-warehouse:last-child { border-bottom: 0; padding-bottom: 0; }
+.registration-warehouse strong { font-size: 13px; font-weight: 500; }
 .bank-version { padding: 18px 0; border-bottom: 1px solid #dce5e3; }
 .fee-editor { min-width: 1200px; }
 .fee-editor td { padding: 8px; }

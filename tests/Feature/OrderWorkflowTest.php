@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\AuditService;
 use App\Services\FeeCalculator;
 use App\Services\FeeVersionService;
@@ -25,13 +26,15 @@ class OrderWorkflowTest extends DatabaseTestCase
 
     private OrderService $orders;
 
+    private Warehouse $depot;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->travelTo(now()->setDate(2026, 10, 28)->setTime(10, 0));
         $this->admin = $this->person();
         $this->owner = $this->shopOwner();
-        $this->warehouse();
+        $this->depot = $this->warehouse();
         $service = app(FeeVersionService::class);
         $version = $service->save($this->admin, $this->feeData());
         $service->publish($this->admin, $version, 'Biểu phí kiểm thử');
@@ -41,6 +44,7 @@ class OrderWorkflowTest extends DatabaseTestCase
     private function details(array $overrides = []): array
     {
         return array_merge(['pickup_address_id' => $this->owner->shop->addresses()->value('id'),
+            'warehouse_id' => $this->depot->id,
             'area_id' => Area::where('code', 'HCM')->value('id'), 'recipient_name' => 'Người nhận kiểm thử',
             'recipient_phone' => '0987656789', 'recipient_address' => '20 Đường kiểm thử, phường mẫu',
             'weight_grams' => 501, 'parcel_count' => 2, 'service' => 'standard', 'cod_amount' => 500000,
@@ -92,7 +96,88 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->flushSession();
         $this->actingAs($this->owner)->get(route('orders.show', $order))->assertOk()->assertSee('Chưa nhập');
         $this->postJson(route('orders.submit', $order), ['revision' => $order->revision])
-            ->assertUnprocessable()->assertJsonValidationErrors(['recipient_name', 'weight_grams', 'items']);
+            ->assertUnprocessable()->assertJsonValidationErrors(['warehouse_id', 'recipient_name', 'weight_grams', 'items']);
+    }
+
+    public function test_customer_selected_warehouse_survives_saving_editing_and_submission(): void
+    {
+        $selected = $this->warehouse();
+        $selected->update(['name' => 'Kho khách chọn']);
+        $this->actingAs($this->owner)->post(route('orders.store'), $this->details(['warehouse_id' => $selected->id]))->assertRedirect();
+        $order = Order::where('shop_id', $this->owner->shop->id)->firstOrFail();
+        $this->assertSame($selected->id, $order->warehouse_id);
+        $this->assertSame($selected->id, $order->histories()->firstOrFail()->after_values['warehouse_id']);
+        $this->get(route('orders.show', $order))->assertOk()->assertSee($selected->name);
+        $this->get(route('orders.edit', $order))->assertOk()->assertSee('name="warehouse_id"', false);
+
+        $this->put(route('orders.update', $order), $this->details(['warehouse_id' => $selected->id, 'revision' => $order->revision, 'note' => 'Đã kiểm tra kho tiếp nhận']))->assertRedirect();
+        $order->refresh();
+        $this->assertSame($selected->id, $order->warehouse_id);
+        $this->post(route('orders.submit', $order), ['revision' => $order->revision])->assertRedirect();
+        $this->assertSame('submitted', $order->fresh()->status);
+        $this->assertSame($selected->id, $order->fresh()->warehouse_id);
+
+        $dispatcher = $this->person('operations');
+        $dispatcher->warehouses()->attach($this->depot);
+        $this->actingAs($dispatcher)->get(route('orders.show', $order))->assertForbidden();
+        $this->postJson(route('orders.review', $order), ['revision' => $order->fresh()->revision, 'decision' => 'approved', 'reason' => 'Kiểm tra phạm vi kho'])->assertForbidden();
+        $dispatcher->warehouses()->attach($selected);
+        $this->get(route('orders.show', $order))->assertOk();
+        $this->post(route('orders.review', $order), ['revision' => $order->fresh()->revision, 'decision' => 'approved', 'reason' => 'Đã kiểm tra đúng kho'])->assertRedirect();
+        $this->assertSame('approved', $order->fresh()->status);
+    }
+
+    public function test_customer_form_only_lists_active_warehouses_for_own_pickup_areas(): void
+    {
+        $available = $this->warehouse();
+        $inactive = $this->warehouse();
+        $inactive->update(['name' => 'Kho đã ngừng tiếp nhận', 'is_active' => false]);
+        $outside = $this->warehouse('HCM');
+        $outside->update(['name' => 'Kho ngoài khu vực lấy hàng']);
+
+        $this->actingAs($this->owner)->get(route('orders.create'))->assertOk()
+            ->assertSee('name="warehouse_id"', false)->assertSee('Kho tiếp nhận')
+            ->assertDontSee($inactive->name)->assertDontSee($outside->name)
+            ->assertViewHas('warehouses', fn ($warehouses) => $warehouses->count() === 2 && $warehouses->contains('id', $this->depot->id) && $warehouses->contains('id', $available->id));
+
+        $this->from(route('orders.create'))->post(route('orders.store'), $this->details(['warehouse_id' => $available->id, 'recipient_phone' => 'invalid']))
+            ->assertRedirect(route('orders.create'))->assertSessionHasErrors('recipient_phone')->assertSessionHasInput('warehouse_id', $available->id);
+        $this->get(route('orders.create'))->assertOk()->assertSee('value="'.$available->id.'" selected', false);
+    }
+
+    public function test_warehouse_is_required_before_submission_without_automatic_fallback(): void
+    {
+        $order = $this->draft(['warehouse_id' => null]);
+        $this->actingAs($this->owner)->postJson(route('orders.submit', $order), ['revision' => $order->revision])
+            ->assertUnprocessable()->assertJsonValidationErrors('warehouse_id');
+        $this->assertNull($order->fresh()->warehouse_id);
+        $this->assertNull($order->fresh()->shipping_fee);
+        $this->assertSame('draft', $order->fresh()->status);
+        $this->assertSame(1, $order->histories()->count());
+    }
+
+    public function test_invalid_inactive_and_out_of_area_warehouses_cannot_be_selected(): void
+    {
+        $inactive = $this->warehouse();
+        $inactive->update(['is_active' => false]);
+        $outside = $this->warehouse('HCM');
+        foreach ([$inactive->id, $outside->id, Warehouse::max('id') + 1, 0, ['invalid']] as $warehouseId) {
+            $this->actingAs($this->owner)->postJson(route('orders.store'), $this->details(['warehouse_id' => $warehouseId]))
+                ->assertUnprocessable()->assertJsonValidationErrors('warehouse_id');
+        }
+        $this->assertSame(0, Order::count());
+    }
+
+    public function test_warehouse_area_is_revalidated_at_submission(): void
+    {
+        $order = $this->draft();
+        $this->warehouse();
+        $this->depot->update(['area_id' => Area::where('code', 'HCM')->value('id')]);
+        $this->actingAs($this->owner)->postJson(route('orders.submit', $order), ['revision' => $order->revision])
+            ->assertUnprocessable()->assertJsonValidationErrors('warehouse_id');
+        $this->assertSame($this->depot->id, $order->fresh()->warehouse_id);
+        $this->assertSame('draft', $order->fresh()->status);
+        $this->assertSame(1, $order->histories()->count());
     }
 
     public function test_double_save_is_idempotent_and_token_reuse_with_different_payload_is_rejected(): void
@@ -106,6 +191,10 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->actingAs($this->owner)->postJson(route('orders.store'), array_merge($data, ['cod_amount' => 1]))
             ->assertUnprocessable()->assertJsonValidationErrors('client_token');
         $this->assertSame('500000.00', $first->fresh()->cod_amount);
+        $differentWarehouse = $this->warehouse();
+        $this->postJson(route('orders.store'), array_merge($data, ['warehouse_id' => $differentWarehouse->id]))
+            ->assertUnprocessable()->assertJsonValidationErrors('client_token');
+        $this->assertSame($this->depot->id, $first->fresh()->warehouse_id);
     }
 
     public function test_unique_tracking_codes_and_database_idempotency_constraints(): void
@@ -142,8 +231,9 @@ class OrderWorkflowTest extends DatabaseTestCase
         Area::whereKey($order->area_id)->update(['is_active' => false]);
         $this->actingAs($this->owner)->postJson(route('orders.submit', $order), ['revision' => $order->revision])->assertUnprocessable()->assertJsonValidationErrors('area_id');
         Area::whereKey($order->area_id)->update(['is_active' => true]);
-        DB::table('warehouses')->update(['is_active' => false]);
-        $this->postJson(route('orders.submit', $order), ['revision' => $order->revision])->assertUnprocessable()->assertJsonValidationErrors('pickup_address_id');
+        $this->depot->update(['is_active' => false]);
+        $this->warehouse();
+        $this->postJson(route('orders.submit', $order), ['revision' => $order->revision])->assertUnprocessable()->assertJsonValidationErrors('warehouse_id');
         $this->assertSame(1, $order->histories()->count());
     }
 
@@ -263,6 +353,38 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->assertSame('approved', $change->fresh()->status);
         $this->orders->review($this->admin, $order, $order->revision, 'approved', 'Duyệt lại sau điều chỉnh');
         $this->assertSame('approved', $order->fresh()->status);
+    }
+
+    public function test_approved_warehouse_change_requires_review_and_records_previous_selection(): void
+    {
+        $order = $this->approved();
+        $selected = $this->warehouse();
+        $this->actingAs($this->owner)->post(route('orders.change', $order), $this->details([
+            'warehouse_id' => $selected->id, 'revision' => $order->revision, 'reason' => 'Shop chọn kho tiếp nhận khác',
+        ]))->assertRedirect();
+        $this->assertSame($this->depot->id, $order->fresh()->warehouse_id);
+        $change = $order->changeRequests()->firstOrFail();
+        $this->assertSame($selected->id, $change->changes['warehouse_id']);
+        $this->actingAs($this->admin)->post(route('orders.change-review', $change), ['decision' => 'approved', 'reason' => 'Chấp nhận kho tiếp nhận mới'])->assertRedirect();
+        $this->assertSame('submitted', $order->fresh()->status);
+        $this->assertSame($selected->id, $order->fresh()->warehouse_id);
+        $history = $order->histories()->firstOrFail();
+        $this->assertSame($this->depot->id, $history->before_values['warehouse_id']);
+        $this->assertSame($selected->id, $history->after_values['warehouse_id']);
+    }
+
+    public function test_legacy_edit_request_without_warehouse_keeps_existing_selection(): void
+    {
+        $order = $this->approved();
+        $this->orders->requestChange($this->owner, $order, $order->revision, 'edit', $this->details(), 'Bổ sung thông tin hàng hóa');
+        $change = $order->changeRequests()->firstOrFail();
+        $legacyChanges = $change->changes;
+        unset($legacyChanges['warehouse_id']);
+        $change->update(['changes' => $legacyChanges]);
+
+        $this->orders->reviewChange($this->admin, $change, 'approved', 'Chấp nhận đề nghị đã lưu trước đây');
+        $this->assertSame('submitted', $order->fresh()->status);
+        $this->assertSame($this->depot->id, $order->fresh()->warehouse_id);
     }
 
     public function test_pending_change_is_unique_rejection_keeps_original_data_and_no_self_approval(): void

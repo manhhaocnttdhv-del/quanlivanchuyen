@@ -176,7 +176,8 @@ class OrderService
                         $order->cancelled_at = now();
                     } else {
                         $this->approvedShop($shop);
-                        $details = $this->validateDetails($shop, $change->changes, true);
+                        // Đề nghị cũ chưa có lựa chọn kho vẫn dùng kho đã lưu trên đơn.
+                        $details = $this->validateDetails($shop, array_merge(['warehouse_id' => $order->warehouse_id], $change->changes), true);
                         $this->fillDetails($order, $details);
                         $this->applyQuote($order, $shop, $details);
                         $this->replaceItems($order, $details['items']);
@@ -216,14 +217,21 @@ class OrderService
     private function validateDetails(Shop $shop, array $data, bool $complete): array
     {
         $data = Validator::make($data, OrderRules::details($complete), OrderRules::messages(), OrderRules::attributes())->validate();
+        $pickup = null;
         if (! empty($data['pickup_address_id'])) {
             $pickup = $shop->addresses()->with('area')->find($data['pickup_address_id']);
-            $this->ensure($pickup && $pickup->is_active && $pickup->area->is_active, 'pickup_address_id', 'Chọn địa chỉ lấy hàng đang hoạt động của chính shop.');
+            $this->ensure($pickup && $pickup->is_active && $pickup->area->is_active, 'pickup_address_id', 'Chọn địa chỉ lấy hàng đang hoạt động của chính bạn.');
+        }
+        if (! empty($data['warehouse_id'])) {
+            $warehouse = Warehouse::whereKey($data['warehouse_id'])->where('is_active', true)
+                ->whereHas('area', fn ($query) => $query->where('is_active', true))->lockForUpdate()->first();
+            $this->ensure((bool) $warehouse, 'warehouse_id', 'Chọn kho tiếp nhận đang hoạt động.');
+            $this->ensure(! $pickup || $warehouse->area_id === $pickup->area_id, 'warehouse_id', 'Kho tiếp nhận phải thuộc khu vực lấy hàng.');
         }
         if (! empty($data['area_id'])) {
             $this->ensure(Area::whereKey($data['area_id'])->where('is_active', true)->exists(), 'area_id', 'Khu vực nhận đang ngừng phục vụ.');
         }
-        foreach (['pickup_address_id', 'area_id', 'weight_grams', 'parcel_count', 'cod_amount'] as $field) {
+        foreach (['pickup_address_id', 'warehouse_id', 'area_id', 'weight_grams', 'parcel_count', 'cod_amount'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = (int) $data[$field];
             }
@@ -245,10 +253,8 @@ class OrderService
         $pickup = $shop->addresses()->with('area')->lockForUpdate()->findOrFail($details['pickup_address_id']);
         $destination = Area::findOrFail($details['area_id']);
         $quote = $this->fees->calculate($pickup->area, $destination, $details['weight_grams'], $details['service'], $details['cod_amount'], $details['fee_payer']);
-        $warehouse = Warehouse::where('area_id', $pickup->area_id)->where('is_active', true)->orderBy('id')->first();
-        $this->ensure((bool) $warehouse, 'pickup_address_id', 'Khu vực lấy hàng chưa có kho tiếp nhận đang hoạt động.');
         $order->origin_area_id = $pickup->area_id;
-        $order->warehouse_id = $warehouse->id;
+        $order->warehouse_id = $details['warehouse_id'];
         $order->sender_snapshot = ['name' => $pickup->contact_name, 'phone' => $pickup->phone, 'address' => $pickup->address, 'area' => $pickup->area->name, 'shop' => $shop->name];
         $order->recipient_snapshot = ['name' => $details['recipient_name'], 'phone' => $details['recipient_phone'], 'address' => $details['recipient_address'], 'area' => $destination->name];
         $order->fee_snapshot = $quote;
@@ -274,7 +280,7 @@ class OrderService
 
     private function clearQuote(Order $order): void
     {
-        $order->fill(array_fill_keys(['shipping_fee', 'recipient_total', 'fee_version_id', 'fee_rule_id', 'sender_snapshot', 'recipient_snapshot', 'fee_snapshot', 'origin_area_id', 'warehouse_id'], null));
+        $order->fill(array_fill_keys(['shipping_fee', 'recipient_total', 'fee_version_id', 'fee_rule_id', 'sender_snapshot', 'recipient_snapshot', 'fee_snapshot', 'origin_area_id'], null));
     }
 
     private function lockShop(int $id): Shop
@@ -284,7 +290,7 @@ class OrderService
 
     private function approvedShop(Shop $shop): void
     {
-        $this->ensure($shop->status === 'approved', 'status', 'Shop phải được duyệt trước khi gửi hoặc thay đổi đơn.');
+        $this->ensure($shop->status === 'approved', 'status', 'Hồ sơ người gửi phải được duyệt trước khi gửi hoặc thay đổi đơn.');
     }
 
     private function checkRevision(Order $order, int $revision): void
