@@ -16,7 +16,7 @@ Sprint 01 và 02 đã triển khai trên các nhánh riêng: tài khoản/phân 
 1. Chon PHP 8.2 hoac moi hon; kiem tra `php -v` truoc khi chay Composer/Artisan.
 2. Chay `composer install`, `npm ci`, sao chep `.env.example` thanh `.env`.
 3. Tao database `quanlivanchuyen` trong MySQL, cau hinh DB_* trong `.env`.
-4. Chay `php artisan key:generate`, sau do `php artisan migrate`.
+4. Chay `php artisan key:generate`, sau do `php artisan migrate --seed` de tao schema, vai tro va danh muc tinh/thanh.
 5. Chay `npm run build`, sau do `php artisan serve --host=127.0.0.1 --port=8000`.
 6. Mo `http://127.0.0.1:8000`. Khi sua frontend, chay them `npm run dev` o terminal khac.
 
@@ -40,7 +40,22 @@ php artisan db:seed --class=DemoOrderSeeder
 Remove-Item Env:DEMO_PASSWORD
 ```
 
-Tài khoản mẫu: `admin@guiviet.test`, `dispatcher@guiviet.test`, `warehouse@guiviet.test`, `shipper@guiviet.test`, `accountant@guiviet.test`, `support@guiviet.test`, `shop@guiviet.test`, `pending@guiviet.test`. Mật khẩu là giá trị đã đặt khi seed lần đầu; chạy lại seeder không đổi mật khẩu cũ.
+Tài khoản mẫu: `admin@guiviet.test`, `operations@guiviet.test`, `shipper@guiviet.test`, `shop@guiviet.test`, `pending@guiviet.test`. Mật khẩu là giá trị đã đặt khi seed lần đầu; chạy lại seeder không đổi mật khẩu cũ.
+
+Hệ thống chỉ có **4 vai trò**:
+
+Phân công chi tiết của cả tám sprint nằm trong [ma trận phân quyền](docs/role-matrix.md); `docs/sprints.json` ghi tác nhân và điều kiện phân quyền riêng cho từng sprint.
+
+| Vai trò | Công việc |
+| --- | --- |
+| Admin (kiêm kế toán) | Quản lý tài khoản, danh mục, biểu phí, xác minh ngân hàng và công việc kế toán |
+| Nhân viên vận hành | Gộp điều phối, kho và CSKH; duyệt shop, duyệt đơn, phân công shipper, nhập/xuất và kiểm kê trong kho được gán |
+| Shipper | Nhận nhiệm vụ và xác nhận bàn giao của chính mình |
+| Chủ cửa hàng | Quản lý hồ sơ, địa chỉ và vận đơn của cửa hàng mình |
+
+Khi cập nhật database cũ, chạy `php artisan migrate` trước khi seed: điều phối/kho/CSKH chuyển thành vận hành, kế toán chuyển thành admin. Tài khoản, mật khẩu, phạm vi kho và chứng từ được giữ lại; người có quyền thay đổi phải đăng nhập lại. Migration ghi lịch sử đổi vai trò và không tự tách lại vai trò khi rollback; cần bản sao lưu nếu muốn khôi phục mô hình cũ.
+
+Để demo chỉ cần 3 tài khoản nội bộ (admin, vận hành, shipper) và 1 tài khoản shop. Người lập vẫn không được tự duyệt chứng từ; dùng admin hoặc một tài khoản vận hành khác để duyệt kiểm kê. Shipper không được tự xác nhận đã nộp tiền. Nghiệp vụ tài chính ở các sprint sau tiếp tục áp dụng quy tắc này theo người thao tác, dù admin kiêm kế toán.
 
 `DemoOrderSeeder` tạo 8 vận đơn với lịch sử thật qua service; chạy lại không tạo trùng. Cần chạy DemoSeeder trước. Đơn mẫu có nháp, chờ duyệt, cần bổ sung, đã duyệt, đã hủy và đề nghị chỉnh sửa chờ xử lý.
 
