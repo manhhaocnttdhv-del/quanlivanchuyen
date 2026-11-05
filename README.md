@@ -44,6 +44,8 @@ Tài khoản mẫu: `admin@guiviet.test`, `operations@guiviet.test`, `shipper@gu
 
 Hệ thống chỉ có **4 vai trò**:
 
+Phân công chi tiết của cả tám sprint nằm trong [ma trận phân quyền](docs/role-matrix.md); `docs/sprints.json` ghi tác nhân và điều kiện phân quyền riêng cho từng sprint.
+
 | Vai trò | Công việc |
 | --- | --- |
 | Admin (kiêm kế toán) | Quản lý tài khoản, danh mục, biểu phí, xác minh ngân hàng và công việc kế toán |
