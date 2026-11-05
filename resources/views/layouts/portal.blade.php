@@ -66,8 +66,18 @@
                             href="{{ route('stocktakes.index') }}"><i data-lucide="clipboard-list"></i> Kiểm kê kho</a>
                     @endif
                     @can('users.manage')
-                        <p class="nav-group-label mt-4">Quản lý</p><a
-                            class="{{ request()->routeIs('users.*') ? 'active' : '' }}"
+                        <p class="nav-group-label mt-4">Quản lý</p>
+                    @endcan
+                    @can('viewAny', \App\Models\Incident::class)
+                        <a class="{{ request()->routeIs('incidents.*') ? 'active' : '' }}"
+                            href="{{ route('incidents.index') }}"><i data-lucide="triangle-alert"></i> Sự cố vận chuyển</a>
+                    @endcan
+                    @can('viewAny', \App\Models\Complaint::class)
+                        <a class="{{ request()->routeIs('complaints.*') ? 'active' : '' }}"
+                            href="{{ route('complaints.index') }}"><i data-lucide="messages-square"></i> Khiếu nại</a>
+                    @endcan
+                    @can('users.manage')
+                        <a class="{{ request()->routeIs('users.*') ? 'active' : '' }}"
                             href="{{ route('users.index') }}"><i data-lucide="shield-check"></i> Tài khoản & phân quyền</a>
                     @endcan
                     @can('any-shop-review')

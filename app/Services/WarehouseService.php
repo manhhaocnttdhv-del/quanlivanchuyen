@@ -168,6 +168,7 @@ class WarehouseService
 
     private function unblocked($order): void
     {
+        $this->ledger->ensureNoIncidentDispatchHold($order);
         $this->ledger->ensure(! $order->pendingChange()->exists() && ! $order->discrepancies()->where('status', 'open')->where('blocks_dispatch', true)->exists(), 'Đơn có đề nghị thay đổi hoặc kiện đang giữ; chưa được xuất.');
     }
 

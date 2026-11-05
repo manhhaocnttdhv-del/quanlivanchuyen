@@ -4,6 +4,7 @@
         href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}">
     <i data-lucide="arrow-left"></i> Nhiệm vụ</a>@endsection
 @section('content')
+    @include('portal.cases.order-links')
     <div class="order-identity">
         <div><strong class="order-code logistics-code">{{ $order->tracking_code }}</strong>
             <p>{{ $task->shipper->name }} · {{ $task->warehouse->name }}</p>

@@ -82,6 +82,17 @@ Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` 
 - Khoa theo shop -> order -> task -> shipper; token dung lai dung payload va anh tra ket qua cu. Giao/hoan that bai khong tao collection. Hoan khong thu COD. Tien thieu/thua phai co ly do va financial_hold.
 - `fee_rules.return_fee` co mac dinh 0; quote luu vao fee_snapshot khi gui/duyet. Phi hoan la nghia vu rieng; reconciliation khong thu tai cho, collect_on_return thu tai luc shop nhan.
 
+## Du lieu Sprint 05 da trien khai
+
+- `incidents`: FK den order, warehouse va cac tham chieu tuy chon warehouse_item, delivery_task, delivery_collection, discrepancy. Service kiem tra tat ca tham chieu thuoc cung order. Ma ULID unique; unique (created_by, client_token) va creation_hash de nhan replay.
+- `incident_actions`: lich su append-only, actor/reason/payload; proposed_amount DECIMAL(15,2), CHECK khong am. Tien de xuat va tien duoc duyet luu trong cot nay, khong dung JSON/float lam nguon so tien. proposal_action_id/approved_action_id tren incidents tro toi action bat bien.
+- `blocks_dispatch`, `blocks_reconciliation` nam tren tung incident. Ket luan duoc duyet chi go khoa giao cua chinh ho so do; pending_finance giu khoa doi soat. Khong sua orders.financial_hold hay discrepancies khi duyet incident. Order::reconciliationBlocked() tong hop khoa tai chinh va incident cho Sprint 06.
+- `complaints`: FK shop/order/warehouse/incident; revision, due_at, first_response_at, closed_at, resolution. SLA 48 gio do server quy dinh; mo lai khong reset han. Unique (created_by, client_token), code unique. Loai tac dong tien/hang can incident cung order da duyet truoc khi dong.
+- `complaint_messages`: append-only, actor, type, body, is_internal. Loc is_internal ngay trong query cho shop, truoc paginate; khong chi an bang CSS/Blade.
+- `attachments`: bang chung private, path unique, SHA-256, MIME, size, original_name, created_by. Hai FK nullable den incident_action/complaint_message va CHECK XOR bat buoc dung mot cha. Tai lieu/anh khong sua/xoa qua Eloquent; path/hash an khoi serialization.
+- Index incidents (warehouse_id, status, created_at), (assigned_to, status, created_at), (order_id, blocks_dispatch), (order_id, blocks_reconciliation); complaints (warehouse_id, status, due_at), (shop_id, status, created_at), (assigned_to, status, due_at); messages (complaint_id, is_internal, id).
+- Giao dich khoa shop -> order -> incident/complaint. Tao ho so khoa them creator de tuan tu hoa token tren hai don khac nhau; duyet khoa proposal. Phan cong/nhap/xuat/giao dung cung shop/order lock nen khong co khoang trong giua kiem tra khoa va ghi ket qua.
+
 ## Cong thuc va dong thoi
 
 - Tien shipper dang giu = tong collection posted - tong deposit allocation confirmed + dieu chinh da duyet.

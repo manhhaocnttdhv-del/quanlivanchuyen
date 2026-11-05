@@ -43,6 +43,24 @@
 .portal-heading h1 { font-size: 24px; margin: 0; }
 .work-section { padding: 26px 0; border-top: 1px solid #dce5e3; }
 .work-section h2 { font-size: 18px; }
+.case-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 18px 0; border-block: 1px solid #dce5e3; overflow-wrap: anywhere; }
+.case-title { font-size: 20px; line-height: 1.5; overflow-wrap: anywhere; }
+.case-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; font-size: 14px; }
+.case-priority { display: inline-block; padding: 4px 8px; border-radius: 4px; background: #e4eff9; color: #235f88; font-size: 11px; }
+.case-priority.priority-high { background: #fff0d1; color: #805407; }
+.case-priority.priority-critical { background: #fbe8ea; color: #a52c43; }
+.case-entry { border-bottom: 1px solid #dce5e3; padding: 22px 0; min-width: 0; }
+.case-entry-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 13px; }
+.case-entry time { color: #637875; font-size: 12px; }
+.case-entry.case-internal { border-left: 3px solid #b98a2e; padding-inline: 16px; background: #fffcf4; }
+.case-internal-label { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; font-size: 11px; color: #805407; }
+.case-files { list-style: none; padding: 0; margin: 12px 0 0; }
+.case-files li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; overflow-wrap: anywhere; }
+.case-files small { font-size: 11px; color: #637875; }
+.case-files a { font-size: 13px; overflow-wrap: anywhere; max-width: 100%; }
+.case-links { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
+.case-links .btn { min-height: 44px; white-space: normal; }
+aside .work-section .field-group + .field-group { margin-top: 14px; }
 .delivery-search { max-width: 360px; width: 100%; }
 .delivery-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid #cbded9; margin-bottom: 24px; }
 .delivery-tabs a { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; min-height: 58px; padding: 10px 6px; text-decoration: none; color: #4b6461; border-bottom: 3px solid transparent; font-size: 13px; }

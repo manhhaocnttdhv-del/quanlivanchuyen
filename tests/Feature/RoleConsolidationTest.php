@@ -6,6 +6,8 @@ use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CatalogSeeder;
+use Database\Seeders\DemoCaseSeeder;
+use Database\Seeders\DemoDeliverySeeder;
 use Database\Seeders\DemoLogisticsSeeder;
 use Database\Seeders\DemoOrderSeeder;
 use Database\Seeders\DemoSeeder;
@@ -120,6 +122,9 @@ class RoleConsolidationTest extends DatabaseTestCase
             $this->seed(DemoOrderSeeder::class);
             $this->seed(DemoLogisticsSeeder::class);
             $this->assertDatabaseHas('stocktakes', ['created_by' => $operator->id, 'status' => 'submitted']);
+            $this->seed(DemoDeliverySeeder::class);
+            $this->seed(DemoCaseSeeder::class);
+            $this->assertDatabaseHas('complaints', ['assigned_to' => $operator->id, 'status' => 'in_progress']);
 
             Env::getRepository()->set('DEMO_PASSWORD', 'AnotherDemoPassword!2026');
             $this->seed(DemoSeeder::class);

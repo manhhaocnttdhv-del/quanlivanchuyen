@@ -24,6 +24,7 @@ class LogisticsLedger
     {
         return $order->only(['status', 'custody_status', 'assigned_shipper_id', 'revision', 'return_authorized_by', 'return_reason', 'delivery_attempt_count', 'return_attempt_count', 'delivery_attempt_limit', 'retry_authorized_attempt', 'financial_hold', 'delivered_at', 'returned_at']) + [
             'parcels' => WarehouseItem::where('order_id', $order->id)->orderBy('parcel_number')->lockForUpdate()->get()->map->only(['id', 'parcel_number', 'holder_type', 'holder_user_id', 'warehouse_id', 'warehouse_location_id', 'custody_version', 'actual_weight_grams', 'condition'])->all(),
+            'incident_holds' => $order->incidents()->where(fn ($q) => $q->where('blocks_dispatch', true)->orWhere('blocks_reconciliation', true))->lockForUpdate()->get()->map->only(['id', 'blocks_dispatch', 'blocks_reconciliation', 'financial_status'])->all(),
         ];
     }
 
@@ -44,5 +45,10 @@ class LogisticsLedger
         if (! $condition) {
             throw ValidationException::withMessages([$field => $message]);
         }
+    }
+
+    public function ensureNoIncidentDispatchHold(Order $order): void
+    {
+        $this->ensure(! $order->incidents()->where('blocks_dispatch', true)->exists(), 'Vận đơn đang khóa giao/hoàn do sự cố. Cần kết luận được duyệt trước.');
     }
 }
