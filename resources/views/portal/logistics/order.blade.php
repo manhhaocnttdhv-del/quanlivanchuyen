@@ -10,6 +10,8 @@
             <p>{{ $order->shop->name }} · {{ $order->warehouse->name }} · {{ $order->parcel_count }} kiện</p>
         </div><span class="status-badge">{{ \App\Models\Order::STATUSES[$order->status] }}</span>
     </div>
+    <x-order-progress :order="$order" />
+    @include('portal.logistics.readiness')
     <dl class="detail-grid">
         <dt>Lấy hàng</dt>
         <dd>{{ $order->sender_snapshot['address'] ?? '' }} · {{ $order->sender_snapshot['area'] ?? '' }}</dd>
@@ -26,7 +28,7 @@
         @if (
             $order->tasks->whereIn('status', \App\Models\DeliveryTask::ACTIVE)->isEmpty() &&
                 in_array($order->status, ['approved', 'at_warehouse']))
-            @if ($order->status === 'approved' || $routeReady)
+            @if ($workflow['canAssign'])
                 <section class="work-section">
                 <h2>Phân công nhiệm vụ</h2>
                 <form method="post" action="{{ route('logistics.assign', $order) }}" class="narrow-form mt-3">@csrf
@@ -42,10 +44,8 @@
                         công</button>
                 </form>
             </section>
-            @else
-                <p class="alert alert-info">{{ $order->return_authorized_by ? 'Cần chuyển đủ kiện về kho gửi ban đầu trước khi hoàn cho shop.' : 'Cần chuyển đủ kiện đến kho thuộc khu vực người nhận trước khi giao.' }}</p>
             @endif
-            @if ($order->status === 'at_warehouse' && !$order->return_authorized_by)
+            @if ($workflow['canDecide'])
                 <section class="work-section">
                     <h2>{{ $order->delivery_attempt_count ? 'Phương án giao lại / hoàn' : 'Yêu cầu hoàn hàng' }}</h2>
                     <form method="post" action="{{ route('delivery.decide', $order) }}" class="narrow-form mt-3"

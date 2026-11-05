@@ -14,10 +14,13 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseItem;
 use App\Models\WarehouseLocation;
+use App\Models\WarehouseTransfer;
 use App\Policies\LogisticsPolicy;
 use App\Services\AuditService;
+use App\Services\DispatchReadiness;
 use App\Services\DispatchService;
 use App\Services\LogisticsEvidence;
+use App\Services\OperationsWorklist;
 use App\Services\OrderRouting;
 use App\Services\WarehouseService;
 use Illuminate\Http\Request;
@@ -30,7 +33,7 @@ class LogisticsController extends Controller
 {
     public function __construct(private LogisticsPolicy $policy) {}
 
-    public function index(LogisticsFilterRequest $request)
+    public function index(LogisticsFilterRequest $request, OperationsWorklist $worklist, DispatchReadiness $readiness)
     {
         $user = $request->user();
         $this->authorizeEntry($user);
@@ -41,20 +44,34 @@ class LogisticsController extends Controller
         foreach (['warehouse_id', 'status', 'type'] as $field) {
             $tasks->when($filters[$field] ?? null, fn ($q, $v) => $q->where($field, $v));
         }
-        // Loại đơn có nhiệm vụ, đề nghị sửa hoặc khóa sự cố; Service kiểm tra lại lúc phân công.
-        $waiting = Order::with('shop')->whereIn('warehouse_id', $this->warehouseIds($user))->whereIn('status', ['approved', 'at_warehouse'])
-            ->whereDoesntHave('tasks', fn ($q) => $q->whereIn('status', DeliveryTask::ACTIVE))->whereDoesntHave('pendingChange')
-            ->whereDoesntHave('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
-            ->whereDoesntHave('incidents', fn ($q) => $q->where('blocks_dispatch', true))
+        $staff = $user->hasPermission('logistics.dispatch') || $user->hasPermission('logistics.warehouse');
+        $queue = $filters['queue'] ?? 'all';
+        $workView = $staff && ($filters['view'] ?? 'work') === 'work';
+        $base = Order::whereIn('warehouse_id', $this->warehouseIds($user))
+            ->whereNotIn('status', ['draft', 'needs_info', 'rejected', 'cancelled', 'delivered', 'returned'])
             ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('warehouse_id', $id))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where('tracking_code', 'like', $v.'%'));
+        // Kho nhận có quyền với phiếu chuyển, chưa có quyền với đơn ở kho gửi.
+        $incoming = WarehouseTransfer::whereIn('destination_warehouse_id', $this->warehouseIds($user))->whereIn('status', ['in_transit', 'partial'])
+            ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('destination_warehouse_id', $id))
+            ->when($filters['q'] ?? null, fn ($q, $v) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%')));
+        $queueCounts = [];
+        if ($staff) {
+            foreach (OperationsWorklist::QUEUES as $key => $label) {
+                $queueCounts[$key] = $key === 'receipt' ? (clone $incoming)->count() : $worklist->filter(clone $base, $key)->count();
+            }
+            $queueCounts['all'] += $queueCounts['receipt'];
+        }
+        $waiting = $staff ? $readiness->query($worklist->filter(clone $base, $queue))->oldest('updated_at')->orderBy('id')->paginate(12, ['*'], 'waiting_page')->withQueryString() : null;
+        $workflow = $waiting?->getCollection()->mapWithKeys(fn ($order) => [$order->id => $readiness->inspect($order)]) ?? collect();
 
         return view('portal.logistics.index', ['tasks' => $tasks->latest('id')->paginate(20)->withQueryString(),
-            'waiting' => $user->hasPermission('logistics.dispatch') ? $waiting->oldest('id')->paginate(10, ['*'], 'waiting_page')->withQueryString() : null,
+            'waiting' => $waiting, 'workflow' => $workflow, 'queue' => $queue, 'queueCounts' => $queueCounts, 'queues' => OperationsWorklist::QUEUES, 'workView' => $workView, 'reviewAccess' => $user->hasPermission('orders.review'),
+            'incomingTransfers' => $staff && in_array($queue, ['all', 'receipt']) ? $incoming->with(['order', 'source', 'destination'])->withCount(['lines', 'lines as received_count' => fn ($q) => $q->whereNotNull('received_at')])->oldest('id')->paginate(8, ['*'], 'incoming_page')->withQueryString() : null,
             'warehouses' => Warehouse::whereIn('id', $this->warehouseIds($user))->pluck('name', 'id'), 'filters' => $filters]);
     }
 
-    public function order(Request $request, Order $order)
+    public function order(Request $request, Order $order, DispatchReadiness $readiness)
     {
         abort_unless($this->policy->dispatch($request->user(), $order->warehouse_id) || $this->policy->warehouse($request->user(), $order->warehouse_id), 403);
         $order->load(['shop', 'warehouse', 'parcels.holder', 'parcels.location', 'tasks.shipper', 'returnRecord', 'deliveryAttempts.proof', 'deliveryAttempts.shipper', 'deliveryDecisions', 'discrepancies.creator', 'discrepancies.resolver', 'discrepancies.item', 'discrepancies.order']);
@@ -66,9 +83,10 @@ class LogisticsController extends Controller
         $options = $shippers->sortBy(fn ($u) => $loads[$u->id] ?? 0)->mapWithKeys(fn ($u) => [$u->id => $u->name.' · '.($loads[$u->id] ?? 0).' nhiệm vụ']);
 
         $routing = app(OrderRouting::class);
-        $routeReady = $routing->ready($order, $order->return_authorized_by ? 'return' : 'delivery');
+        $workflow = $readiness->inspect($order);
+        $routeReady = $workflow['routeReady'];
         $decisions = ['return' => DeliveryDecision::TYPES['return']];
-        if ($routeReady && $order->deliveryAttempts->first()?->outcome === 'failed') {
+        if ($routeReady && ! $order->retry_authorized_attempt && $order->deliveryAttempts->first()?->outcome === 'failed') {
             if ($order->delivery_attempt_count < $order->delivery_attempt_limit) {
                 $decisions = ['retry' => DeliveryDecision::TYPES['retry']] + $decisions;
             } elseif ($this->policy->approve($request->user(), $order->warehouse_id)) {
@@ -77,7 +95,7 @@ class LogisticsController extends Controller
         }
 
         return view('portal.logistics.order', ['order' => $order, 'shippers' => $options, 'policy' => $this->policy,
-            'routeReady' => $routeReady, 'decisions' => $decisions,
+            'routeReady' => $routeReady, 'decisions' => $decisions, 'workflow' => $workflow,
             'destinations' => $routing->destinations($order)->orderBy('name')->pluck('name', 'id'),
             'transfers' => $order->transfers()->with(['source', 'destination'])->latest('id')->get()]);
     }

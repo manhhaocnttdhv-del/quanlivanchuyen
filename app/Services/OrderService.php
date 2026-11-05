@@ -99,6 +99,7 @@ class OrderService
             $this->ensure($order->status === 'submitted' && in_array($decision, ['approved', 'needs_info', 'rejected']), 'status', 'Chỉ xét duyệt đơn đang chờ duyệt.');
             if ($decision === 'approved') {
                 $this->approvedShop($shop);
+                app(OrderRouting::class)->ensureCoverage($order->warehouse_id, $order->area_id);
             }
             $before = $this->snapshot($order);
             $order->status = $decision;
@@ -230,6 +231,9 @@ class OrderService
         }
         if (! empty($data['area_id'])) {
             $this->ensure(Area::whereKey($data['area_id'])->where('is_active', true)->exists(), 'area_id', 'Khu vực nhận đang ngừng phục vụ.');
+        }
+        if ($complete) {
+            app(OrderRouting::class)->ensureCoverage((int) $data['warehouse_id'], (int) $data['area_id']);
         }
         foreach (['pickup_address_id', 'warehouse_id', 'area_id', 'weight_grams', 'parcel_count', 'cod_amount'] as $field) {
             if (isset($data[$field])) {

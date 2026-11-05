@@ -23,16 +23,19 @@ class WarehouseService
         return DB::transaction(function () use ($actor, $task, $direction, $reason, $reference) {
             $order = $this->ledger->lock($reference);
             $task = DeliveryTask::lockForUpdate()->findOrFail($task->id);
+            $this->ledger->ensure(in_array($direction, ['inbound', 'outbound']), 'Hướng bàn giao không hợp lệ.', 'direction');
             $inbound = $direction === 'inbound';
             abort_unless($inbound ? $this->policy->shipper($actor, $task) : $this->policy->warehouse($actor, $task->warehouse_id), 403);
             $this->ledger->ensure(in_array($task->status, $inbound ? ['in_custody', 'recall_pending'] : ['assigned']), 'Nhiệm vụ không đủ điều kiện bàn giao.');
             $this->ledger->ensure(! $task->handovers()->where('status', 'pending')->exists(), 'Đã có phiếu bàn giao chờ xác nhận.');
+            $this->ledger->ensure($order->warehouse_id === $task->warehouse_id, 'Kho phụ trách đã thay đổi; cần kiểm tra lại nhiệm vụ.');
             if (! $inbound) {
                 app(OrderRouting::class)->ensureReady($order, $task->type);
                 $this->ledger->ensure(in_array($task->type, ['delivery', 'return']) && $order->status === 'at_warehouse', 'Chỉ xuất giao/hoàn khi đơn tại kho.');
                 $this->unblocked($order);
             }
             $items = $order->parcels()->where('holder_type', $inbound ? 'shipper' : 'warehouse')
+                ->where('warehouse_id', $task->warehouse_id)
                 ->when($inbound, fn ($q) => $q->where('holder_user_id', $task->shipper_id))->orderBy('id')->get();
             $this->ledger->ensure($items->isNotEmpty() && ($inbound || $items->count() === $order->parcel_count), 'Không đủ kiện hợp lệ để bàn giao.');
             $before = $this->ledger->snapshot($order);
@@ -58,6 +61,7 @@ class WarehouseService
             abort_unless($inbound ? $this->policy->warehouse($actor, $doc->warehouse_id) : $this->policy->shipper($actor, $task), 403);
             $this->ledger->ensure($doc->created_by !== $actor->id, 'Hai phía bàn giao phải là hai tài khoản khác nhau.');
             $this->ledger->ensure($doc->status === 'pending' && in_array($task->status, $inbound ? ['in_custody', 'recall_pending'] : ['assigned']), 'Phiếu đã xử lý hoặc nhiệm vụ không còn phù hợp.');
+            $this->ledger->ensure($order->warehouse_id === $doc->warehouse_id && $task->warehouse_id === $doc->warehouse_id, 'Kho phụ trách không còn khớp phiếu bàn giao.');
             if (! $inbound) {
                 app(OrderRouting::class)->ensureReady($order, $task->type);
                 $this->unblocked($order);
@@ -76,7 +80,7 @@ class WarehouseService
                 $input = $data['lines'][$line->id];
                 $received = (bool) $input['received'];
                 $item = $line->item;
-                $this->ledger->ensure($item->holder_type === ($inbound ? 'shipper' : 'warehouse') && (! $inbound || $item->holder_user_id === $task->shipper_id), 'Người giữ kiện đã thay đổi.');
+                $this->ledger->ensure($item->warehouse_id === $doc->warehouse_id && $item->holder_type === ($inbound ? 'shipper' : 'warehouse') && (! $inbound || $item->holder_user_id === $task->shipper_id), 'Kho hoặc người giữ kiện đã thay đổi.');
                 $damaged = $received && $input['condition'] === 'damaged';
                 $this->ledger->ensure(($received && ! $damaged) || $evidence !== null, 'Thiếu/hỏng kiện cần ảnh bằng chứng.', 'evidence');
                 if (! $received || $damaged) {

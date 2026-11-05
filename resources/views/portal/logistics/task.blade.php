@@ -11,6 +11,13 @@
             <p>{{ $task->shipper->name }} · {{ $task->warehouse->name }}</p>
         </div><span class="status-badge">{{ \App\Models\DeliveryTask::STATUSES[$task->status] }}</span>
     </div>
+    <x-order-progress :order="$order" />
+    @php($pendingHandover = $task->handovers->where('status', 'pending')->sortByDesc('id')->first())
+    @if ($pendingHandover)
+        <div class="operations-next-step"><div><span class="small text-secondary">Bước tiếp theo</span><strong>{{ $pendingHandover->direction === 'inbound' ? 'Chờ kho kiểm đếm và xác nhận nhập' : 'Chờ shipper kiểm đếm và nhận kiện' }}</strong></div><a class="btn btn-primary" href="{{ route('logistics.handover', $pendingHandover) }}"><i data-lucide="package-check"></i> Mở phiếu bàn giao</a></div>
+    @elseif ($task->status === 'assigned' && $task->type !== 'pickup' && $policy->shipper(auth()->user(), $task))
+        <p class="alert alert-info">Chờ kho lập phiếu xuất giao kiện.</p>
+    @endif
     <div class="row g-4 mb-4">
         <div class="col-md-6">
             <h2 class="h6">Lấy / hoàn về shop</h2>
@@ -30,6 +37,7 @@
     @endif
     @if (in_array($task->type, ['delivery', 'return']) &&
             $task->status === 'in_custody' &&
+            !$pendingHandover &&
             $policy->shipper(auth()->user(), $task))
         @include('portal.delivery.form')
     @endif
@@ -59,7 +67,7 @@
                 href="{{ route('logistics.evidence', ['kind' => 'pickup', 'id' => $task->pickupAttempt->id]) }}">Ảnh bằng
                 chứng</a></p>
     @endif
-    @if (in_array($task->status, ['in_custody', 'recall_pending']) && $policy->shipper(auth()->user(), $task))
+    @if (in_array($task->status, ['in_custody', 'recall_pending']) && !$pendingHandover && $policy->shipper(auth()->user(), $task))
         <section class="work-section">
             <h2>Bàn giao về kho</h2>
             <form method="post" class="narrow-form mt-3" action="{{ route('logistics.prepare', $task) }}">@csrf<input
@@ -69,7 +77,7 @@
             </form>
         </section>
     @endif
-    @if ($task->status === 'assigned' && $task->type !== 'pickup' && $policy->warehouse(auth()->user(), $task->warehouse_id))
+    @if ($task->status === 'assigned' && $task->type !== 'pickup' && !$pendingHandover && $policy->warehouse(auth()->user(), $task->warehouse_id))
         <section class="work-section">
             <h2>Xuất giao cho shipper</h2>
             <form method="post" class="narrow-form mt-3" action="{{ route('logistics.prepare', $task) }}">@csrf<input

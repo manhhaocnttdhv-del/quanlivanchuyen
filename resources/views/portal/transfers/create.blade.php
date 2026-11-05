@@ -1,6 +1,7 @@
-@if ($order->status === 'at_warehouse' && !$routeReady && $policy->warehouse(auth()->user(), $order->warehouse_id))
+@if ($workflow['canTransfer'] && $policy->warehouse(auth()->user(), $order->warehouse_id))
     <section class="work-section">
         <h2>Xuất chuyển kho</h2>
+        @if ($destinations->isEmpty())<p class="alert alert-warning mt-3">Chưa có kho nhận đang hoạt động cho tuyến này. Liên hệ quản trị danh mục trước khi xuất chuyển.</p>@endif
         <form method="post" action="{{ route('transfers.store', $order) }}" class="narrow-form mt-3" data-confirm="Xác nhận xuất đủ kiện theo chuyến chuyển kho?">
             @csrf<input type="hidden" name="revision" value="{{ $order->revision }}">
             <x-field name="destination_warehouse_id" label="Kho nhận" :options="$destinations" placeholder="Chọn kho đích" required />

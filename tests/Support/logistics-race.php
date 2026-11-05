@@ -64,7 +64,8 @@ if ($mode !== 'parent') {
             app(WarehouseService::class)->confirm($actor, $doc, ['lines' => $lines, 'location_id' => $input['location'], 'reason' => 'Kiểm tra xác nhận bàn giao đồng thời'], null);
         }
         echo 'accepted';
-    } catch (ValidationException) {
+    } catch (ValidationException $exception) {
+        fwrite(STDERR, json_encode($exception->errors(), JSON_UNESCAPED_UNICODE).PHP_EOL);
         echo 'rejected';
     }
     exit;
@@ -92,7 +93,8 @@ $shop->user_id = $owner->id;
 $shop->status = 'approved';
 $shop->save();
 $order = Order::create(['shop_id' => $shop->id, 'tracking_code' => 'GV'.Str::upper((string) Str::ulid()), 'client_token' => (string) Str::uuid(), 'creation_hash' => str_repeat('a', 64),
-    'created_by' => $owner->id, 'status' => 'approved', 'warehouse_id' => $warehouse->id, 'area_id' => $area->id, 'origin_area_id' => $area->id, 'parcel_count' => 2, 'weight_grams' => 1000]);
+    'created_by' => $owner->id, 'status' => 'approved', 'warehouse_id' => $warehouse->id, 'area_id' => $area->id, 'origin_area_id' => $area->id, 'parcel_count' => 2, 'weight_grams' => 1000,
+    'cod_amount' => 0, 'shipping_fee' => 0, 'fee_payer' => 'sender']);
 
 $race = function (string $mode, array $input, array $expected = ['accepted', 'rejected']) use ($database, $shop): array {
     $workers = [];
@@ -114,16 +116,18 @@ $race = function (string $mode, array $input, array $expected = ['accepted', 're
         DB::commit();
     }
     $results = [];
+    $diagnostics = [];
     foreach ($workers as $worker) {
         $worker->wait();
         if (! $worker->isSuccessful()) {
             throw new RuntimeException($worker->getErrorOutput().$worker->getOutput());
         }
         $results[] = trim($worker->getOutput());
+        $diagnostics[] = trim($worker->getErrorOutput());
     }
     sort($results);
     if ($results !== $expected) {
-        throw new RuntimeException('Kết quả đồng thời không hợp lệ: '.json_encode($results));
+        throw new RuntimeException('Kết quả đồng thời không hợp lệ: '.json_encode($results).' '.implode(' ', $diagnostics));
     }
 
     return $results;

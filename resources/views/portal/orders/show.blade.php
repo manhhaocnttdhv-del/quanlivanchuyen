@@ -23,6 +23,12 @@
         </div><span
             class="status-badge order-state state-{{ $order->status }}">{{ \App\Models\Order::STATUSES[$order->status] ?? $order->status }}</span>
     </div>
+    <x-order-progress :order="$order" />
+    @if (app(\App\Policies\LogisticsPolicy::class)->dispatch(auth()->user(), $order->warehouse_id) || app(\App\Policies\LogisticsPolicy::class)->warehouse(auth()->user(), $order->warehouse_id))
+        @if (!in_array($order->status, ['draft', 'submitted', 'needs_info', 'rejected', 'cancelled']))
+            <div class="operations-next-step"><div><span class="small text-secondary">Vận hành</span><strong>{{ $order->warehouse->name }}</strong></div><a class="btn btn-primary" href="{{ route('logistics.order', $order) }}"><i data-lucide="truck"></i> Điều phối vận đơn</a></div>
+        @endif
+    @endif
     <div class="row g-4">
         <div class="col-xl-8">
             <section class="work-section order-details">@include('portal.orders.details')</section>
@@ -102,7 +108,7 @@
             </section>
         @endif
     @endcan
-    @can('review', $order)@if ($order->status === 'submitted')
+    @can('review', $order)@if ($order->status === 'submitted' && $order->created_by !== auth()->id())
         <section class="work-section">
             <h2>Xét duyệt vận đơn</h2>
             <form class="narrow-form mt-3" method="post" action="{{ route('orders.review', $order) }}">@csrf<input
@@ -148,7 +154,7 @@
                         <p class="small mt-3 mb-0">{{ $change->reviewer?->name }}: {{ $change->review_reason }}</p>
                     @endif
                     @can('review', $order)
-                        @if ($change->status === 'pending')
+                        @if ($change->status === 'pending' && $change->created_by !== auth()->id())
                             <form class="narrow-form mt-3" method="post"
                                 action="{{ route('orders.change-review', $change) }}">@csrf<x-field name="decision"
                                     id="change-decision-{{ $change->id }}" label="Xử lý đề nghị" :options="['approved' => 'Chấp nhận đề nghị', 'rejected' => 'Từ chối đề nghị']" /><x-field

@@ -24,6 +24,8 @@ class WarehouseTransferService
             $order = $this->ledger->lock($order);
             abort_unless(app(LogisticsPolicy::class)->warehouse($actor, $order->warehouse_id), 403);
             $this->ledger->ensure($order->revision === (int) $data['revision'], 'Đơn đã thay đổi; tải lại trước khi chuyển kho.', 'revision');
+            $readiness = app(DispatchReadiness::class)->inspect($order);
+            $this->ledger->ensure($readiness['canTransfer'], $readiness['warehouseBlockers'][0] ?? 'Đơn đã ở đúng kho để giao hoặc hoàn.');
             $this->ledger->ensure($order->status === 'at_warehouse' && $order->custody_status === 'warehouse', 'Chỉ chuyển đơn đang giữ đủ kiện tại kho.');
             $this->ledger->ensureNoIncidentDispatchHold($order);
             $this->ledger->ensure(! $order->pendingChange()->exists() && ! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists(), 'Xử lý đề nghị hoặc thu hồi nhiệm vụ trước khi chuyển kho.');
