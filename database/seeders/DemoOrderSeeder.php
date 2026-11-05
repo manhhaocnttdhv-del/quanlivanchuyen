@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Area;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\OrderService;
 use Illuminate\Database\Seeder;
 
@@ -17,6 +18,7 @@ class DemoOrderSeeder extends Seeder
         }
         $owner = User::where('email', 'shop@guiviet.test')->firstOrFail();
         $admin = User::where('email', 'admin@guiviet.test')->firstOrFail();
+        $warehouse = Warehouse::where('code', 'KHO-HN')->firstOrFail();
         $service = app(OrderService::class);
         $samples = [
             ['Nguyễn Minh Anh', 'HN', 'Áo thun cotton', 500, 285000, 'approved', 'recipient'],
@@ -35,6 +37,7 @@ class DemoOrderSeeder extends Seeder
             }
             $order = $service->saveDraft($owner, [
                 'client_token' => $token, 'pickup_address_id' => $owner->shop->addresses()->where('is_active', true)->value('id'),
+                'warehouse_id' => $warehouse->id,
                 'area_id' => Area::where('code', $destination)->value('id'), 'recipient_name' => $name,
                 'recipient_phone' => '098765'.str_pad((string) (6781 + $i), 4, '0', STR_PAD_LEFT),
                 'recipient_address' => (20 + $i).' Đường demo, phường mẫu', 'weight_grams' => $weight, 'parcel_count' => $i === 1 ? 2 : 1,
