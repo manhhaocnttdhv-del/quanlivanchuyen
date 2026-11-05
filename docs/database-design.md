@@ -71,6 +71,17 @@ Ten cot FK phai day du va nhat quan khi viet migration, vi du `cash_deposit_id` 
 - `custody_status` va `assigned_shipper_id` chuan bi cho Sprint 03; Sprint 02 khong co endpoint gia lap nhan/giao kien. Don da giu kien khong duoc huy truc tiep.
 - Timeline luu before/after, actor, revision va ly do trong cung transaction voi order va audit. Model tu choi sua/xoa; tai khoan DB van phai duoc bao ve, SQL truc tiep co the vuot qua Eloquent.
 
+## Du lieu Sprint 04 da trien khai
+
+- `delivery_attempts`: unique delivery_task_id, unique (shipper_id, client_token), unique (order_id, type, attempt_number). Moi task ghi mot ket qua; tang luot khi co ket qua thuc te.
+- `delivery_proofs`: mot bang chung/attempt; ten nguoi nhan, anh private va SHA-256; route kiem tra quyen hien tai.
+- `delivery_decisions`: quyet dinh giao lai/ngoai le/hoan, actor, y kien shop, can cu va luot duoc phep; append-only.
+- `return_records`: unique order_id; phi hoan va cach thu chot tu fee_snapshot, khong sua can cu/phi sau tao. fee_charged_at chi co khi hoan thanh cong. Snapshot cu khong co return_fee duoc mien 0d.
+- `delivery_collections`: DECIMAL(15,2), CHECK khong am; unique (delivery_attempt_id, type) va idempotency_key. Index (shipper_id, status, collected_at), (warehouse_id, financial_status, collected_at). COD, shipping_fee, return_fee tach dong, khong xoa/sua khoan goc.
+- `orders`: delivery_attempt_limit mac dinh 3, retry_authorized_attempt, return_attempt_count, financial_hold, delivered_at, returned_at. Holder cuoi la recipient/shop; chi holder_type=warehouse moi tinh ton kho.
+- Khoa theo shop -> order -> task -> shipper; token dung lai dung payload va anh tra ket qua cu. Giao/hoan that bai khong tao collection. Hoan khong thu COD. Tien thieu/thua phai co ly do va financial_hold.
+- `fee_rules.return_fee` co mac dinh 0; quote luu vao fee_snapshot khi gui/duyet. Phi hoan la nghia vu rieng; reconciliation khong thu tai cho, collect_on_return thu tai luc shop nhan.
+
 ## Cong thuc va dong thoi
 
 - Tien shipper dang giu = tong collection posted - tong deposit allocation confirmed + dieu chinh da duyet.

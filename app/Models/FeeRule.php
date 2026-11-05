@@ -8,5 +8,5 @@ class FeeRule extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['base_fee' => 'decimal:2', 'step_fee' => 'decimal:2', 'max_cod' => 'decimal:2'];
+    protected $casts = ['base_fee' => 'decimal:2', 'step_fee' => 'decimal:2', 'max_cod' => 'decimal:2', 'return_fee' => 'decimal:2'];
 }

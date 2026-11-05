@@ -38,6 +38,7 @@ class FeeCalculator
             'total' => $fee, 'max_cod' => (int) $rule->max_cod, 'cod_amount' => $cod, 'fee_payer' => $payer,
             'recipient_total' => $cod + ($payer === 'recipient' ? $fee : 0),
             'calculated_at' => now()->toIso8601String(),
+            'return_fee' => (int) $rule->return_fee,
         ];
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    public const STATUSES = ['draft' => 'Bản nháp', 'submitted' => 'Chờ duyệt', 'needs_info' => 'Cần bổ sung', 'rejected' => 'Từ chối', 'approved' => 'Đã duyệt', 'cancelled' => 'Đã hủy', 'picked_up' => 'Đã lấy hàng', 'at_warehouse' => 'Tại kho', 'out_for_delivery' => 'Đang giao', 'delivered' => 'Đã giao', 'returning' => 'Đang hoàn', 'returned' => 'Đã hoàn'];
+    public const STATUSES = ['draft' => 'Bản nháp', 'submitted' => 'Chờ duyệt', 'needs_info' => 'Cần bổ sung', 'rejected' => 'Từ chối', 'approved' => 'Đã duyệt', 'cancelled' => 'Đã hủy', 'picked_up' => 'Đã lấy hàng', 'at_warehouse' => 'Tại kho', 'out_for_delivery' => 'Đang giao', 'delivered' => 'Đã giao', 'delivery_failed' => 'Giao thất bại', 'returning' => 'Đang hoàn', 'returned' => 'Đã hoàn', 'return_failed' => 'Hoàn thất bại'];
 
     public const EDITABLE = ['draft', 'needs_info', 'rejected'];
 
@@ -16,7 +16,7 @@ class Order extends Model
 
     protected $guarded = ['id'];
 
-    protected $casts = ['cod_amount' => 'decimal:2', 'shipping_fee' => 'decimal:2', 'recipient_total' => 'decimal:2', 'weight_kg' => 'decimal:3', 'sender_snapshot' => 'array', 'recipient_snapshot' => 'array', 'fee_snapshot' => 'array', 'submitted_at' => 'datetime', 'approved_at' => 'datetime', 'cancelled_at' => 'datetime'];
+    protected $casts = ['cod_amount' => 'decimal:2', 'shipping_fee' => 'decimal:2', 'recipient_total' => 'decimal:2', 'weight_kg' => 'decimal:3', 'sender_snapshot' => 'array', 'recipient_snapshot' => 'array', 'fee_snapshot' => 'array', 'submitted_at' => 'datetime', 'approved_at' => 'datetime', 'cancelled_at' => 'datetime', 'delivered_at' => 'datetime', 'returned_at' => 'datetime', 'financial_hold' => 'boolean', 'delivery_attempt_count' => 'integer', 'return_attempt_count' => 'integer', 'delivery_attempt_limit' => 'integer', 'retry_authorized_attempt' => 'integer'];
 
     public function shop()
     {
@@ -56,6 +56,26 @@ class Order extends Model
     public function parcels()
     {
         return $this->hasMany(WarehouseItem::class)->orderBy('parcel_number');
+    }
+
+    public function deliveryAttempts()
+    {
+        return $this->hasMany(DeliveryAttempt::class)->latest('id');
+    }
+
+    public function deliveryDecisions()
+    {
+        return $this->hasMany(DeliveryDecision::class)->latest('id');
+    }
+
+    public function returnRecord()
+    {
+        return $this->hasOne(ReturnRecord::class);
+    }
+
+    public function collections()
+    {
+        return $this->hasMany(DeliveryCollection::class);
     }
 
     public function discrepancies()

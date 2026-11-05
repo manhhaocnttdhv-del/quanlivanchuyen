@@ -12,12 +12,13 @@ class CatalogSeeder extends Seeder
     public function run(): void
     {
         $permissions = ['users.manage' => 'Quản lý tài khoản', 'catalog.manage' => 'Quản lý danh mục', 'shops.review' => 'Duyệt shop', 'banks.verify' => 'Xác minh ngân hàng', 'orders.review' => 'Duyệt vận đơn', 'audit.view' => 'Đọc nhật ký', 'logistics.dispatch' => 'Điều phối nhiệm vụ', 'logistics.warehouse' => 'Nhập xuất và kiểm kê', 'logistics.approve' => 'Duyệt sai lệch và kiểm kê'];
+        $permissions['delivery.collections.view'] = 'Xem sổ thu giao hàng trong kho';
         foreach ($permissions as $name => $label) {
             Permission::firstOrCreate(['name' => $name], ['label' => $label]);
         }
         $roles = [
             'admin' => array_keys($permissions),
-            'operations' => ['shops.review', 'orders.review', 'logistics.dispatch', 'logistics.warehouse', 'logistics.approve'],
+            'operations' => ['shops.review', 'orders.review', 'logistics.dispatch', 'logistics.warehouse', 'logistics.approve', 'delivery.collections.view'],
             'shipper' => [],
             'shop' => [],
         ];

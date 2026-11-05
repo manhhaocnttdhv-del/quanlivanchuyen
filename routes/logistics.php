@@ -1,10 +1,16 @@
 <?php
 
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\LogisticsController;
 use App\Http\Controllers\StocktakeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
+    Route::get('/viec-cua-toi', [DeliveryController::class, 'mine'])->name('delivery.mine');
+    Route::get('/so-thu-giao-hang', [DeliveryController::class, 'collections'])->name('delivery.collections');
+    Route::post('/nhiem-vu/{task}/ket-qua-giao', [DeliveryController::class, 'record'])->name('delivery.record');
+    Route::post('/van-hanh/don/{order}/phuong-an', [DeliveryController::class, 'decide'])->name('delivery.decide');
+    Route::get('/ket-qua-giao/{attempt}/bang-chung', [DeliveryController::class, 'proof'])->name('delivery.proof');
     Route::get('/dieu-phoi', [LogisticsController::class, 'index'])->name('logistics.index');
     Route::get('/van-hanh/don/{order}', [LogisticsController::class, 'order'])->name('logistics.order');
     Route::post('/van-hanh/don/{order}/phan-cong', [LogisticsController::class, 'assign'])->name('logistics.assign');

@@ -10,10 +10,12 @@ use App\Models\Shop;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
+use App\Services\DeliveryService;
 use App\Services\DispatchService;
 use App\Services\WarehouseService;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -45,6 +47,17 @@ if ($mode !== 'parent') {
             app(DispatchService::class)->assign($actor, Order::findOrFail($input['order']), ['revision' => $input['revision'], 'type' => 'pickup', 'shipper_id' => $input['shipper'], 'reason' => 'Kiểm tra phân công đồng thời']);
         } elseif ($mode === 'pickup') {
             app(DispatchService::class)->pickup($actor, DeliveryTask::findOrFail($input['task']), ['successful' => true, 'condition' => 'good', 'reason' => 'Kiểm tra xác nhận lấy đồng thời'], 'race-proof.png');
+        } elseif (in_array($mode, ['deliver', 'delivery-failure'])) {
+            $task = DeliveryTask::findOrFail($input['task']);
+            $data = ['client_token' => $input['token'], 'reason' => 'Kiểm tra kết quả giao đồng thời'];
+            if ($mode === 'deliver') {
+                $data += ['outcome' => 'success', 'receiver_name' => 'Người nhận kiểm thử', 'actual_cod' => 0, 'actual_fee' => 0];
+                $photo = new UploadedFile(public_path('images/logistics-warehouse.jpg'), 'race.jpg', 'image/jpeg', null, true);
+            } else {
+                $data += ['outcome' => 'failed', 'reason_code' => 'absent'];
+                $photo = null;
+            }
+            app(DeliveryService::class)->record($actor, $task, $data, $photo);
         } else {
             $doc = HandoverDocument::findOrFail($input['document']);
             $lines = $doc->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => true, 'condition' => 'good', 'weight_grams' => 500]])->all();
@@ -81,13 +94,17 @@ $shop->save();
 $order = Order::create(['shop_id' => $shop->id, 'tracking_code' => 'GV'.Str::upper((string) Str::ulid()), 'client_token' => (string) Str::uuid(), 'creation_hash' => str_repeat('a', 64),
     'created_by' => $owner->id, 'status' => 'approved', 'warehouse_id' => $warehouse->id, 'area_id' => $area->id, 'origin_area_id' => $area->id, 'parcel_count' => 2, 'weight_grams' => 1000]);
 
-$race = function (string $mode, array $input) use ($database, $shop): array {
+$race = function (string $mode, array $input, array $expected = ['accepted', 'rejected']) use ($database, $shop): array {
     $workers = [];
     DB::beginTransaction();
     Shop::lockForUpdate()->findOrFail($shop->id);
     try {
         for ($index = 0; $index < 2; $index++) {
-            $worker = new Process([PHP_BINARY, __FILE__, $database, $mode, json_encode($input, JSON_THROW_ON_ERROR)], base_path());
+            $workerInput = $input;
+            if (isset($input['tokens'])) {
+                $workerInput['token'] = $input['tokens'][$index];
+            }
+            $worker = new Process([PHP_BINARY, __FILE__, $database, $mode, json_encode($workerInput, JSON_THROW_ON_ERROR)], base_path());
             $worker->setTimeout(30)->start();
             $workers[] = $worker;
         }
@@ -105,7 +122,7 @@ $race = function (string $mode, array $input) use ($database, $shop): array {
         $results[] = trim($worker->getOutput());
     }
     sort($results);
-    if ($results !== ['accepted', 'rejected']) {
+    if ($results !== $expected) {
         throw new RuntimeException('Kết quả đồng thời không hợp lệ: '.json_encode($results));
     }
 
@@ -123,4 +140,22 @@ $results['issue'] = $race('confirm', ['actor' => $shipper->id, 'document' => $do
 if ($order->parcels()->count() !== 2 || $order->parcels()->where('holder_user_id', $shipper->id)->count() !== 2 || $order->histories()->where('event', 'handover_confirmed')->count() !== 2) {
     throw new RuntimeException('Chuỗi người giữ hoặc lịch sử không khớp.');
 }
-echo json_encode(['database' => $database, 'races' => $results, 'parcels' => 2, 'handover_events' => 2], JSON_PRETTY_PRINT).PHP_EOL;
+$results['delivery_different_tokens'] = $race('deliver', ['actor' => $shipper->id, 'task' => $delivery->id, 'tokens' => [(string) Str::uuid(), (string) Str::uuid()]]);
+$attempt = $delivery->deliveryAttempt()->firstOrFail();
+$results['delivery_exact_replay'] = $race('deliver', ['actor' => $shipper->id, 'task' => $delivery->id, 'tokens' => [$attempt->getRawOriginal('client_token'), $attempt->getRawOriginal('client_token')]], ['accepted', 'accepted']);
+if ($order->fresh()->status !== 'delivered' || $order->fresh()->delivery_attempt_count !== 1 || $order->collections()->count() !== 2 || $order->histories()->where('event', 'delivery_succeeded')->count() !== 1) {
+    throw new RuntimeException('Giao đồng thời đã tạo trùng tiền/lượt/lịch sử.');
+}
+// Fixture độc lập để hai worker cùng ghi thất bại cho một nhiệm vụ chưa có kết quả.
+$failedOrder = $order->fresh()->replicate();
+$failedOrder->fill(['tracking_code' => 'GV'.Str::upper((string) Str::ulid()), 'client_token' => (string) Str::uuid(), 'status' => 'out_for_delivery', 'delivery_attempt_count' => 0, 'assigned_shipper_id' => $shipper->id, 'custody_status' => 'shipper', 'delivered_at' => null])->save();
+$failedTask = $failedOrder->tasks()->create(['warehouse_id' => $warehouse->id, 'shipper_id' => $shipper->id, 'created_by' => $dispatcher->id, 'type' => 'delivery', 'status' => 'in_custody', 'reason' => 'Fixture kiểm tra thất bại đồng thời']);
+foreach ($order->parcels as $item) {
+    $copy = $item->replicate();
+    $copy->fill(['order_id' => $failedOrder->id, 'holder_type' => 'shipper', 'holder_user_id' => $shipper->id])->save();
+}
+$results['delivery_failure'] = $race('delivery-failure', ['actor' => $shipper->id, 'task' => $failedTask->id, 'tokens' => [(string) Str::uuid(), (string) Str::uuid()]]);
+if ($failedOrder->fresh()->delivery_attempt_count !== 1 || $failedOrder->collections()->exists() || $failedOrder->fresh()->custody_status !== 'shipper') {
+    throw new RuntimeException('Thất bại đồng thời làm sai lượt/tiền/người giữ.');
+}
+echo json_encode(['database' => $database, 'races' => $results, 'parcels' => 2, 'collections' => 2, 'delivery_events' => 1], JSON_PRETTY_PRINT).PHP_EOL;

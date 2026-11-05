@@ -80,7 +80,7 @@ class OrderController extends Controller
     public function show(Order $order, OrderService $service)
     {
         $this->authorize('view', $order);
-        $order->load(['shop', 'area', 'warehouse', 'items', 'pickupAddress.area', 'histories.actor', 'changeRequests.creator', 'changeRequests.reviewer', 'pendingChange']);
+        $order->load(['shop', 'area', 'warehouse', 'items', 'pickupAddress.area', 'histories.actor', 'changeRequests.creator', 'changeRequests.reviewer', 'pendingChange', 'deliveryAttempts.proof', 'deliveryAttempts.shipper', 'returnRecord']);
         $warehouseIds = $order->histories->flatMap(fn ($history) => [$history->before_values['warehouse_id'] ?? null, $history->after_values['warehouse_id'] ?? null])
             ->merge($order->changeRequests->map(fn ($change) => $change->changes['warehouse_id'] ?? null))->filter()->unique();
         $warehouseNames = Warehouse::whereIn('id', $warehouseIds)->pluck('name', 'id');
