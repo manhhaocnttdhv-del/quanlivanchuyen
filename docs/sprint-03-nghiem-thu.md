@@ -1,5 +1,7 @@
 # Sprint 03: Điều phối và quản lý kho
 
+Sau khi gộp vai trò, dùng `operations@guiviet.test` cho cả công việc điều phối và kho. Với kiểm kê do tài khoản này lập, dùng admin hoặc nhân viên vận hành khác để xét duyệt; người lập không được tự duyệt.
+
 Nhánh `sprint-03-dieu-phoi-kho`, nhận Sprint 02 tại `c0a976f`. Phạm vi FR-16 đến FR-24. Khi PR Sprint 02 chưa merge, PR Sprint 03 chứa cả các commit phụ thuộc; review riêng Sprint 03 bằng diff từ nhánh Sprint 02.
 
 ## Chức năng nghiệm thu

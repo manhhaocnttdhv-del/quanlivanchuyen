@@ -74,7 +74,7 @@ $person = function (string $role): User {
 };
 $admin = $person('admin');
 $secondAdmin = $person('admin');
-$accountant = $person('accountant');
+$accountant = $person('admin');
 $shipper = $person('shipper');
 $owner = $person('shop');
 $warehouse = Warehouse::create(['code' => 'FIN-'.Str::random(10), 'name' => 'Kho kiem tra dong thoi', 'area_id' => Area::where('code', 'HN')->value('id'), 'address' => 'Dia chi kiem thu']);

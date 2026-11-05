@@ -76,8 +76,8 @@ class IdentityCatalogTest extends DatabaseTestCase
         $admin = $this->person();
         $warehouse = $this->warehouse();
         $this->actingAs($admin)->post(route('users.store'), [
-            'name' => 'Điều phối mới', 'email' => 'new-staff@test.local', 'phone' => '0987000000', 'password' => 'NewPassword!2026', 'password_confirmation' => 'NewPassword!2026',
-            'status' => 'active', 'role_ids' => [Role::where('name', 'dispatcher')->value('id')], 'warehouse_ids' => [$warehouse->id], 'reason' => 'Bổ sung nhân sự điều phối',
+            'name' => 'Nhân viên vận hành mới', 'email' => 'new-staff@test.local', 'phone' => '0987000000', 'password' => 'NewPassword!2026', 'password_confirmation' => 'NewPassword!2026',
+            'status' => 'active', 'role_ids' => [Role::where('name', 'operations')->value('id')], 'warehouse_ids' => [$warehouse->id], 'reason' => 'Bổ sung nhân sự vận hành',
         ])->assertRedirect(route('users.index'));
         $staff = User::where('email', 'new-staff@test.local')->firstOrFail();
         $this->assertTrue($staff->hasPermission('orders.review'));
@@ -90,7 +90,7 @@ class IdentityCatalogTest extends DatabaseTestCase
         $admin = $this->person();
         $this->actingAs($admin)->put(route('users.update', $admin), [
             'name' => $admin->name, 'email' => $admin->email, 'phone' => $admin->phone, 'status' => 'inactive',
-            'role_ids' => [Role::where('name', 'dispatcher')->value('id')], 'reason' => 'Thử khóa quản trị cuối',
+            'role_ids' => [Role::where('name', 'operations')->value('id')], 'reason' => 'Thử khóa quản trị cuối',
         ])->assertSessionHasErrors('status');
         $this->assertSame('active', $admin->fresh()->status);
         $this->assertTrue($admin->fresh()->hasRole('admin'));

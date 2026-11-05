@@ -60,8 +60,8 @@ class ReportWorkflowTest extends DatabaseTestCase
         $this->travelTo(Carbon::parse('2026-10-30 12:00:00', 'Asia/Ho_Chi_Minh'));
         Storage::fake('local');
         $this->admin = $this->person();
-        $this->accountant = $this->person('accountant');
-        $this->dispatcher = $this->person('dispatcher');
+        $this->accountant = $this->person('admin');
+        $this->dispatcher = $this->person('operations');
         $this->shipper = $this->person('shipper');
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
@@ -265,7 +265,8 @@ class ReportWorkflowTest extends DatabaseTestCase
         DeliveryCollection::create(['order_id' => $order->id, 'warehouse_id' => $this->depot->id, 'delivery_attempt_id' => $attempt->id,
             'shipper_id' => $this->shipper->id, 'type' => 'cod', 'amount' => 900000, 'expected_amount' => 900000,
             'financial_status' => 'matched', 'idempotency_key' => hash('sha256', (string) Str::uuid()), 'collected_at' => now()]);
-        $role = Role::where('name', 'accountant')->firstOrFail();
+        $role = Role::where('name', 'operations')->firstOrFail();
+        $role->permissions()->syncWithoutDetaching(Permission::whereIn('name', ['finance.manage', 'reports.finance'])->pluck('id'));
         $this->owner->roles()->attach($role);
         $this->owner->warehouses()->attach($this->depot);
         $role->permissions()->detach(Permission::where('name', 'reports.finance')->value('id'));

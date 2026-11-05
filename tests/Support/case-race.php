@@ -66,9 +66,9 @@ $person = function (string $role): User {
 
     return $user->fresh();
 };
-$support = $person('support');
-$approver = $person('dispatcher');
-$secondApprover = $person('dispatcher');
+$support = $person('operations');
+$approver = $person('operations');
+$secondApprover = $person('operations');
 $shipper = $person('shipper');
 $owner = $person('shop');
 $area = Area::where('code', 'HN')->firstOrFail();

@@ -38,8 +38,7 @@ class DemoReportSeeder extends Seeder
 
     private function createScenario(User $owner): Order
     {
-        $dispatcher = User::where('email', 'dispatcher@guiviet.test')->firstOrFail();
-        $clerk = User::where('email', 'warehouse@guiviet.test')->firstOrFail();
+        $operator = User::where('email', 'operations@guiviet.test')->firstOrFail();
         $shipper = User::where('email', 'shipper@guiviet.test')->firstOrFail();
         $location = WarehouseLocation::whereHas('warehouse', fn ($q) => $q->where('code', 'KHO-HN'))
             ->where('code', 'A-01')->firstOrFail();
@@ -48,7 +47,7 @@ class DemoReportSeeder extends Seeder
         $previousClock = Carbon::getTestNow();
 
         try {
-            return DB::transaction(function () use ($owner, $dispatcher, $clerk, $shipper, $location, $createdAt, $deliveredAt) {
+            return DB::transaction(function () use ($owner, $operator, $shipper, $location, $createdAt, $deliveredAt) {
                 // Tao lich su qua Service tai tung moc gio; khong sua nguoc chung tu bat bien.
                 Carbon::setTestNow($createdAt);
                 $orders = app(OrderService::class);
@@ -56,9 +55,9 @@ class DemoReportSeeder extends Seeder
                 $stock = app(WarehouseService::class);
                 $order = $this->draft($owner);
                 $orders->submit($owner, $order, $order->revision);
-                $orders->review($dispatcher, $order->fresh(), $order->fresh()->revision, 'approved', 'Demo: duyệt đơn cuối tháng');
+                $orders->review($operator, $order->fresh(), $order->fresh()->revision, 'approved', 'Demo: duyệt đơn cuối tháng');
 
-                $pickup = $dispatch->assign($dispatcher, $order->fresh(), [
+                $pickup = $dispatch->assign($operator, $order->fresh(), [
                     'revision' => $order->fresh()->revision, 'type' => 'pickup',
                     'shipper_id' => $shipper->id, 'reason' => 'Demo: lấy hàng cuối tháng',
                 ]);
@@ -66,7 +65,7 @@ class DemoReportSeeder extends Seeder
                     'successful' => true, 'condition' => 'good', 'reason' => 'Demo: đã lấy đủ kiện',
                 ], 'logistics-evidence/demo-warehouse.jpg');
                 $inbound = $stock->prepare($shipper, $pickup, 'inbound', 'Demo: nhập kho cuối tháng');
-                $stock->confirm($clerk, $inbound, [
+                $stock->confirm($operator, $inbound, [
                     'lines' => $inbound->lines->mapWithKeys(fn ($line) => [$line->id => [
                         'received' => true, 'condition' => 'good', 'weight_grams' => 1000,
                     ]])->all(),
@@ -74,11 +73,11 @@ class DemoReportSeeder extends Seeder
                 ], null);
 
                 Carbon::setTestNow($deliveredAt);
-                $delivery = $dispatch->assign($dispatcher, $order->fresh(), [
+                $delivery = $dispatch->assign($operator, $order->fresh(), [
                     'revision' => $order->fresh()->revision, 'type' => 'delivery',
                     'shipper_id' => $shipper->id, 'reason' => 'Demo: giao sang tháng tiếp theo',
                 ]);
-                $outbound = $stock->prepare($clerk, $delivery, 'outbound', 'Demo: xuất đủ kiện để giao');
+                $outbound = $stock->prepare($operator, $delivery, 'outbound', 'Demo: xuất đủ kiện để giao');
                 $stock->confirm($shipper, $outbound, [
                     'lines' => $outbound->lines->mapWithKeys(fn ($line) => [$line->id => [
                         'received' => true, 'condition' => 'good',

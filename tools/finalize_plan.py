@@ -43,6 +43,22 @@ def header_repeat(row):
         properties.append(OxmlElement("w:tblHeader"))
 
 
+def consolidate_roles(document):
+    for item in document.tables:
+        if not item.rows or item.rows[0].cells[0].text != "Vai trò":
+            continue
+        for row in list(item.rows)[1:]:
+            name = row.cells[0].text
+            if name in ["Kho", "Kế toán", "CSKH"]:
+                item._tbl.remove(row._tr)
+            elif name == "Admin":
+                row.cells[0].text = "Admin kiêm kế toán"
+                row.cells[2].text = "Quản lý tài khoản, danh mục, biểu phí, ngân hàng, tài chính, báo cáo và audit. Người lập không tự duyệt chứng từ."
+            elif name == "Điều phối":
+                row.cells[0].text = "Vận hành"
+                row.cells[2].text = "Duyệt shop và vận đơn; điều phối, nhập/xuất kho, kiểm kê, xử lý sự cố và khiếu nại theo kho được gán."
+
+
 def table(document, rows):
     result = document.add_table(rows=1, cols=3)
     result.autofit = False
@@ -92,6 +108,7 @@ def table(document, rows):
 
 def author(download_copy=None):
     document = Document(PLAN)
+    consolidate_roles(document)
     # Keep the source requirements, replacing only the previous generated appendix.
     remove = False
     for child in list(document._element.body):
@@ -103,6 +120,12 @@ def author(download_copy=None):
         if remove:
             document._element.body.remove(child)
     for paragraph in list(paragraphs(document)):
+        merged_heading = "Nhóm 5. Sự cố và khiếu nại"
+        if merged_heading in paragraph.text and not paragraph.text.startswith(merged_heading):
+            text_replace(paragraph, merged_heading, "")
+            heading = document.add_paragraph("Sprint 5 Sự cố và khiếu nại", style="Heading 2")
+            paragraph._p.addnext(heading._p)
+            heading.paragraph_format.keep_with_next = True
         text_replace(paragraph, "Laravel 10", "Laravel 12")
         text_replace(paragraph, "PHP 8.1", "PHP 8.2")
         text_replace(paragraph, "php artisan pint --test", "php vendor/bin/pint --test")
@@ -118,18 +141,29 @@ def author(download_copy=None):
         text_replace(paragraph, "money_receipt_allocations", "deposit_allocations")
         text_replace(paragraph, "money_receipts", "cash_deposits")
         text_replace(paragraph, "report_queries, export_logs", "Truy vấn bảng nghiệp vụ, export_logs")
+        text_replace(paragraph, "Admin tạo điều phối/kho/shipper/kế toán", "Admin tạo nhân viên vận hành và shipper")
+        text_replace(paragraph, "tạo tài khoản điều phối, kho, shipper", "tạo tài khoản Vận hành, Shipper")
+        text_replace(paragraph, "CSKH", "Vận hành")
+        if "kiêm kế toán xác nhận" not in paragraph.text:
+            text_replace(paragraph, "kế toán xác nhận", "Admin kiêm kế toán xác nhận")
+        text_replace(paragraph, "Kế toán chọn", "Admin kiêm kế toán chọn")
+        text_replace(paragraph, "Kế toán ghi nhận", "Admin kiêm kế toán ghi nhận")
+        if "kiêm kế toán quản lý tiền" not in paragraph.text:
+            text_replace(paragraph, "kế toán quản lý tiền", "Admin kiêm kế toán quản lý tiền")
+        while "Admin kiêm Admin" in paragraph.text:
+            text_replace(paragraph, "Admin kiêm Admin", "Admin")
     for item in document.tables:
         if item.rows:
             header_repeat(item.rows[0])
     document.add_heading(MARKER, level=1).paragraph_format.page_break_before = True
-    document.add_paragraph("Các mục dưới đây là backlog cần triển khai. Nhánh main và tám nhánh sprint hiện chứa code nền, chưa thể hiện chức năng đã hoàn thành. Dự kiến 47 đến 63 ngày công cho một sinh viên, chưa tính thời gian học thêm và phản hồi của giảng viên. Ưu tiên làm P0 trước; P1 triển khai khi luồng chính đã chạy ổn định.")
+    document.add_paragraph("Các mục dưới đây mô tả phạm vi và điều kiện nghiệm thu của tám sprint. Main đã nhận Sprint 01 đến 03; Sprint 04 đến 08 có nhánh và PR riêng, cần đồng bộ dependency trước khi merge. Toàn bộ sprint dùng bốn vai trò: Admin kiêm kế toán, Vận hành, Shipper và Shop. Dự kiến ban đầu 47 đến 63 ngày công, chưa tính thời gian học thêm và phản hồi của giảng viên.")
     document.add_paragraph("Trình tự 01 đến 08 theo phụ thuộc dữ liệu. Ghi audit phải bắt đầu từ sprint 01, collection thu tiền có từ sprint 04; sprint 08 hoàn thiện giao diện audit và thông báo. Trước khi bắt đầu một sprint đã tạo sẵn, merge main sau khi sprint phụ thuộc đã được nghiệm thu.")
     data = json.loads((ROOT / "docs/sprints.json").read_text(encoding="utf-8"))
     for index, sprint in enumerate(data):
         heading = document.add_heading(f"Sprint {sprint['number']} {sprint['name']}", level=2)
         if index:
             heading.paragraph_format.page_break_before = True
-        for label, key in [("Nhánh", "branch"), ("Điều kiện bắt đầu", "depends_on"), ("Ước lượng", "estimate"), ("Dữ liệu dự kiến", "tables")]:
+        for label, key in [("Nhánh", "branch"), ("Điều kiện bắt đầu", "depends_on"), ("Ước lượng", "estimate"), ("Dữ liệu dự kiến", "tables"), ("Vai trò thực hiện", "role_scope"), ("Kiểm tra phân quyền", "role_checks")]:
             paragraph = document.add_paragraph()
             paragraph.paragraph_format.space_after = Pt(4)
             paragraph.add_run(label + ": ").bold = True
