@@ -26,9 +26,12 @@
                 ],
             )
             ->all();
+        $warehouseOptions = $warehouses
+            ->mapWithKeys(fn($warehouse) => [$warehouse->id => $warehouse->name . ' · ' . $warehouse->address])
+            ->all();
     @endphp
     @if ($shop->status !== 'approved')
-        <div class="alert alert-warning">Cửa hàng chưa được duyệt. Bạn có thể lưu bản nháp và gửi sau khi hồ sơ được duyệt.
+        <div class="alert alert-warning">Hồ sơ người gửi chưa được duyệt. Bạn có thể lưu bản nháp và gửi sau khi hồ sơ được duyệt.
         </div>
     @endif
     @if ($order?->pendingChange)
@@ -49,10 +52,19 @@
             <div class="section-number">01</div>
             <div class="order-form-fields">
                 <h2>Thông tin lấy hàng</h2>
-                <x-field name="pickup_address_id" label="Địa chỉ lấy hàng" :options="$pickupOptions" :value="$data['pickup_address_id'] ?? $pickups->firstWhere('is_default', true)?->id"
-                    placeholder="Chọn địa chỉ lấy hàng" />
-                <a class="small d-inline-block mt-2" href="{{ route('shop.profile') }}">Quản lý địa chỉ lấy hàng <i
-                        data-lucide="arrow-up-right"></i></a>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <x-field name="pickup_address_id" label="Địa chỉ lấy hàng" :options="$pickupOptions"
+                            :value="$data['pickup_address_id'] ?? $pickups->firstWhere('is_default', true)?->id" :data-areas="$pickups->pluck('area_id', 'id')->toJson()"
+                            placeholder="Chọn địa chỉ lấy hàng" />
+                        <a class="small d-inline-block mt-2" href="{{ route('shop.profile') }}">Quản lý địa chỉ lấy hàng <i
+                                data-lucide="arrow-up-right"></i></a>
+                    </div>
+                    <div class="col-md-6">
+                        <x-field name="warehouse_id" label="Kho tiếp nhận" :options="$warehouseOptions"
+                            :value="$data['warehouse_id'] ?? ''" :data-areas="$warehouses->pluck('area_id', 'id')->toJson()" placeholder="Chọn kho tiếp nhận" />
+                    </div>
+                </div>
             </div>
         </section>
         <section class="order-form-section">
@@ -105,10 +117,10 @@
                 <button class="btn btn-outline-primary mt-2" type="button" id="add-order-item"><i data-lucide="plus"></i>
                     Thêm mặt hàng</button>
                 <div class="row g-3 mt-2">
-                    <div class="col-md-4"><x-field name="weight_grams" label="Tổng khối lượng (g)" type="number"
-                            :value="$data['weight_grams'] ?? ''" min="1" max="20000" step="1" /></div>
-                    <div class="col-md-4"><x-field name="parcel_count" label="Số kiện" type="number" :value="$data['parcel_count']"
-                            min="1" max="20" required /></div>
+                    <div class="col-md-4"><x-field name="weight_grams" label="Tổng khối lượng (g)" type="text"
+                            :value="$data['weight_grams'] ?? ''" inputmode="numeric" maxlength="5" /></div>
+                    <div class="col-md-4"><x-field name="parcel_count" label="Số kiện" type="text" :value="$data['parcel_count']"
+                            inputmode="numeric" maxlength="2" required /></div>
                     <div class="col-md-4"><x-field name="service" label="Dịch vụ" :options="['standard' => 'Tiêu chuẩn', 'express' => 'Nhanh']" :value="$data['service']"
                             required /></div>
                 </div>
@@ -120,9 +132,9 @@
             <div class="order-form-fields">
                 <h2>Thu hộ và thanh toán</h2>
                 <div class="row g-3">
-                    <div class="col-md-6"><x-field name="cod_amount" label="Tiền hàng thu hộ COD (đ)" type="number"
-                            :value="$data['cod_amount']" min="0" step="1" required /></div>
-                    <div class="col-md-6"><x-field name="fee_payer" label="Người trả phí vận chuyển" :options="['sender' => 'Cửa hàng trả phí', 'recipient' => 'Người nhận trả phí']"
+                    <div class="col-md-6"><x-field name="cod_amount" label="Tiền hàng thu hộ COD (đ)" type="text"
+                            :value="$data['cod_amount']" inputmode="numeric" maxlength="12" required /></div>
+                    <div class="col-md-6"><x-field name="fee_payer" label="Người trả phí vận chuyển" :options="['sender' => 'Người gửi trả phí', 'recipient' => 'Người nhận trả phí']"
                             :value="$data['fee_payer']" required /></div>
                 </div>
                 <x-field name="note" label="Ghi chú giao hàng" type="textarea" :value="$data['note'] ?? ''" rows="2"

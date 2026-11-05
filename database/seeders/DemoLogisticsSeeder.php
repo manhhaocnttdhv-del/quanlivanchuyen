@@ -42,8 +42,9 @@ class DemoLogisticsSeeder extends Seeder
             if (Order::where('shop_id', $owner->shop->id)->where('client_token', $token)->exists()) {
                 continue;
             }
-            DB::transaction(function () use ($owner, $operator, $shipper, $orders, $dispatch, $stock, $scenario, $index, $token, $location, $proof) {
+            DB::transaction(function () use ($owner, $operator, $shipper, $warehouse, $orders, $dispatch, $stock, $scenario, $index, $token, $location, $proof) {
                 $order = $orders->saveDraft($owner, ['client_token' => $token, 'pickup_address_id' => $owner->shop->addresses()->where('is_active', true)->value('id'),
+                    'warehouse_id' => $warehouse->id,
                     'area_id' => Area::where('code', 'HN')->value('id'), 'recipient_name' => ['Minh Hạnh', 'Hoàng Phúc', 'Thu Thảo', 'Ngọc Mai', 'Tuấn Anh', 'Bảo Trâm', 'Gia Khánh'][$index],
                     'recipient_phone' => '098765'.(6700 + $index), 'recipient_address' => (30 + $index).' Đường mẫu, Hà Nội', 'weight_grams' => 1000, 'parcel_count' => 2,
                     'service' => 'standard', 'cod_amount' => 250000 + $index * 50000, 'fee_payer' => 'recipient', 'note' => 'Demo Sprint 3: '.$scenario,
