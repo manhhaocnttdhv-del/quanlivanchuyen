@@ -8,6 +8,7 @@ use App\Models\DeliveryTask;
 use App\Models\Discrepancy;
 use App\Models\Order;
 use App\Models\Permission;
+use App\Models\Receivable;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -188,6 +189,22 @@ class DeliveryWorkflowTest extends DatabaseTestCase
         $this->assertTrue($task->order->fresh()->financial_hold);
         $this->assertSame(2, $attempt->collections()->where('financial_status', 'disputed')->count());
         $this->assertSame('delivered', $task->order->fresh()->status);
+        $this->assertDatabaseHas('receivables', ['order_id' => $task->order_id, 'type' => 'shipping_fee', 'amount' => $task->order->shipping_fee]);
+    }
+
+    public function test_sender_fee_accrues_once_on_real_delivery_and_recipient_fee_does_not_create_shop_debt(): void
+    {
+        $task = $this->out($this->stocked('sender'));
+        $data = $this->success($task);
+        $service = app(DeliveryService::class);
+        $service->record($this->shipper, $task, $data, $this->photo());
+        $service->record($this->shipper, $task, $data, $this->photo());
+        $this->assertDatabaseHas('receivables', ['order_id' => $task->order_id, 'type' => 'shipping_fee', 'amount' => $task->order->shipping_fee]);
+        $this->assertSame(1, Receivable::where('order_id', $task->order_id)->count());
+        $this->assertSame(1, AuditLog::where('event', 'finance.fee_accrued')->count());
+        $recipientTask = $this->out($this->stocked('recipient'));
+        $service->record($this->shipper, $recipientTask, $this->success($recipientTask), $this->photo());
+        $this->assertDatabaseMissing('receivables', ['order_id' => $recipientTask->order_id, 'type' => 'shipping_fee']);
     }
 
     public function test_failure_counts_actual_attempt_and_requires_physical_return_before_retry(): void
@@ -477,6 +494,7 @@ class DeliveryWorkflowTest extends DatabaseTestCase
         $this->assertSame('0.00', $attempt->expected_fee);
         $this->assertSame('0.00', $attempt->collections()->first()->amount);
         $this->assertNotNull($order->returnRecord->fee_charged_at);
+        $this->assertDatabaseHas('receivables', ['order_id' => $order->id, 'type' => 'return_fee', 'amount' => 15000]);
         try {
             $order->returnRecord->update(['fee_amount' => 99999]);
             $this->fail('Không được sửa phí hoàn đã chốt.');

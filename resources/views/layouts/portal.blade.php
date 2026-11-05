@@ -68,6 +68,9 @@
                     @can('users.manage')
                         <p class="nav-group-label mt-4">Quản lý</p>
                     @endcan
+                    @if (app(\App\Policies\FinancePolicy::class)->any(auth()->user()))
+                        <a class="{{ request()->routeIs('finance.*') ? 'active' : '' }}" href="{{ route('finance.index') }}"><i data-lucide="wallet"></i> COD & tài chính</a>
+                    @endif
                     @can('viewAny', \App\Models\Incident::class)
                         <a class="{{ request()->routeIs('incidents.*') ? 'active' : '' }}"
                             href="{{ route('incidents.index') }}"><i data-lucide="triangle-alert"></i> Sự cố vận chuyển</a>

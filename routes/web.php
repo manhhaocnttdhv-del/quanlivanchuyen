@@ -30,3 +30,4 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/portal.php';
 require __DIR__.'/logistics.php';
 require __DIR__.'/cases.php';
+require __DIR__.'/finance.php';

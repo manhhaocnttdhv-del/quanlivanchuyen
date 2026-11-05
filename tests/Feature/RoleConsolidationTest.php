@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\CatalogSeeder;
 use Database\Seeders\DemoCaseSeeder;
 use Database\Seeders\DemoDeliverySeeder;
+use Database\Seeders\DemoFinanceSeeder;
 use Database\Seeders\DemoLogisticsSeeder;
 use Database\Seeders\DemoOrderSeeder;
 use Database\Seeders\DemoSeeder;
@@ -125,6 +126,9 @@ class RoleConsolidationTest extends DatabaseTestCase
             $this->seed(DemoDeliverySeeder::class);
             $this->seed(DemoCaseSeeder::class);
             $this->assertDatabaseHas('complaints', ['assigned_to' => $operator->id, 'status' => 'in_progress']);
+            $this->seed(DemoFinanceSeeder::class);
+            $this->assertSame(2, User::whereHas('roles', fn ($query) => $query->where('name', 'admin'))->count());
+            $this->assertDatabaseHas('reconciliations', ['status' => 'approved']);
 
             Env::getRepository()->set('DEMO_PASSWORD', 'AnotherDemoPassword!2026');
             $this->seed(DemoSeeder::class);

@@ -2,7 +2,7 @@
 
 He thong quan ly van chuyen COD xay dung bang Laravel 12, MySQL, Bootstrap 5 va jQuery. Project duoc chia thanh 8 sprint nghiep vu de de phat trien, review va bao ve do an.
 
-Sprint 01 đến 05 đã triển khai trên các nhánh riêng: tài khoản/danh mục, vận đơn, điều phối/kho, giao/hoàn hàng, sự cố/khiếu nại. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Nộp tiền, đối soát và trả tiền shop thuộc Sprint 06; kết luận bồi thường ở Sprint 05 chưa tạo giao dịch tài chính.
+Sprint 01 đến 06 đã triển khai trên các nhánh riêng: tài khoản/danh mục, vận đơn, điều phối/kho, giao/hoàn hàng, sự cố/khiếu nại, COD/tài chính. Giao diện khách hàng **Gửi Việt** và khu làm việc hỗ trợ mobile. Sprint 06 có nộp quỹ, đối soát, thanh toán shop từng phần, thu nợ phí và điều chỉnh có căn cứ được duyệt.
 
 ## Cong nghe
 
@@ -120,6 +120,10 @@ Giao diện và nguồn ảnh được ghi tại `docs/frontend-notes.md`.
 Sprint 04: chạy `php artisan db:seed --class=DemoDeliverySeeder` sau DemoLogisticsSeeder để có 7 tình huống giao/hoàn. Shipper dùng `/viec-cua-toi`; sổ thu tại `/so-thu-giao-hang`. Có ảnh/người nhận, chống xác nhận trùng, giao lại/hoàn và phí hoàn theo snapshot. Xem [nghiệm thu và câu hỏi bảo vệ Sprint 04](docs/sprint-04-nghiem-thu.md). Tiền ghi nhận đã thu chưa đồng nghĩa quỹ đã nhận; nộp tiền/đối soát thuộc Sprint 06.
 
 Sprint 05: chạy `php artisan db:seed --class=DemoCaseSeeder` sau DemoDeliverySeeder. Shop gửi và theo dõi `/khieu-nai`; CSKH tiếp nhận, phân công và trao đổi nội bộ/công khai. `/su-co` có xác minh, bằng chứng private, khóa giao/đối soát riêng, đề xuất và người khác duyệt kết luận. SLA mặc định 48 giờ; cho mở lại khiếu nại trong 7 ngày. Xem [nghiệm thu, thiết kế và câu hỏi bảo vệ Sprint 05](docs/sprint-05-nghiem-thu.md). Không xóa các khóa kho/tài chính có trước; khoản bồi thường đã duyệt vẫn chờ tài chính.
+
+Sprint 06 dùng hai tài khoản cùng vai trò Admin: `finance-admin@guiviet.test` lập chứng từ, `admin@guiviet.test` xét duyệt. Giữ `DEMO_PASSWORD` trong môi trường terminal khi chạy seeder để tạo tài khoản Admin tài chính; không tạo vai trò kế toán riêng.
+
+Sprint 06: chạy `php artisan db:seed --class=DemoFinanceSeeder` sau các seeder trên, rồi `php artisan finance:accrue-fees` để bổ sung phí từ đơn cũ. Mở `/tai-chinh`: shipper đề nghị nộp, kế toán xác nhận; đối soát có người khác duyệt; trả shop từng phần theo chứng từ ngân hàng. Tiền gốc và tài liệu đã ghi sổ không sửa/xóa; thay ngân hàng sau duyệt phải duyệt lại. Xem [nghiệm thu, công thức và câu hỏi bảo vệ Sprint 06](docs/sprint-06-nghiem-thu.md). Đây là ghi nhận kết quả ngân hàng, chưa tự chuyển tiền thật.
 
 ## Tai lieu ky thuat
 
