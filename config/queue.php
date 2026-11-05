@@ -42,6 +42,15 @@ return [
             'after_commit' => false,
         ],
 
+        // Bao cao lon co thoi gian xu ly rieng, khong bi phat lai khi van dang tao tep.
+        'reports' => [
+            'driver' => 'database',
+            'table' => 'jobs',
+            'queue' => 'reports',
+            'retry_after' => 300,
+            'after_commit' => true,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => 'localhost',

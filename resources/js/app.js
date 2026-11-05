@@ -4,11 +4,11 @@ import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
-    Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store,
+    Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
-const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store };
+const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store };
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -92,6 +92,36 @@ $(function () {
     }).on('input', ':input', () => $('#tracking-result').empty().addClass('d-none'));
 
     $('[data-print]').on('click', () => window.print());
+    $('[data-report-ledger]').on('change', function () {
+        const $form = $(this).closest('form');
+        const orderFilters = this.value === 'collections';
+        const deposits = this.value === 'deposits';
+        $form.find('[data-report-order-filter]').prop('hidden', !orderFilters).find('select').prop('disabled', !orderFilters);
+        $form.find('[data-report-shop-filter]').prop('hidden', deposits).find('select').prop('disabled', deposits);
+        const $group = $form.find('[data-report-group]');
+        $group.find('option').each((_, option) => {
+            option.disabled = deposits ? option.value !== 'warehouse' : !orderFilters && ['area', 'shipper'].includes(option.value);
+        });
+        if ($group.find(':selected').prop('disabled')) $group.val('warehouse');
+    });
+    $('[data-report-export]').each((_, element) => {
+        const $panel = $(element);
+        let state = element.dataset.exportState;
+        let requests = 0;
+        const poll = () => {
+            if (!['queued', 'processing'].includes(state) || requests >= 120) return;
+            if (document.hidden) { window.setTimeout(poll, 5000); return; }
+            requests++;
+            $.getJSON(element.dataset.reportExport).done(data => {
+                state = data.status;
+                $panel.find('[data-export-label]').text(data.label);
+                $panel.find('[data-export-count]').text(data.row_count);
+                $panel.find('[data-export-error]').text(data.error_message ?? '');
+                $panel.find('[data-export-download]').prop('hidden', !data.download_url).attr('href', data.download_url ?? '#');
+            }).always(() => window.setTimeout(poll, 5000));
+        };
+        window.setTimeout(poll, 3000);
+    });
     $('[data-finance-kind]').on('change', function () {
         const kind = this.value;
         $('[data-finance-basis]').each((_, block) => {

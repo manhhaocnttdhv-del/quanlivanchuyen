@@ -71,6 +71,9 @@
                     @if (app(\App\Policies\FinancePolicy::class)->any(auth()->user()))
                         <a class="{{ request()->routeIs('finance.*') ? 'active' : '' }}" href="{{ route('finance.index') }}"><i data-lucide="wallet"></i> COD & tài chính</a>
                     @endif
+                    @if (app(\App\Policies\ReportPolicy::class)->any(auth()->user()))
+                        <a class="{{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.home') }}"><i data-lucide="chart-column"></i> Báo cáo & thống kê</a>
+                    @endif
                     @can('viewAny', \App\Models\Incident::class)
                         <a class="{{ request()->routeIs('incidents.*') ? 'active' : '' }}"
                             href="{{ route('incidents.index') }}"><i data-lucide="triangle-alert"></i> Sự cố vận chuyển</a>
