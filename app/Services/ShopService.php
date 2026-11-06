@@ -8,6 +8,7 @@ use App\Models\Shop;
 use App\Models\ShopBankAccount;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class ShopService
@@ -51,6 +52,7 @@ class ShopService
     {
         DB::transaction(function () use ($actor, $shop, $data) {
             $shop = Shop::lockForUpdate()->findOrFail($shop->id);
+            Gate::forUser($actor)->authorize('review', $shop);
             if ($shop->status === $data['status']) {
                 throw ValidationException::withMessages(['status' => 'Hồ sơ người gửi đã ở trạng thái này.']);
             }

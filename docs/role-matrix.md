@@ -30,6 +30,9 @@ Vận hành được phân công theo từng chi nhánh; một chi nhánh có th
 - COD và phí có nguồn riêng; request lặp không ghi nhận tiền hai lần.
 - Nhân viên Vận hành không được quản lý tài khoản, xác minh ngân hàng, xử lý tài chính nội bộ hoặc đọc audit toàn hệ thống.
 - Bộ lọc, Policy, API, báo cáo, file xuất và thông báo đều phải áp dụng cùng phạm vi dữ liệu.
+- Vận hành xem và duyệt người gửi trong khu vực các kho được gán; Admin/xác minh ngân hàng có phạm vi toàn hệ thống. Hồ sơ người gửi hiện gắn khu vực, chưa gắn riêng một kho.
+- Không khóa, bỏ vai trò shipper hoặc rút kho còn nhiệm vụ/kiện đang giữ trước khi bàn giao xong. Kho ngừng hoạt động vẫn phải giữ đường nhận trả hàng.
+- Khiếu nại giữ kho tiếp nhận; được liên kết mã/trạng thái sự cố cùng đơn ở kho khác, nhưng không mở quyền đọc nội dung hay tệp nội bộ của kho đó.
 
 ## Cập nhật nhánh sprint
 

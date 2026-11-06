@@ -61,7 +61,7 @@ class ComplaintController extends Controller
         $messages = $complaint->messages()->when(! $staff, fn ($q) => $q->where('is_internal', false))->with(['actor', 'attachments'])->paginate(20)->withQueryString();
         $handlers = $staff ? User::where('status', 'active')->whereHas('roles.permissions', fn ($q) => $q->where('name', 'complaints.manage'))
             ->where(fn ($q) => $q->whereHas('warehouses', fn ($q) => $q->whereKey($complaint->warehouse_id))->orWhereHas('roles', fn ($q) => $q->where('name', 'admin')))->orderBy('name')->pluck('name', 'id') : collect();
-        $incidents = $staff ? Incident::visibleTo($request->user())->where('order_id', $complaint->order_id)->latest('id')->get(['id', 'code', 'status']) : collect();
+        $incidents = $staff ? Incident::where('order_id', $complaint->order_id)->latest('id')->get(['id', 'code', 'status', 'warehouse_id', 'created_by']) : collect();
 
         return view('portal.complaints.show', compact('complaint', 'staff', 'messages', 'handlers', 'incidents'));
     }

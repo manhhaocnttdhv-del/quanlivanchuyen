@@ -23,12 +23,15 @@
         <dt>Phụ trách</dt>
         <dd>{{ $incident->assignee?->name ?? 'Chưa phân công' }}</dd>
         <dt>Khóa hiện tại</dt>
-        <dd>{{ $incident->blocks_dispatch ? 'Khóa giao / hoàn' : 'Không khóa giao' }} ·
+        <dd>{{ $incident->isDispatchBlocked() ? 'Khóa giao / hoàn' : 'Không khóa giao' }} ·
             {{ $incident->blocks_reconciliation ? 'Khóa đối soát' : 'Không khóa đối soát' }}</dd>
     </dl>
     @if ($incident->financial_status === 'pending_finance')
         <p class="alert alert-warning">Kết luận tài chính đã được duyệt, đang chờ chứng từ xử lý tài chính. Chưa xác nhận đã
             bồi thường hoặc điều chỉnh tiền; khóa đối soát vẫn giữ.</p>
+    @endif
+    @if ($incident->type === 'lost' && $incident->status === 'closed' && ($incident->approvedAction?->payload['outcome'] ?? null) === 'compensation')
+        <p class="alert alert-danger">Kiện đã xác nhận mất không được giao tiếp. Phần hàng còn lại phải trả về kho và tiếp tục giữ xử lý; duyệt bồi thường không cho phép giao lại.</p>
     @endif
     <div class="row g-4">
         <div class="col-xl-8">
@@ -128,7 +131,7 @@
                         <form method="post" enctype="multipart/form-data"
                             action="{{ route('incidents.action', [$incident, 'propose']) }}" class="mt-3">
                             @csrf<input type="hidden" name="revision" value="{{ $incident->revision }}">
-                            <x-field name="outcome" label="Hướng kết luận" :options="\App\Models\Incident::OUTCOMES" required />
+                            <x-field name="outcome" label="Hướng kết luận" :options="$incident->type === 'lost' ? ['no_financial' => 'Đã tìm đủ kiện về kho, không bồi thường', 'compensation' => 'Xác nhận mất và đề xuất bồi thường'] : \App\Models\Incident::OUTCOMES" required />
                             <x-field name="amount" type="number" label="Số tiền đề xuất (đ)" value="0"
                                 min="0" max="9999999999999" step="1" required />
                             <x-field name="conclusion" label="Kết luận và phương án xử lý" type="textarea"

@@ -3,14 +3,14 @@ import $ from 'jquery';
 import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
     createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
-    Bell, Mail, MailCheck, CheckCheck, LogOut,
+    Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
     Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store,
 } from 'lucide';
 
 window.$ = window.jQuery = $;
 const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store };
-Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut });
+Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus });
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -144,7 +144,56 @@ $(function () {
             $(block).toggle(visible).find(':input').prop('disabled', !visible);
         });
     }).trigger('change');
-    $('form[data-confirm]').on('submit', function (event) { if (!window.confirm(this.dataset.confirm)) event.preventDefault(); });
+    const confirmationElement = document.getElementById('action-confirmation');
+    const confirmationModal = confirmationElement ? new Modal(confirmationElement) : null;
+    let confirmationForm = null;
+    let confirmationSubmitter = null;
+    $('form[data-confirm]').on('submit', function (event) {
+        if (this.dataset.confirmed === 'true') { delete this.dataset.confirmed; return; }
+        if (event.isDefaultPrevented()) return;
+        if (!confirmationModal) { if (!window.confirm(this.dataset.confirm)) event.preventDefault(); return; }
+        event.preventDefault();
+        confirmationForm = this;
+        confirmationSubmitter = event.originalEvent?.submitter ?? null;
+        confirmationElement.querySelector('#action-confirmation-message').textContent = this.dataset.confirm;
+        confirmationModal.show();
+    });
+    confirmationElement?.querySelector('[data-confirm-action]').addEventListener('click', () => {
+        const form = confirmationForm;
+        const submitter = confirmationSubmitter;
+        if (!form || form.dataset.submitting) return;
+        form.dataset.confirmed = 'true';
+        confirmationModal.hide();
+        form.requestSubmit(submitter ?? undefined);
+    });
+    confirmationElement?.addEventListener('hidden.bs.modal', () => {
+        confirmationSubmitter?.focus();
+        confirmationForm = null;
+        confirmationSubmitter = null;
+    });
+    const submitButtons = new Map();
+    $('form[method="post"]').on('submit', function (event) {
+        if (event.isDefaultPrevented()) return;
+        if (this.dataset.submitting) { event.preventDefault(); return; }
+        this.dataset.submitting = 'true';
+        this.setAttribute('aria-busy', 'true');
+        // Giữ giá trị nút có name trong native request trước khi khóa thao tác lặp.
+        window.setTimeout(() => {
+            this.querySelectorAll('button:not([type="button"]):not([type="reset"]), input[type="submit"]').forEach(button => {
+                if (button.disabled) return;
+                submitButtons.set(button, button.innerHTML);
+                button.disabled = true;
+            });
+        }, 0);
+    });
+    window.addEventListener('pageshow', () => {
+        document.querySelectorAll('form[data-submitting]').forEach(form => {
+            delete form.dataset.submitting;
+            form.removeAttribute('aria-busy');
+        });
+        submitButtons.forEach((label, button) => { button.disabled = false; button.innerHTML = label; });
+        submitButtons.clear();
+    });
 
     const $registration = $('[data-registration-form]');
     if ($registration.length) {

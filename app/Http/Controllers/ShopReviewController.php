@@ -14,7 +14,7 @@ class ShopReviewController extends Controller
 {
     public function index(PortalFilterRequest $request)
     {
-        $shops = Shop::with(['user', 'area', 'currentBankAccount'])
+        $shops = Shop::reviewableBy($request->user())->with(['user', 'area', 'currentBankAccount'])
             ->when($request->validated('status'), fn ($q, $status) => $q->where('status', $status))
             ->when($request->validated('q'), fn ($q, $search) => $q->where('name', 'like', "%$search%"))
             ->latest('id')->paginate(15)->withQueryString();

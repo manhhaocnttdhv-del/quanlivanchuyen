@@ -64,7 +64,7 @@
                         <a class="{{ request()->routeIs('logistics.index', 'logistics.show', 'logistics.order', 'logistics.handover', 'delivery.mine') ? 'active' : '' }}"
                             href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}"><i
                                 data-lucide="truck"></i>
-                            {{ auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Điều phối & bàn giao' }}</a>
+                            {{ auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Trung tâm vận hành' }}</a>
                     @endif
                     @if (auth()->user()->hasRole('admin') ||
                             auth()->user()->hasRole('shipper') ||
@@ -75,6 +75,8 @@
                             hàng</a>
                     @endif
                     @if ($warehouseAccess || $dispatchAccess)
+                        <a class="{{ request()->routeIs('transfers.*') ? 'active' : '' }}"
+                            href="{{ route('transfers.index') }}"><i data-lucide="arrow-right-left"></i> Chuyển kho</a>
                         <a class="{{ request()->routeIs('logistics.inventory') ? 'active' : '' }}"
                             href="{{ route('logistics.inventory') }}"><i data-lucide="package-check"></i> Tồn kho & sai
                             lệch</a>
@@ -119,7 +121,7 @@
                             href="{{ route('audit.index') }}"><i data-lucide="scan-search"></i> Nhật ký thay đổi</a>
                     @endcan
                     <div class="portal-user">
-                        <strong>{{ auth()->user()->name }}</strong><small>{{ auth()->user()->roles->pluck('label')->join(', ') }}</small><small>{{ auth()->user()->warehouses->pluck('name')->join(', ') ?: 'Chưa gán phạm vi kho' }}</small>
+                        <strong>{{ auth()->user()->name }}</strong><small>{{ auth()->user()->roles->pluck('label')->join(', ') }}</small><small>{{ auth()->user()->hasRole('admin') ? 'Toàn hệ thống' : (auth()->user()->warehouses->pluck('name')->join(', ') ?: (auth()->user()->shop ? 'Dữ liệu người gửi của bạn' : 'Chưa gán phạm vi kho')) }}</small>
                     </div>
                 </nav>
             </div>
@@ -132,6 +134,7 @@
             @yield('content')
         </main>
     </div>
+    @include('portal.partials.confirmation')
 </body>
 
 </html>

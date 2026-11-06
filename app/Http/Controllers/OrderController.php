@@ -61,7 +61,7 @@ class OrderController extends Controller
             'order' => $order, 'shop' => $shop, 'clientToken' => (string) Str::uuid(),
             'pickups' => $pickups,
             'warehouses' => Warehouse::where('is_active', true)->whereIn('area_id', $pickups->pluck('area_id'))->orderBy('name')->get(),
-            'areas' => Area::where('is_active', true)->orderBy('name')->pluck('name', 'id'),
+            'areas' => Area::where('is_active', true)->whereIn('id', Warehouse::where('is_active', true)->select('area_id'))->orderBy('name')->pluck('name', 'id'),
         ]);
     }
 

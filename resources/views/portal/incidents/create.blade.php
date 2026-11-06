@@ -35,10 +35,10 @@
                 <p class="small text-secondary mt-3">Sai tiền luôn khóa đối soát. Bàn giao trả kiện về kho vẫn được tiếp
                     nhận.</p>
             </fieldset>
-            <details class="work-section">
+            <details class="work-section" @if ($selectedDiscrepancy) open @endif>
                 <summary>Liên kết kiện / chứng từ liên quan</summary>
                 <div class="row g-3 mt-1">
-                    <div class="col-sm-6"><x-field name="warehouse_item_id" label="Kiện" :options="['' => 'Toàn vận đơn'] +
+                    <div class="col-sm-6"><x-field name="warehouse_item_id" label="Kiện" :value="$selectedDiscrepancy?->warehouse_item_id" :options="['' => 'Toàn vận đơn'] +
                         $order->parcels
                             ->mapWithKeys(fn($item) => [$item->id => 'Kiện #' . $item->parcel_number])
                             ->all()" /></div>
@@ -60,7 +60,7 @@
                             )
                             ->all()" />
                     </div>
-                    <div class="col-sm-6"><x-field name="discrepancy_id" label="Sai lệch kho" :options="['' => 'Không chọn'] +
+                    <div class="col-sm-6"><x-field name="discrepancy_id" label="Sai lệch kho" :value="$selectedDiscrepancy?->id" :options="['' => 'Không chọn'] +
                         $order->discrepancies
                             ->mapWithKeys(
                                 fn($entry) => [

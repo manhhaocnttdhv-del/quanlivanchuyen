@@ -35,7 +35,7 @@ class OperationalReport
             $query->whereExists(fn ($q) => $q->selectRaw('1')->from('warehouse_items')
                 ->whereColumn('warehouse_items.order_id', 'orders.id')->where('holder_type', 'warehouse'));
         } elseif ($metric === 'overdue') {
-            $query->whereNotIn('orders.status', ['delivered', 'returned', 'cancelled', 'rejected'])
+            $query->whereNotIn('orders.status', ['delivered', 'returned', 'cancelled', 'rejected', 'lost'])
                 ->where('orders.approved_at', '<', now()->subHours(config('reports.overdue_hours')));
         }
         // Ton va qua han la hien tai; cac chi tieu con lai dua tren ngay su kien trong ky.

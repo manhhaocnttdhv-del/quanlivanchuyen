@@ -13,8 +13,15 @@
             {{ $difference->created_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }} ·
             {{ $difference->severity === 'high' ? 'Mức độ cao' : 'Mức độ vừa' }}</small>
         @if ($difference->order)
-            <a class="d-block small mt-2 logistics-code"
-                href="{{ route('logistics.order', $difference->order) }}">{{ $difference->order->tracking_code }}</a>
+            @if ($policy->dispatch(auth()->user(), $difference->order->warehouse_id) || $policy->warehouse(auth()->user(), $difference->order->warehouse_id))
+                <a class="d-block small mt-2 logistics-code"
+                    href="{{ route('logistics.order', $difference->order) }}">{{ $difference->order->tracking_code }}</a>
+            @else
+                <span class="d-block small mt-2 logistics-code">{{ $difference->order->tracking_code }}</span>
+            @endif
+            @if ($difference->status === 'open' && app(\App\Policies\IncidentPolicy::class)->createForOrder(auth()->user(), $difference->order, $difference->id))
+                <a class="btn btn-outline-primary btn-sm mt-2" href="{{ route('incidents.create', ['order_id' => $difference->order_id, 'discrepancy_id' => $difference->id]) }}"><i data-lucide="triangle-alert"></i> Mở sự cố</a>
+            @endif
         @endif
         @if ($difference->evidence_path)
             <a class="d-block small mt-2" target="_blank"

@@ -36,6 +36,7 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->admin = $this->person();
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
+        $this->warehouse('HCM');
         $service = app(FeeVersionService::class);
         $version = $service->save($this->admin, $this->feeData());
         $service->publish($this->admin, $version, 'Biểu phí kiểm thử');

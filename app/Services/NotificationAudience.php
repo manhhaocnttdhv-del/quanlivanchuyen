@@ -9,6 +9,7 @@ use App\Models\Incident;
 use App\Models\Order;
 use App\Models\Reconciliation;
 use App\Models\User;
+use App\Models\WarehouseTransfer;
 use App\Support\NotificationEvents;
 
 class NotificationAudience
@@ -22,6 +23,7 @@ class NotificationAudience
         $target = match ($category) {
             'order' => $log->subject_type === Order::class ? Order::find($log->subject_id) : null,
             'task' => $log->subject_type === Order::class ? DeliveryTask::where('order_id', $log->subject_id)->find($log->new_values['delivery_task_id'] ?? 0) : null,
+            'transfer' => $log->subject_type === Order::class ? WarehouseTransfer::where('order_id', $log->subject_id)->find($log->new_values['transfer_id'] ?? $log->new_values['transfer']['id'] ?? 0) : null,
             'delivery' => $log->subject_type === DeliveryAttempt::class ? DeliveryAttempt::find($log->subject_id)?->order : null,
             'incident' => $log->subject_type === Incident::class ? Incident::find($log->subject_id) : null,
             'finance' => $log->subject_type === Reconciliation::class ? Reconciliation::find($log->subject_id) : null,
@@ -45,6 +47,13 @@ class NotificationAudience
     public function candidates(AuditLog $log, $target)
     {
         $query = User::where('status', 'active')->with('roles');
+        if ($target instanceof WarehouseTransfer) {
+            $warehouseIds = $log->event === 'logistics.transfer_dispatched' ? [$target->destination_warehouse_id] : [$target->source_warehouse_id, $target->destination_warehouse_id];
+
+            return $query->whereHas('roles', fn ($q) => $q->whereHas('permissions', fn ($p) => $p->whereIn('name', ['logistics.warehouse', 'logistics.dispatch'])))
+                ->where(fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('name', 'admin'))->orWhereHas('warehouses', fn ($w) => $w->whereIn('warehouses.id', $warehouseIds)))
+                ->when($log->actor_id, fn ($q, $id) => $q->where('users.id', '!=', $id));
+        }
         $ids = match ($log->event) {
             'order.reviewed' => [$target->shop->user_id],
             'logistics.task_assigned' => [$target->shipper_id],

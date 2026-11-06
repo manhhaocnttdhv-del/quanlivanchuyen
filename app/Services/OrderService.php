@@ -99,6 +99,7 @@ class OrderService
             $this->ensure($order->status === 'submitted' && in_array($decision, ['approved', 'needs_info', 'rejected']), 'status', 'Chỉ xét duyệt đơn đang chờ duyệt.');
             if ($decision === 'approved') {
                 $this->approvedShop($shop);
+                app(OrderRouting::class)->ensureCoverage($order->warehouse_id, $order->area_id);
             }
             $before = $this->snapshot($order);
             $order->status = $decision;
@@ -231,6 +232,9 @@ class OrderService
         if (! empty($data['area_id'])) {
             $this->ensure(Area::whereKey($data['area_id'])->where('is_active', true)->exists(), 'area_id', 'Khu vực nhận đang ngừng phục vụ.');
         }
+        if ($complete) {
+            app(OrderRouting::class)->ensureCoverage((int) $data['warehouse_id'], (int) $data['area_id']);
+        }
         foreach (['pickup_address_id', 'warehouse_id', 'area_id', 'weight_grams', 'parcel_count', 'cod_amount'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = (int) $data[$field];
@@ -255,6 +259,7 @@ class OrderService
         $quote = $this->fees->calculate($pickup->area, $destination, $details['weight_grams'], $details['service'], $details['cod_amount'], $details['fee_payer']);
         $order->origin_area_id = $pickup->area_id;
         $order->warehouse_id = $details['warehouse_id'];
+        $order->origin_warehouse_id = $details['warehouse_id'];
         $order->sender_snapshot = ['name' => $pickup->contact_name, 'phone' => $pickup->phone, 'address' => $pickup->address, 'area' => $pickup->area->name, 'shop' => $shop->name];
         $order->recipient_snapshot = ['name' => $details['recipient_name'], 'phone' => $details['recipient_phone'], 'address' => $details['recipient_address'], 'area' => $destination->name];
         $order->fee_snapshot = $quote;
@@ -267,6 +272,7 @@ class OrderService
     private function fillDetails(Order $order, array $details): void
     {
         $order->fill(Arr::only($details, Order::INPUT_FIELDS));
+        $order->origin_warehouse_id = $details['warehouse_id'];
         $grams = $details['weight_grams'] ?? null;
         $order->weight_kg = $grams ? intdiv($grams, 1000).'.'.str_pad((string) ($grams % 1000), 3, '0', STR_PAD_LEFT) : null;
     }
