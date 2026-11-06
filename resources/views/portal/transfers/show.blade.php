@@ -27,6 +27,9 @@
             @endforeach</tbody>
         </table></div>
     </section>
+    @foreach ($discrepancies as $discrepancy)
+        <a class="btn btn-outline-primary mt-3" href="{{ route('incidents.create', ['order_id' => $transfer->order_id, 'discrepancy_id' => $discrepancy->id]) }}"><i data-lucide="triangle-alert"></i> Mở sự cố · {{ \App\Models\Discrepancy::TYPES[$discrepancy->type] }} #{{ $discrepancy->warehouse_item_id }}</a>
+    @endforeach
     @if (in_array($transfer->status, ['in_transit', 'partial']) && $policy->receive(auth()->user(), $transfer))
         <section class="work-section">
             <h2>Kho nhận kiểm đếm</h2>

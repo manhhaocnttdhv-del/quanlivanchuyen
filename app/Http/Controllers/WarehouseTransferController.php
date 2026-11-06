@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\WarehouseLocation;
 use App\Models\WarehouseTransfer;
 use App\Models\WarehouseTransferLine;
+use App\Policies\IncidentPolicy;
 use App\Policies\WarehouseTransferPolicy;
 use App\Services\LogisticsEvidence;
 use App\Services\WarehouseTransferService;
@@ -38,6 +39,8 @@ class WarehouseTransferController extends Controller
         abort_unless($this->policy->view($request->user(), $transfer), 403);
 
         return view('portal.transfers.show', ['transfer' => $transfer->load(['order', 'source', 'destination', 'creator', 'lines.item', 'lines.receiver', 'lines.location']),
+            'discrepancies' => $transfer->order->discrepancies()->where('warehouse_transfer_id', $transfer->id)
+                ->where('status', 'open')->get()->filter(fn ($entry) => app(IncidentPolicy::class)->createForOrder($request->user(), $transfer->order, $entry->id)),
             'policy' => $this->policy, 'locations' => WarehouseLocation::where('warehouse_id', $transfer->destination_warehouse_id)->where('is_active', true)->pluck('name', 'id')]);
     }
 

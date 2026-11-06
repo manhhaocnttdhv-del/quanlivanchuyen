@@ -9,6 +9,7 @@ use App\Models\Incident;
 use App\Models\Order;
 use App\Models\User;
 use App\Policies\IncidentPolicy;
+use App\Policies\LogisticsPolicy;
 use App\Services\IncidentService;
 use Illuminate\Http\Request;
 
@@ -38,7 +39,12 @@ class IncidentController extends Controller
         $filters = $request->validated();
         $query = Order::whereNotNull('warehouse_id')->where('status', '!=', 'draft');
         if (! $user->hasRole('admin')) {
-            $query->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id'));
+            $query->where(function ($q) use ($user) {
+                $q->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id'));
+                if ($user->hasPermission('incidents.manage')) {
+                    $q->orWhereHas('discrepancies', fn ($q) => $q->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id')));
+                }
+            });
         }
         if (! $user->hasPermission('incidents.manage')) {
             // Shipper chỉ chọn được đơn đang có nhiệm vụ của mình, không duyệt mọi đơn trong kho.
@@ -46,9 +52,17 @@ class IncidentController extends Controller
         }
         $order = ! empty($filters['order_id']) ? (clone $query)->findOrFail($filters['order_id']) : null;
         $orders = $query->when($filters['q'] ?? null, fn ($q, $v) => $q->where('tracking_code', 'like', $v.'%'))->latest('id')->paginate(15)->withQueryString();
-        $order?->load(['shop', 'parcels', 'tasks', 'collections', 'discrepancies']);
+        $scope = fn ($q) => $q->when(! $user->hasRole('admin'), fn ($q) => $q->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id')));
+        $order?->load(['shop', 'tasks' => $scope, 'collections' => $scope, 'discrepancies' => $scope]);
+        $order?->load(['parcels' => fn ($q) => $q->when(! $user->hasRole('admin'), fn ($q) => $q->where(fn ($q) => $q
+            ->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id'))
+            ->orWhereIn('id', $order->discrepancies->pluck('warehouse_item_id')->filter())))]);
+        $selectedDiscrepancy = $order?->discrepancies->firstWhere('id', $filters['discrepancy_id'] ?? null);
+        if ($order && ! app(LogisticsPolicy::class)->inWarehouse($user, $order->warehouse_id)) {
+            $selectedDiscrepancy ??= $order->discrepancies->first();
+        }
 
-        return view('portal.incidents.create', compact('order', 'orders', 'filters'));
+        return view('portal.incidents.create', compact('order', 'orders', 'filters', 'selectedDiscrepancy'));
     }
 
     public function store(IncidentRequest $request, Order $order, IncidentService $service)

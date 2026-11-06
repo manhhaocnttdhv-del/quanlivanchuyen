@@ -51,10 +51,29 @@ class ParcelLossService
 
     public function ensureRecovered(Order $order, Incident $incident): void
     {
-        $items = $order->parcels()->when($incident->warehouse_item_id, fn ($q, $id) => $q->whereKey($id))->lockForUpdate()->get();
+        $parcels = $order->parcels()->lockForUpdate()->get();
+        $items = $parcels->when($incident->warehouse_item_id, fn ($items, $id) => $items->where('id', $id));
+        $this->ledger->ensure(! $order->discrepancies()->when($incident->warehouse_item_id, fn ($q, $id) => $q->where('warehouse_item_id', $id))
+            ->whereIn('type', ['missing', 'stock_missing'])->where('status', 'open')->exists(),
+            'Sai lệch thiếu kiện phải được người khác xác minh trước khi gỡ khóa mất hàng.');
+        $uncollected = $parcels->isEmpty() && $order->custody_status === 'uncollected'
+            && in_array($order->status, ['submitted', 'needs_info', 'rejected', 'approved', 'cancelled'])
+            && ! $order->tasks()->whereHas('pickupAttempt', fn ($q) => $q->where('successful', true))->exists()
+            && ! $order->deliveryAttempts()->exists();
+        $holder = match ($order->status) {
+            'delivered' => 'recipient', 'returned' => 'shop', default => null,
+        };
+        $handedOver = $holder && $parcels->count() === $order->parcel_count
+            && $parcels->every(fn ($item) => $item->holder_type === $holder)
+            && $order->{$holder === 'recipient' ? 'delivered_at' : 'returned_at'} !== null
+            && $order->deliveryAttempts()->where('type', $holder === 'recipient' ? 'delivery' : 'return')->where('outcome', 'success')
+                ->whereHas('proof', fn ($q) => $q->whereNotNull('receiver_name')->where('receiver_name', '!=', '')
+                    ->whereNotNull('evidence_path')->whereNotNull('content_sha256'))->exists();
+        if ($uncollected || $handedOver) {
+            // Báo nhầm không tạo lại tồn kho hoặc đảo bằng chứng giao/hoàn đã ghi.
+            return;
+        }
         $this->ledger->ensure($items->isNotEmpty() && $items->every(fn ($item) => $item->holder_type === 'warehouse'),
             'Phải tìm và nhập đủ các kiện liên quan về kho trước khi kết luận không bồi thường.');
-        $this->ledger->ensure(! $order->discrepancies()->whereIn('warehouse_item_id', $items->modelKeys())->where('type', 'missing')->where('status', 'open')->exists(),
-            'Sai lệch thiếu kiện phải được người khác xác minh trước khi gỡ khóa mất hàng.');
     }
 }

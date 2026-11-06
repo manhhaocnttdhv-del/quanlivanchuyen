@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Money;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -64,8 +65,15 @@ class User extends Authenticatable
 
     public function requiredShipperWarehouseIds(): Collection
     {
+        $cashWarehouses = DeliveryCollection::where('shipper_id', $this->id)->select(['id', 'warehouse_id', 'amount'])
+            ->withSum('depositAllocations as deposited_amount', 'amount')
+            ->withSum(['adjustmentLines as correction_amount' => fn ($q) => $q->whereHas('adjustment', fn ($q) => $q->where('status', 'approved'))], 'amount')
+            ->get()->filter(fn ($collection) => Money::value($collection->amount) + Money::value($collection->correction_amount ?? 0)
+                > Money::value($collection->deposited_amount ?? 0))->pluck('warehouse_id');
+
         return DeliveryTask::where('shipper_id', $this->id)->whereIn('status', DeliveryTask::ACTIVE)->pluck('warehouse_id')
-            ->merge(WarehouseItem::where('holder_type', 'shipper')->where('holder_user_id', $this->id)->pluck('warehouse_id'))->unique();
+            ->merge(WarehouseItem::where('holder_type', 'shipper')->where('holder_user_id', $this->id)->pluck('warehouse_id'))
+            ->merge($cashWarehouses)->unique();
     }
 
     public function shop()

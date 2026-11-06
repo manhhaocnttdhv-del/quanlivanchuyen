@@ -11,10 +11,13 @@ use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
 use App\Services\AdjustmentService;
 use App\Services\AuditService;
+use App\Services\CashDepositService;
 use App\Services\ComplaintService;
+use App\Services\DeliveryDecisionService;
 use App\Services\DeliveryService;
 use App\Services\DispatchReadiness;
 use App\Services\DispatchService;
+use App\Services\FinanceLedger;
 use App\Services\IncidentService;
 use App\Services\PublicTrackingService;
 use App\Services\ShopService;
@@ -121,6 +124,46 @@ class WorkflowSafeguardsTest extends DatabaseTestCase
     {
         return app(WarehouseTransferService::class)->dispatch($this->sender, $order->fresh(), ['revision' => $order->fresh()->revision,
             'destination_warehouse_id' => $this->destination->id, 'carrier' => 'Driver', 'transport_reference' => 'TEST-001', 'reason' => 'Transfer to destination branch']);
+    }
+
+    private function delivered(bool $return = false): Order
+    {
+        $order = $this->stocked();
+        if ($return) {
+            app(DeliveryDecisionService::class)->decide($this->sender, $order, ['revision' => $order->revision,
+                'decision' => 'return', 'shop_instruction' => 'Sender confirms return to pickup address', 'reason' => 'Sender requests return before delivery']);
+        }
+        $task = $this->assign($order, $return ? 'return' : 'delivery');
+        $service = app(WarehouseService::class);
+        $doc = $service->prepare($this->sender, $task, 'outbound', 'Issue all parcels for delivery');
+        $service->confirm($this->shipper, $doc, ['reason' => 'Shipper counted actual parcels',
+            'lines' => $doc->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => true, 'condition' => 'good']])->all()], null);
+        app(DeliveryService::class)->record($this->shipper, $task->fresh(), ['client_token' => (string) Str::uuid(),
+            'outcome' => 'success', 'receiver_name' => 'Verified recipient', ...($return ? [] : ['actual_cod' => 100000]),
+            'actual_fee' => $return ? 0 : 30000, 'reason' => 'Recipient received all parcels and paid'], $this->photo());
+
+        return $order->fresh();
+    }
+
+    private function missingTransfer(int $parcels = 1): Order
+    {
+        $order = $this->stocked(true, $parcels);
+        $transfer = $this->transfer($order);
+        app(WarehouseTransferService::class)->receive($this->receiver, $transfer, ['revision' => $order->fresh()->revision,
+            'location_id' => $this->destinationLocation->id, 'reason' => 'Destination reports missing transfer parcel',
+            'lines' => $transfer->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => false, 'condition' => 'good']])->all()], 'proof.png');
+
+        return $order->fresh();
+    }
+
+    private function missingIncidentData(Order $order): array
+    {
+        $discrepancy = $order->discrepancies()->sole();
+
+        return ['client_token' => (string) Str::uuid(), 'type' => 'lost', 'discrepancy_id' => $discrepancy->id,
+            'warehouse_item_id' => $discrepancy->warehouse_item_id, 'title' => 'Missing transfer parcel',
+            'description' => 'Destination requests investigation of the missing parcel', 'severity' => 'high',
+            'blocks_dispatch' => true, 'blocks_reconciliation' => true, 'evidence' => $this->photo()];
     }
 
     private function incident(Order $order, ?int $item = null, string $type = 'lost', ?User $actor = null): Incident
@@ -491,5 +534,175 @@ class WorkflowSafeguardsTest extends DatabaseTestCase
         $this->assertSame($this->destination->id, $order->fresh()->warehouse_id);
         $this->assertSame('warehouse', $order->fresh()->custody_status);
         $this->assertFalse(app(DispatchReadiness::class)->inspect($order->fresh())['canAssign']);
+    }
+
+    public function test_staff_changes_wait_for_cod_and_fee_to_be_received_and_allocated(): void
+    {
+        $order = $this->delivered();
+        $ledger = app(FinanceLedger::class);
+        $this->assertSame(130000, $order->collections->sum(fn ($c) => $ledger->held($c)));
+        foreach ([['status' => 'inactive'], ['role_ids' => [Role::where('name', 'operations')->value('id')]],
+            ['warehouse_ids' => [$this->destination->id]]] as $changes) {
+            $this->actingAs($this->admin)->put(route('users.update', $this->shipper), $this->userData($changes))->assertSessionHasErrors();
+            $this->assertSame('active', $this->shipper->fresh()->status);
+            $this->assertTrue($this->shipper->fresh()->hasRole('shipper'));
+            $this->assertSame([$this->source->id], $this->shipper->fresh()->warehouses->modelKeys());
+        }
+        $service = app(CashDepositService::class);
+        $deposit = $service->create($this->shipper->fresh(), ['client_token' => (string) Str::uuid(),
+            'warehouse_id' => $this->source->id, 'shipper_id' => $this->shipper->id,
+            'allocations' => $order->collections->mapWithKeys(fn ($c) => [$c->id => (int) $c->amount])->all(), 'reason' => 'Remit all cash collected']);
+        $this->put(route('users.update', $this->shipper), $this->userData(['warehouse_ids' => [$this->destination->id]]))->assertSessionHasErrors('warehouse_ids');
+        $cod = $order->collections->firstWhere('type', 'cod');
+        $fee = $order->collections->firstWhere('type', 'shipping_fee');
+        $service->confirm($this->reviewer, $deposit, ['revision' => 1, 'received_amount' => 130000,
+            'allocations' => [$cod->id => 100000], 'transaction_reference' => 'QA-'.Str::uuid(), 'reason' => 'Count all money; allocate COD first'], $this->photo());
+        $this->assertSame(30000, $ledger->held($fee));
+        $this->put(route('users.update', $this->shipper), $this->userData(['status' => 'inactive']))->assertSessionHasErrors('status');
+        $service->allocateRemaining($this->reviewer, $deposit->fresh(), ['revision' => $deposit->fresh()->revision,
+            'allocations' => [$fee->id => 30000], 'reason' => 'Allocate remaining shipping fee']);
+        $this->put(route('users.update', $this->shipper), $this->userData(['warehouse_ids' => [$this->destination->id]]))->assertSessionHasNoErrors();
+        $this->put(route('users.update', $this->shipper), $this->userData(['status' => 'inactive',
+            'role_ids' => [Role::where('name', 'operations')->value('id')], 'warehouse_ids' => [$this->destination->id]]))->assertSessionHasNoErrors();
+        $this->assertSame('inactive', $this->shipper->fresh()->status);
+    }
+
+    public function test_legacy_cash_custody_can_restore_a_closed_warehouse_and_remit(): void
+    {
+        $order = $this->delivered();
+        $this->source->update(['is_active' => false]);
+        $this->shipper->warehouses()->sync([$this->destination->id]);
+        $this->shipper->status = 'inactive';
+        $this->shipper->save();
+        $this->shipper->roles()->sync([Role::where('name', 'operations')->value('id')]);
+        $this->actingAs($this->admin)->get(route('users.edit', $this->shipper))->assertOk()
+            ->assertViewHas('warehouses', fn ($warehouses) => $warehouses->contains('id', $this->source->id));
+        $this->put(route('users.update', $this->shipper), $this->userData())->assertSessionHasNoErrors();
+        $this->actingAs($this->shipper->fresh())->post(route('finance.deposits.store'), ['client_token' => (string) Str::uuid(),
+            'warehouse_id' => $this->source->id, 'shipper_id' => $this->shipper->id,
+            'allocations' => $order->collections->mapWithKeys(fn ($c) => [$c->id => (int) $c->amount])->all(),
+            'reason' => 'Recover legacy cash at original warehouse'])->assertSessionHasNoErrors();
+    }
+
+    public function test_false_loss_before_pickup_can_be_independently_dismissed_and_pickup_resumes(): void
+    {
+        $order = $this->order();
+        $incident = $this->incident($order);
+        $this->propose($incident, 'no_financial');
+        $this->approve($incident);
+        $this->assertSame('closed', $incident->fresh()->status);
+        $this->assertFalse($order->fresh()->reconciliationBlocked());
+        $this->assertFalse($order->parcels()->exists());
+        $this->pickup($order);
+        $this->assertSame('picked_up', $order->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'incident.approved', 'subject_id' => $incident->id]);
+    }
+
+    public function test_false_loss_after_delivery_or_return_closes_without_reversing_custody(): void
+    {
+        foreach ([false, true] as $return) {
+            $order = $this->delivered($return);
+            $parcel = $order->parcels()->sole();
+            $before = $parcel->only(['holder_type', 'custody_version']);
+            $incident = $this->incident($order, $parcel->id);
+            $incident->update(['blocks_reconciliation' => true]);
+            $this->propose($incident, 'no_financial');
+            $this->approve($incident);
+            $this->assertSame('closed', $incident->fresh()->status);
+            $this->assertFalse($order->fresh()->reconciliationBlocked());
+            $this->assertSame($return ? 'returned' : 'delivered', $order->fresh()->status);
+            $this->assertSame($before, $parcel->fresh()->only(['holder_type', 'custody_version']));
+        }
+    }
+
+    public function test_false_loss_dismissal_requires_proof_and_preserves_other_holds(): void
+    {
+        $order = $this->delivered();
+        $order->deliveryAttempts()->sole()->proof()->delete();
+        $incident = $this->incident($order);
+        $this->propose($incident, 'no_financial');
+        $this->invalid(fn () => $this->approve($incident));
+        $this->assertSame('in_review', $incident->fresh()->status);
+        $order = $this->order();
+        $other = $this->incident($order, type: 'money');
+        $incident = $this->incident($order);
+        $this->propose($incident, 'no_financial');
+        $this->approve($incident);
+        $this->assertTrue($order->fresh()->reconciliationBlocked());
+        $this->assertSame('open', $other->fresh()->status);
+    }
+
+    public function test_destination_can_open_private_incident_from_its_transfer_discrepancy(): void
+    {
+        $order = $this->missingTransfer();
+        $data = $this->missingIncidentData($order);
+        $this->actingAs($this->receiver)->get(route('transfers.show', $order->transfers()->sole()))->assertOk()->assertSee('Mở sự cố');
+        $this->get(route('logistics.inventory'))->assertOk()->assertSee('Mở sự cố')
+            ->assertDontSee('href="'.route('logistics.order', $order).'"', false);
+        $this->get(route('incidents.create'))->assertOk()->assertSee($order->tracking_code);
+        $this->get(route('incidents.create', ['order_id' => $order->id, 'discrepancy_id' => $data['discrepancy_id']]))->assertOk()
+            ->assertViewHas('selectedDiscrepancy', fn ($entry) => $entry->id === $data['discrepancy_id'])
+            ->assertViewHas('order', fn ($entry) => $entry->tasks->isEmpty() && $entry->collections->isEmpty());
+        unset($data['warehouse_item_id']);
+        $this->post(route('incidents.store', $order), $data)->assertSessionHasNoErrors();
+        $incident = $order->incidents()->sole();
+        $this->assertSame($this->destination->id, $incident->warehouse_id);
+        $this->assertSame($order->discrepancies()->sole()->warehouse_item_id, $incident->warehouse_item_id);
+        $this->assertSame($this->source->id, $order->fresh()->warehouse_id);
+        $this->get(route('incidents.show', $incident))->assertOk();
+        $this->post(route('incidents.store', $order), $data)->assertRedirect(route('incidents.show', $incident));
+        $this->assertSame(1, $order->incidents()->count());
+        $attachment = $incident->actions()->sole()->attachments()->sole();
+        $this->actingAs($this->sender)->get(route('incidents.show', $incident))->assertForbidden();
+        $this->get(route('cases.attachment', $attachment))->assertForbidden();
+        $this->propose($incident, actor: $this->receiver);
+        $this->approve($incident);
+        $this->assertSame('lost', $order->fresh()->status);
+        $this->assertSame('closed_loss', $order->transfers()->sole()->status);
+    }
+
+    public function test_destination_incident_rejects_missing_foreign_or_mismatched_references(): void
+    {
+        $order = $this->missingTransfer();
+        $other = $this->missingTransfer();
+        $data = $this->missingIncidentData($order);
+        $this->actingAs($this->receiver)->post(route('incidents.store', $order), array_diff_key($data, ['discrepancy_id' => true]))->assertForbidden();
+        $this->post(route('incidents.store', $order), array_replace($data, ['discrepancy_id' => $other->discrepancies()->sole()->id]))->assertForbidden();
+        $this->post(route('incidents.store', $order), $data + ['delivery_task_id' => $order->tasks()->sole()->id])->assertSessionHasErrors('delivery_task_id');
+        $this->receiver->warehouses()->detach();
+        $this->actingAs($this->receiver->fresh())->post(route('incidents.store', $order), $data)->assertForbidden();
+        $this->assertFalse($order->incidents()->exists());
+    }
+
+    public function test_transfer_incident_cannot_substitute_another_parcel_in_the_same_order(): void
+    {
+        $order = $this->missingTransfer(2);
+        $entries = $order->discrepancies()->orderBy('id')->get();
+        $data = ['client_token' => (string) Str::uuid(), 'type' => 'lost', 'discrepancy_id' => $entries->first()->id,
+            'warehouse_item_id' => $entries->last()->warehouse_item_id, 'title' => 'Mismatched parcel reference',
+            'description' => 'Do not confirm loss against a different parcel', 'severity' => 'high',
+            'blocks_dispatch' => true, 'blocks_reconciliation' => true, 'evidence' => $this->photo()];
+        $this->actingAs($this->receiver)->post(route('incidents.store', $order), $data)->assertSessionHasErrors('warehouse_item_id');
+        $this->assertFalse($order->incidents()->exists());
+    }
+
+    public function test_destination_can_close_recovered_loss_only_after_separate_discrepancy_review(): void
+    {
+        $order = $this->missingTransfer();
+        $this->actingAs($this->receiver)->post(route('incidents.store', $order), $this->missingIncidentData($order))->assertSessionHasNoErrors();
+        $incident = $order->incidents()->sole();
+        $this->propose($incident, 'no_financial', $this->receiver);
+        $transfer = $order->transfers()->sole();
+        app(WarehouseTransferService::class)->receive($this->receiver, $transfer, ['revision' => $order->fresh()->revision,
+            'location_id' => $this->destinationLocation->id, 'reason' => 'Found and received actual missing parcel',
+            'lines' => $transfer->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => true, 'condition' => 'good']])->all()], null);
+        $this->invalid(fn () => $this->approve($incident));
+        $discrepancy = $order->discrepancies()->sole();
+        $this->invalid(fn () => app(WarehouseService::class)->resolve($this->receiver, $discrepancy, 'Cannot verify own discrepancy'));
+        app(WarehouseService::class)->resolve($this->reviewer, $discrepancy, 'Independent count confirms recovery');
+        $this->approve($incident);
+        $this->assertSame('closed', $incident->fresh()->status);
+        $this->assertSame($this->destination->id, $incident->fresh()->warehouse_id);
+        $this->assertTrue(app(DispatchReadiness::class)->inspect($order->fresh())['canAssign']);
     }
 }

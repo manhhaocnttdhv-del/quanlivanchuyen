@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Discrepancy;
 use App\Models\Incident;
 use App\Models\IncidentAction;
 use App\Models\Order;
@@ -20,7 +21,7 @@ class IncidentService
 
     public function create(User $actor, Order $order, array $input, ?UploadedFile $file = null): Incident
     {
-        abort_unless($this->policy->createForOrder($actor, $order), 403);
+        abort_unless($this->policy->createForOrder($actor, $order, filter_var($input['discrepancy_id'] ?? null, FILTER_VALIDATE_INT) ?: null), 403);
         $data = Validator::make($input, CaseRules::incident())->validate();
         Validator::make(['evidence' => $file], ['evidence' => CaseRules::evidence(in_array($data['type'], ['lost', 'damaged', 'money']))])->validate();
         $data['blocks_dispatch'] = (bool) $data['blocks_dispatch'] || $data['type'] === 'lost';
@@ -29,7 +30,7 @@ class IncidentService
 
         return $this->evidence->run($file, fn ($proof) => DB::transaction(function () use ($actor, $order, $data, $hash, $proof) {
             $order = $this->ledger->lock($order);
-            abort_unless($this->policy->createForOrder($actor, $order), 403);
+            abort_unless($this->policy->createForOrder($actor, $order, $data['discrepancy_id'] ?? null), 403);
             User::lockForUpdate()->findOrFail($actor->id);
             $existing = Incident::where('created_by', $actor->id)->where('client_token', $data['client_token'])->lockForUpdate()->first();
             if ($existing) {
@@ -37,9 +38,12 @@ class IncidentService
 
                 return $existing;
             }
-            $this->checkReferences($order, $data);
+            $discrepancy = $this->checkReferences($order, $data);
+            if ($discrepancy?->warehouse_item_id) {
+                $data['warehouse_item_id'] = $discrepancy->warehouse_item_id;
+            }
             $before = $this->ledger->snapshot($order);
-            $incident = Incident::create($data + ['code' => 'SC'.Str::upper((string) Str::ulid()), 'order_id' => $order->id, 'warehouse_id' => $order->warehouse_id, 'created_by' => $actor->id, 'creation_hash' => $hash]);
+            $incident = Incident::create($data + ['code' => 'SC'.Str::upper((string) Str::ulid()), 'order_id' => $order->id, 'warehouse_id' => $discrepancy?->warehouse_id ?? $order->warehouse_id, 'created_by' => $actor->id, 'creation_hash' => $hash]);
             $action = $incident->actions()->create(['created_by' => $actor->id, 'type' => 'created', 'reason' => $data['description'], 'payload' => $incident->only(['blocks_dispatch', 'blocks_reconciliation'])]);
             $this->evidence->attach($actor, $action, $proof);
             $this->ledger->record($actor, $order, 'incident_opened', $before, $incident->code.': mở sự cố và ghi nhận phạm vi khóa.');
@@ -129,12 +133,27 @@ class IncidentService
         }, 3));
     }
 
-    private function checkReferences(Order $order, array $data): void
+    private function checkReferences(Order $order, array $data): ?Discrepancy
     {
         foreach (['warehouse_item_id' => 'parcels', 'delivery_task_id' => 'tasks', 'delivery_collection_id' => 'collections', 'discrepancy_id' => 'discrepancies'] as $field => $relation) {
             if (! empty($data[$field])) {
                 $this->ledger->ensure($order->$relation()->whereKey($data[$field])->exists(), 'Chứng từ/kiện phải thuộc đúng vận đơn.', $field);
             }
         }
+        $discrepancy = empty($data['discrepancy_id']) ? null : $order->discrepancies()->findOrFail($data['discrepancy_id']);
+        if ($discrepancy?->warehouse_item_id) {
+            $this->ledger->ensure(empty($data['warehouse_item_id']) || (int) $data['warehouse_item_id'] === $discrepancy->warehouse_item_id,
+                'Kiện phải khớp sai lệch được liên kết.', 'warehouse_item_id');
+        }
+        if ($discrepancy && $discrepancy->warehouse_id !== $order->warehouse_id) {
+            foreach (['delivery_task_id' => 'tasks', 'delivery_collection_id' => 'collections'] as $field => $relation) {
+                if (! empty($data[$field])) {
+                    $this->ledger->ensure($order->$relation()->whereKey($data[$field])->where('warehouse_id', $discrepancy->warehouse_id)->exists(),
+                        'Chứng từ phải thuộc kho ghi nhận sai lệch.', $field);
+                }
+            }
+        }
+
+        return $discrepancy;
     }
 }

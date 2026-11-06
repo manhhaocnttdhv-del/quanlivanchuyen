@@ -554,4 +554,22 @@ class FinanceWorkflowTest extends DatabaseTestCase
         $rec = app(ReconciliationService::class)->create($this->accountant, array_replace($data, ['period_start' => '2026-10-29', 'period_end' => '2026-10-29']));
         $this->assertSame('500000.00', $rec->cod_total);
     }
+
+    public function test_required_shipper_scope_uses_approved_corrections_and_actual_allocations(): void
+    {
+        $c = $this->funded(100000);
+        $this->assertTrue($this->shipper->fresh()->requiredShipperWarehouseIds()->isEmpty());
+        $incident = $this->incident($c->order, 'financial_correction', 10000);
+        $adjustment = $this->adjustment($incident, 'collection_increase', ['delivery_collection_id' => $c->id]);
+        $this->assertTrue($this->shipper->fresh()->requiredShipperWarehouseIds()->isEmpty());
+        $this->adjustmentApprove($adjustment);
+        $this->assertSame([$this->depot->id], $this->shipper->fresh()->requiredShipperWarehouseIds()->values()->all());
+        $reversal = app(AdjustmentService::class)->create($this->accountant, $c->order, ['client_token' => (string) Str::uuid(),
+            'kind' => 'reversal', 'reverses_adjustment_id' => $adjustment->id, 'amount' => 10000,
+            'reason' => 'Independent evidence cancels the additional collection'], $this->photo());
+        $this->adjustmentApprove($reversal);
+        $this->assertTrue($this->shipper->fresh()->requiredShipperWarehouseIds()->isEmpty());
+        $this->collection(1, 1, 'shipping_fee', 'recipient');
+        $this->assertSame([$this->depot->id], $this->shipper->fresh()->requiredShipperWarehouseIds()->values()->all());
+    }
 }

@@ -17,6 +17,8 @@ class IdentityService
         return DB::transaction(function () use ($actor, $data, $user) {
             // Khóa một dòng chung để hai quản trị viên không cùng vô hiệu hóa admin cuối.
             DB::table('business_locks')->where('name', 'active-administrators')->lockForUpdate()->first();
+            // Giữ số dư nhất quán với các giao dịch nhận tiền và điều chỉnh đang duyệt.
+            DB::table('business_locks')->where('name', 'finance-posting')->lockForUpdate()->firstOrFail();
             $user = $user ? User::lockForUpdate()->findOrFail($user->id) : new User;
             $before = $user->only(['name', 'email', 'phone', 'status']);
             if ($user->exists) {
@@ -36,10 +38,10 @@ class IdentityService
                 if ($requiredWarehouses->isNotEmpty()) {
                     $keepsShipper = in_array(Role::where('name', 'shipper')->value('id'), $data['role_ids']);
                     if ($data['status'] !== 'active' || ! $keepsShipper) {
-                        throw ValidationException::withMessages(['status' => 'Shipper phải kết thúc nhiệm vụ và bàn giao hết kiện trước khi khóa hoặc bỏ vai trò.']);
+                        throw ValidationException::withMessages(['status' => 'Shipper phải kết thúc nhiệm vụ, bàn giao hết kiện và nộp đủ tiền đã phân bổ trước khi khóa hoặc bỏ vai trò.']);
                     }
                     if ($requiredWarehouses->diff($data['warehouse_ids'] ?? [])->isNotEmpty()) {
-                        throw ValidationException::withMessages(['warehouse_ids' => 'Phải giữ các kho còn nhiệm vụ hoặc kiện đang do shipper giữ. Thu hồi và nhận lại kiện trước khi đổi phạm vi.']);
+                        throw ValidationException::withMessages(['warehouse_ids' => 'Phải giữ các kho còn nhiệm vụ, kiện hoặc tiền chưa nộp đủ. Hoàn tất bàn giao hàng và phân bổ tiền trước khi đổi phạm vi.']);
                     }
                 }
             }
