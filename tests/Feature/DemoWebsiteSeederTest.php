@@ -138,13 +138,14 @@ class DemoWebsiteSeederTest extends DatabaseTestCase
         app(ShopService::class)->replaceBank($owner, $owner->shop, [
             'bank_name' => 'Ngân hàng khách thay đổi', 'holder_name' => 'CHU SHOP HCM', 'account_number' => '9999999990000',
         ]);
-        $shipper = User::where('email', 'shipper.dn@guiviet.test')->firstOrFail();
+        $staff = User::where('email', 'operations.dn@guiviet.test')->firstOrFail();
+        $this->assertTrue($staff->requiredShipperWarehouseIds()->isEmpty());
         $admin = User::where('email', 'admin@guiviet.test')->firstOrFail();
         app(IdentityService::class)->save($admin, [
-            'name' => 'Nhân sự đã thay đổi', 'email' => $shipper->email, 'phone' => $shipper->phone,
-            'status' => 'inactive', 'role_ids' => [Role::where('name', 'operations')->value('id')],
+            'name' => 'Nhân sự đã thay đổi', 'email' => $staff->email, 'phone' => $staff->phone,
+            'status' => 'inactive', 'role_ids' => [Role::where('name', 'shipper')->value('id')],
             'warehouse_ids' => [Warehouse::where('code', 'KHO-HN')->value('id')], 'reason' => 'Admin thay đổi nhân sự demo',
-        ], $shipper);
+        ], $staff);
         $fee = FeeVersion::where('name', 'Biểu phí demo dự thảo')->firstOrFail();
         $fee->update(['active_from' => '2029-01-01 00:00:00']);
         $counts = $this->counts();
@@ -159,8 +160,8 @@ class DemoWebsiteSeederTest extends DatabaseTestCase
         $this->assertSame('765000.00', $order->fresh()->cod_amount);
         $this->assertSame('Ngân hàng khách thay đổi', $owner->shop->fresh()->currentBankAccount->bank_name);
         $this->assertNotNull($bank->fresh()->verified_at);
-        $this->assertSame('inactive', $shipper->fresh()->status);
-        $this->assertSame(['operations'], $shipper->fresh()->roles->pluck('name')->all());
+        $this->assertSame('inactive', $staff->fresh()->status);
+        $this->assertSame(['shipper'], $staff->fresh()->roles->pluck('name')->all());
         $this->assertSame('2029-01-01', $fee->fresh()->active_from->format('Y-m-d'));
     }
 

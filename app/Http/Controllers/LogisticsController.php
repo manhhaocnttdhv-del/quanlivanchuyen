@@ -48,7 +48,7 @@ class LogisticsController extends Controller
         $queue = $filters['queue'] ?? 'all';
         $workView = $staff && ($filters['view'] ?? 'work') === 'work';
         $base = Order::whereIn('warehouse_id', $this->warehouseIds($user))
-            ->whereNotIn('status', ['draft', 'needs_info', 'rejected', 'cancelled', 'delivered', 'returned'])
+            ->whereNotIn('status', ['draft', 'needs_info', 'rejected', 'cancelled', 'delivered', 'returned', 'lost'])
             ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('warehouse_id', $id))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where('tracking_code', 'like', $v.'%'));
         // Kho nhận có quyền với phiếu chuyển, chưa có quyền với đơn ở kho gửi.

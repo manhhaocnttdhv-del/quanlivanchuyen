@@ -20,21 +20,21 @@
             <thead><tr><th>Kiện</th><th>Trạng thái nhận</th><th>Người nhận / vị trí</th><th>Bằng chứng</th></tr></thead>
             <tbody>@foreach ($transfer->lines as $line)
                 <tr><td>#{{ $line->item->parcel_number }}</td>
-                    <td>{{ $line->received_at ? ($line->condition === 'damaged' ? 'Đã nhận · Hư hỏng' : 'Đã nhận') : 'Chưa nhận' }}</td>
+                    <td>{{ $line->condition === 'lost' ? 'Đã xác nhận mất' : ($line->received_at ? ($line->condition === 'damaged' ? 'Đã nhận · Hư hỏng' : 'Đã nhận') : 'Chưa nhận') }}</td>
                     <td>{{ $line->receiver?->name ?? '—' }}<br><small>{{ $line->location?->name }} {{ $line->received_at?->format('H:i d/m/Y') }}</small></td>
                     <td>@if ($line->evidence_path)<a href="{{ route('transfers.evidence', [$transfer, $line]) }}" target="_blank" rel="noopener">Xem ảnh</a>@else — @endif</td>
                 </tr>
             @endforeach</tbody>
         </table></div>
     </section>
-    @if ($transfer->status !== 'received' && $policy->receive(auth()->user(), $transfer))
+    @if (in_array($transfer->status, ['in_transit', 'partial']) && $policy->receive(auth()->user(), $transfer))
         <section class="work-section">
             <h2>Kho nhận kiểm đếm</h2>
             <form method="post" enctype="multipart/form-data" action="{{ route('transfers.receive', $transfer) }}" data-confirm="Xác nhận các kiện thực tế đã nhận?">
                 @csrf<input type="hidden" name="revision" value="{{ $transfer->order->revision }}">
                 <div class="table-responsive"><table class="table align-middle">
                     <thead><tr><th>Kiện</th><th>Thực nhận</th><th>Tình trạng</th></tr></thead>
-                    <tbody>@foreach ($transfer->lines->whereNull('received_at') as $line)
+                    <tbody>@foreach ($transfer->lines->whereNull('received_at')->where('condition', '!=', 'lost') as $line)
                         <tr><td>#{{ $line->item->parcel_number }}</td>
                             <td><input type="hidden" name="lines[{{ $line->id }}][received]" value="0">
                                 <label class="form-check"><input class="form-check-input" type="checkbox" name="lines[{{ $line->id }}][received]" value="1" @checked(old('lines.'.$line->id.'.received', false))> Đã nhận</label>
@@ -54,7 +54,7 @@
                 <button class="btn btn-primary mt-3" @disabled($locations->isEmpty())><i data-lucide="package-check"></i> Xác nhận thực nhận</button>
             </form>
         </section>
-    @elseif ($transfer->status !== 'received')
+    @elseif (in_array($transfer->status, ['in_transit', 'partial']))
         <p class="alert alert-info">Chờ tài khoản kho nhận kiểm đếm. Người xuất chuyển không tự xác nhận nhận hàng.</p>
     @endif
     @if (app(\App\Policies\LogisticsPolicy::class)->dispatch(auth()->user(), $transfer->order->warehouse_id) || app(\App\Policies\LogisticsPolicy::class)->warehouse(auth()->user(), $transfer->order->warehouse_id))

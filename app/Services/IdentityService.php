@@ -31,6 +31,18 @@ class IdentityService
             if ($user->id === $actor->id && $data['status'] !== 'active') {
                 throw ValidationException::withMessages(['status' => 'Không thể tự khóa tài khoản đang dùng.']);
             }
+            if ($user->exists) {
+                $requiredWarehouses = $user->requiredShipperWarehouseIds();
+                if ($requiredWarehouses->isNotEmpty()) {
+                    $keepsShipper = in_array(Role::where('name', 'shipper')->value('id'), $data['role_ids']);
+                    if ($data['status'] !== 'active' || ! $keepsShipper) {
+                        throw ValidationException::withMessages(['status' => 'Shipper phải kết thúc nhiệm vụ và bàn giao hết kiện trước khi khóa hoặc bỏ vai trò.']);
+                    }
+                    if ($requiredWarehouses->diff($data['warehouse_ids'] ?? [])->isNotEmpty()) {
+                        throw ValidationException::withMessages(['warehouse_ids' => 'Phải giữ các kho còn nhiệm vụ hoặc kiện đang do shipper giữ. Thu hồi và nhận lại kiện trước khi đổi phạm vi.']);
+                    }
+                }
+            }
             $user->fill(Arr::only($data, ['name', 'email', 'phone']));
             if (! empty($data['password'])) {
                 $user->password = $data['password'];

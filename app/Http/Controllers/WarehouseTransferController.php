@@ -23,7 +23,7 @@ class WarehouseTransferController extends Controller
 
         return view('portal.transfers.index', ['transfers' => WarehouseTransfer::visibleTo($request->user())
             ->with(['order', 'source', 'destination'])->withCount(['lines', 'lines as received_count' => fn ($q) => $q->whereNotNull('received_at')])
-            ->orderByRaw("status = 'received' ASC")->latest('id')->paginate(25)]);
+            ->orderByRaw("status IN ('received', 'closed_loss') ASC")->latest('id')->paginate(25)]);
     }
 
     public function store(WarehouseTransferRequest $request, Order $order, WarehouseTransferService $service)
@@ -45,7 +45,11 @@ class WarehouseTransferController extends Controller
     {
         $evidence->run($request->file('evidence'), fn ($path) => $service->receive($request->user(), $transfer, $request->validated(), $path));
 
-        return to_route('transfers.show', $transfer)->with('success', 'Đã ghi nhận kiểm đếm. Chỉ phân công khi đã nhập đủ kiện và xử lý sai lệch.');
+        $message = $transfer->fresh()->status === 'closed_loss'
+            ? 'Đã nhận phần hàng còn lại; chuyến kết thúc có kiện mất. Vận đơn tiếp tục giữ xử lý.'
+            : 'Đã ghi nhận kiểm đếm. Chỉ phân công khi đã nhập đủ kiện và xử lý sai lệch.';
+
+        return to_route('transfers.show', $transfer)->with('success', $message);
     }
 
     public function evidence(Request $request, WarehouseTransfer $transfer, WarehouseTransferLine $line)

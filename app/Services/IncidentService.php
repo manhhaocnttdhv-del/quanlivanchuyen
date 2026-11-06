@@ -23,7 +23,7 @@ class IncidentService
         abort_unless($this->policy->createForOrder($actor, $order), 403);
         $data = Validator::make($input, CaseRules::incident())->validate();
         Validator::make(['evidence' => $file], ['evidence' => CaseRules::evidence(in_array($data['type'], ['lost', 'damaged', 'money']))])->validate();
-        $data['blocks_dispatch'] = (bool) $data['blocks_dispatch'];
+        $data['blocks_dispatch'] = (bool) $data['blocks_dispatch'] || $data['type'] === 'lost';
         $data['blocks_reconciliation'] = (bool) $data['blocks_reconciliation'] || $data['type'] === 'money';
         $hash = hash('sha256', json_encode(['order' => $order->id, 'data' => $data, 'file' => $file ? hash_file('sha256', $file->getRealPath()) : null], JSON_THROW_ON_ERROR));
 
@@ -82,6 +82,7 @@ class IncidentService
                 $payload = $incident->only(['blocks_dispatch', 'blocks_reconciliation']);
             } elseif ($operation === 'propose') {
                 $this->ledger->ensure($incident->status === 'open', 'Đã có kết luận đang chờ duyệt.');
+                $this->ledger->ensure($incident->type !== 'lost' || in_array($data['outcome'], ['compensation', 'no_financial']), 'Mất hàng phải xác nhận bồi thường hoặc tìm đủ kiện về kho.', 'outcome');
                 $financial = $data['outcome'] !== 'no_financial';
                 $this->ledger->ensure(! $financial || $proof || $incident->actions()->whereHas('attachments')->exists(), 'Đề xuất tài chính phải có bằng chứng.', 'evidence');
                 $this->ledger->ensure($financial ? (int) $data['amount'] > 0 : (int) $data['amount'] === 0, 'Kết luận tài chính cần số tiền dương; không điều chỉnh thì nhập 0.', 'amount');
@@ -98,10 +99,15 @@ class IncidentService
                 $payload = ['proposal_action_id' => $proposal->id] + $proposal->payload;
                 $proposedAmount = $proposal->proposed_amount;
                 if ($data['decision'] === 'approved') {
+                    $confirmedLoss = $incident->type === 'lost' && $proposal->payload['outcome'] === 'compensation';
+                    if ($incident->type === 'lost') {
+                        $loss = app(ParcelLossService::class);
+                        $confirmedLoss ? $loss->confirm($actor, $order, $incident) : $loss->ensureRecovered($order, $incident);
+                    }
                     $incident->status = 'closed';
                     $incident->closed_at = now();
                     $incident->financial_status = $proposal->payload['outcome'] === 'no_financial' ? 'none' : 'pending_finance';
-                    $incident->blocks_dispatch = false;
+                    $incident->blocks_dispatch = $confirmedLoss;
                     $incident->blocks_reconciliation = $incident->financial_status === 'pending_finance';
                 } else {
                     $incident->status = 'open';

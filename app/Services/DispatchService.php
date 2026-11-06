@@ -18,6 +18,7 @@ class DispatchService
         return DB::transaction(function () use ($actor, $order, $data) {
             $order = $this->ledger->lock($order);
             abort_unless($this->policy->dispatch($actor, $order->warehouse_id), 403);
+            app(OrderRouting::class)->ensureWarehouseActive($order->warehouse_id);
             $this->ledger->ensure($order->revision === (int) $data['revision'], 'Đơn đã thay đổi. Tải lại trước khi phân công.', 'revision');
             $readiness = app(DispatchReadiness::class)->inspect($order);
             $this->ledger->ensure($readiness['canAssign'], $readiness['blockers'][0] ?? 'Trạng thái vận đơn không đủ điều kiện phân công.');

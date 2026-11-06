@@ -29,7 +29,7 @@ class DispatchReadiness
             $common[] = 'Đang có đề nghị thay đổi chờ xét duyệt.';
         }
         if ($order->dispatch_incidents_count > 0) {
-            $common[] = 'Đang khóa vận chuyển do sự cố chưa được xử lý.';
+            $common[] = 'Đang khóa vận chuyển do sự cố hoặc kiện đã xác nhận mất.';
         }
         if ($order->dispatch_discrepancies_count > 0) {
             $common[] = 'Đang giữ kiện do sai lệch chưa được xác minh.';
@@ -101,7 +101,7 @@ class DispatchReadiness
         return ['tasks as active_tasks_count' => fn ($q) => $q->whereIn('status', DeliveryTask::ACTIVE), 'parcels',
             'parcels as warehouse_parcels_count' => fn ($q) => $q->where('holder_type', 'warehouse')->whereColumn('warehouse_items.warehouse_id', 'orders.warehouse_id'),
             'discrepancies as dispatch_discrepancies_count' => fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true),
-            'incidents as dispatch_incidents_count' => fn ($q) => $q->where('blocks_dispatch', true),
+            'incidents as dispatch_incidents_count' => fn ($q) => $q->blockingDispatch(),
             'area as served_destination_count' => fn ($q) => $q->where('is_active', true)->whereHas('warehouses', fn ($q) => $q->where('is_active', true)),
             'originWarehouse as served_origin_count' => fn ($q) => $q->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true))];
     }

@@ -24,7 +24,7 @@ class OperationsWorklist
             return $query->where(fn ($q) => $q->where('status', 'submitted')->orWhereHas('pendingChange'));
         }
         if ($queue === 'held') {
-            return $query->where(fn ($q) => $q->whereHas('incidents', fn ($q) => $q->where('blocks_dispatch', true))
+            return $query->where(fn ($q) => $q->whereHas('incidents', fn ($q) => $q->blockingDispatch())
                 ->orWhereHas('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
                 ->orWhereDoesntHave('warehouse', fn ($q) => $q->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true)))
                 ->orWhere(fn ($q) => $q->whereNull('return_authorized_by')->whereDoesntHave('area', fn ($q) => $q->where('is_active', true)->whereHas('warehouses', fn ($q) => $q->where('is_active', true))))
@@ -39,7 +39,7 @@ class OperationsWorklist
                 ->orWhere(fn ($q) => $q->where('type', '!=', 'pickup')->where('status', 'assigned')));
         }
         $query->whereDoesntHave('tasks', fn ($q) => $q->whereIn('status', DeliveryTask::ACTIVE))
-            ->whereDoesntHave('pendingChange')->whereDoesntHave('incidents', fn ($q) => $q->where('blocks_dispatch', true))
+            ->whereDoesntHave('pendingChange')->whereDoesntHave('incidents', fn ($q) => $q->blockingDispatch())
             ->whereDoesntHave('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
             ->whereHas('warehouse', fn ($q) => $q->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true)));
         $query->where(fn ($q) => $q->where(fn ($q) => $q->whereNotNull('return_authorized_by')->whereHas('originWarehouse', fn ($q) => $q->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true))))

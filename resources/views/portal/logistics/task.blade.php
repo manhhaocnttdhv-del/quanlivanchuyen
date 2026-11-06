@@ -13,9 +13,13 @@
     </div>
     <x-order-progress :order="$order" />
     @php($pendingHandover = $task->handovers->where('status', 'pending')->sortByDesc('id')->first())
+    @php($warehouseActive = app(\App\Services\OrderRouting::class)->warehouseActive($order))
+    @if (!$warehouseActive && $task->status === 'assigned')
+        <p class="alert alert-warning">Kho hoặc khu vực đã ngừng xuất hàng. Thu hồi nhiệm vụ hoặc chờ kho hoạt động lại.</p>
+    @endif
     @if ($pendingHandover)
         <div class="operations-next-step"><div><span class="small text-secondary">Bước tiếp theo</span><strong>{{ $pendingHandover->direction === 'inbound' ? 'Chờ kho kiểm đếm và xác nhận nhập' : 'Chờ shipper kiểm đếm và nhận kiện' }}</strong></div><a class="btn btn-primary" href="{{ route('logistics.handover', $pendingHandover) }}"><i data-lucide="package-check"></i> Mở phiếu bàn giao</a></div>
-    @elseif ($task->status === 'assigned' && $task->type !== 'pickup' && $policy->shipper(auth()->user(), $task))
+    @elseif ($task->status === 'assigned' && $task->type !== 'pickup' && $warehouseActive && $policy->shipper(auth()->user(), $task))
         <p class="alert alert-info">Chờ kho lập phiếu xuất giao kiện.</p>
     @endif
     <div class="row g-4 mb-4">
@@ -50,7 +54,7 @@
             <form class="narrow-form mt-3" method="post" enctype="multipart/form-data"
                 action="{{ route('logistics.pickup', $task) }}">@csrf
                 <div class="row g-3">
-                    <div class="col-sm-6"><x-field name="successful" label="Kết quả" :options="[1 => 'Lấy đủ hàng', 0 => 'Không lấy được']" required /></div>
+                    <div class="col-sm-6"><x-field name="successful" label="Kết quả" :options="$warehouseActive ? [1 => 'Lấy đủ hàng', 0 => 'Không lấy được'] : [0 => 'Không lấy được']" required /></div>
                     <div class="col-sm-6"><x-field name="condition" label="Tình trạng" :options="['good' => 'Nguyên vẹn', 'damaged' => 'Hư hỏng']" required /></div>
                     <div class="col-12"><x-field name="evidence" type="file" accept="image/jpeg,image/png,image/webp"
                             label="Ảnh bằng chứng" required /></div>
@@ -77,7 +81,7 @@
             </form>
         </section>
     @endif
-    @if ($task->status === 'assigned' && $task->type !== 'pickup' && !$pendingHandover && $policy->warehouse(auth()->user(), $task->warehouse_id))
+    @if ($task->status === 'assigned' && $task->type !== 'pickup' && !$pendingHandover && $warehouseActive && $policy->warehouse(auth()->user(), $task->warehouse_id))
         <section class="work-section">
             <h2>Xuất giao cho shipper</h2>
             <form method="post" class="narrow-form mt-3" action="{{ route('logistics.prepare', $task) }}">@csrf<input

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -59,6 +60,12 @@ class User extends Authenticatable
     public function warehouses()
     {
         return $this->belongsToMany(Warehouse::class, 'warehouse_user');
+    }
+
+    public function requiredShipperWarehouseIds(): Collection
+    {
+        return DeliveryTask::where('shipper_id', $this->id)->whereIn('status', DeliveryTask::ACTIVE)->pluck('warehouse_id')
+            ->merge(WarehouseItem::where('holder_type', 'shipper')->where('holder_user_id', $this->id)->pluck('warehouse_id'))->unique();
     }
 
     public function shop()

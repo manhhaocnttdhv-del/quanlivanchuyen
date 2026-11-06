@@ -33,7 +33,7 @@
                     @foreach ($warehouses as $warehouse)
                         <label class="form-check"><input class="form-check-input" type="checkbox" name="warehouse_ids[]"
                                 value="{{ $warehouse->id }}"
-                                @checked(in_array($warehouse->id, (array) old('warehouse_ids', $record?->warehouses->modelKeys() ?? [])))><span>{{ $warehouse->name }}</span></label>
+                                @checked(in_array($warehouse->id, (array) old('warehouse_ids', $record?->warehouses->modelKeys() ?? [])))><span>{{ $warehouse->name }}{{ $warehouse->is_active ? '' : ' (ngừng xuất hàng)' }}</span></label>
                     @endforeach
                     @error('warehouse_ids')<p class="text-danger small">{{ $message }}</p>@enderror
                     @error('warehouse_ids.*')<p class="text-danger small">{{ $message }}</p>@enderror

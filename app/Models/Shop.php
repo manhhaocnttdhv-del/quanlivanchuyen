@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Shop extends Model
@@ -52,5 +53,13 @@ class Shop extends Model
     public function currentBankAccount()
     {
         return $this->belongsTo(ShopBankAccount::class, 'current_bank_account_id');
+    }
+
+    public function scopeReviewableBy(Builder $query, User $user): void
+    {
+        if ($user->hasRole('admin') || $user->hasPermission('banks.verify')) {
+            return;
+        }
+        $query->whereIn('area_id', $user->warehouses()->select('warehouses.area_id'));
     }
 }

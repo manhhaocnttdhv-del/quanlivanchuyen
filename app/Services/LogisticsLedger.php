@@ -50,6 +50,6 @@ class LogisticsLedger
 
     public function ensureNoIncidentDispatchHold(Order $order): void
     {
-        $this->ensure(! $order->incidents()->where('blocks_dispatch', true)->exists(), 'Vận đơn đang khóa giao/hoàn do sự cố. Cần kết luận được duyệt trước.');
+        $this->ensure(! $order->incidents()->blockingDispatch()->exists(), 'Vận đơn đang khóa vận chuyển do sự cố hoặc kiện đã xác nhận mất.');
     }
 }

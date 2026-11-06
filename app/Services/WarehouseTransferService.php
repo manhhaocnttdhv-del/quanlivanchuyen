@@ -23,6 +23,7 @@ class WarehouseTransferService
         return DB::transaction(function () use ($actor, $order, $data) {
             $order = $this->ledger->lock($order);
             abort_unless(app(LogisticsPolicy::class)->warehouse($actor, $order->warehouse_id), 403);
+            $this->routing->ensureWarehouseActive($order->warehouse_id);
             $this->ledger->ensure($order->revision === (int) $data['revision'], 'Đơn đã thay đổi; tải lại trước khi chuyển kho.', 'revision');
             $readiness = app(DispatchReadiness::class)->inspect($order);
             $this->ledger->ensure($readiness['canTransfer'], $readiness['warehouseBlockers'][0] ?? 'Đơn đã ở đúng kho để giao hoặc hoàn.');
@@ -32,8 +33,9 @@ class WarehouseTransferService
             $this->ledger->ensure(! $order->discrepancies()->where('status', 'open')->where('blocks_dispatch', true)->exists(), 'Đơn đang giữ vì sai lệch.');
             $this->ledger->ensure(! $order->transfers()->whereIn('status', ['in_transit', 'partial'])->exists(), 'Đơn đang có chuyến chuyển kho chưa nhận đủ.');
             $this->ledger->ensure(Warehouse::whereKey($order->warehouse_id)->where('is_active', true)->exists(), 'Kho gửi đang ngừng hoạt động.');
-            $destination = $this->routing->destinations($order)->whereKey($data['destination_warehouse_id'])->lockForUpdate()->first();
+            $destination = $this->routing->destinations($order)->whereKey($data['destination_warehouse_id'])->sharedLock()->first();
             $this->ledger->ensure((bool) $destination, 'Chọn kho nhận thuộc khu vực người nhận; đơn hoàn phải về đúng kho gửi ban đầu.', 'destination_warehouse_id');
+            $this->routing->ensureWarehouseActive($destination->id);
             $items = $order->parcels()->lockForUpdate()->get();
             $this->ledger->ensure($items->count() === $order->parcel_count && $items->every(fn ($item) => $item->holder_type === 'warehouse' && $item->warehouse_id === $order->warehouse_id), 'Phải có đủ kiện thực tế trong kho gửi.');
             $before = $this->ledger->snapshot($order);
@@ -65,7 +67,7 @@ class WarehouseTransferService
             $this->ledger->ensure(in_array($transfer->status, ['in_transit', 'partial']) && $order->status === 'in_transit' && $order->warehouse_id === $transfer->source_warehouse_id, 'Chuyến chuyển đã hoàn tất hoặc đơn không còn phù hợp.');
             $location = WarehouseLocation::whereKey($data['location_id'])->where('warehouse_id', $transfer->destination_warehouse_id)->where('is_active', true)->first();
             $this->ledger->ensure((bool) $location, 'Chọn vị trí đang hoạt động của đúng kho nhận.', 'location_id');
-            $lines = $transfer->lines()->whereNull('received_at')->lockForUpdate()->get();
+            $lines = $transfer->lines()->whereNull('received_at')->where(fn ($q) => $q->whereNull('condition')->orWhere('condition', '!=', 'lost'))->lockForUpdate()->get();
             $provided = collect($data['lines']);
             $this->ledger->ensure($provided->keys()->map(fn ($id) => (int) $id)->sort()->values()->all() === $lines->pluck('id')->sort()->values()->all(), 'Kiểm đếm đúng toàn bộ kiện còn chờ; không nhận lại kiện đã nhập kho.', 'lines');
             $before = $this->ledger->snapshot($order);
@@ -90,13 +92,15 @@ class WarehouseTransferService
                     'warehouse_location_id' => $received ? $location->id : null, 'condition' => $received ? $input['condition'] : null,
                     'evidence_path' => $evidence, 'receipt_reason' => $data['reason']]);
             }
-            $complete = ! $transfer->lines()->whereNull('received_at')->exists();
-            $transfer->update(['status' => $complete ? 'received' : 'partial', 'received_at' => $complete ? now() : null]);
+            $complete = ! $transfer->lines()->whereNull('received_at')->where(fn ($q) => $q->whereNull('condition')->orWhere('condition', '!=', 'lost'))->exists();
+            $lost = $transfer->lines()->where('condition', 'lost')->exists();
+            $transfer->update(['status' => $complete ? ($lost ? 'closed_loss' : 'received') : 'partial', 'received_at' => $complete ? now() : null]);
             if ($complete) {
                 $order->warehouse_id = $transfer->destination_warehouse_id;
                 $order->status = 'at_warehouse';
             }
-            $this->ledger->record($actor, $order, $complete ? 'transfer_received' : 'transfer_partial', $before, $transfer->code.': '.$data['reason'],
+            $event = $complete ? ($lost ? 'transfer_closed_loss' : 'transfer_received') : 'transfer_partial';
+            $this->ledger->record($actor, $order, $event, $before, $transfer->code.': '.$data['reason'],
                 ['transfer_id' => $transfer->id, 'receipt' => $data['lines'], 'location_id' => $location->id, 'evidence_path' => $evidence]);
         }, 3);
     }

@@ -4,6 +4,8 @@
 
 - Khach vao trang chu co Dang nhap va Dang ky gui hang. Ca nhan/cua hang dang ky thanh vai tro `shop`, ho so cho duyet; duoc luu nhap nhung chi gui duyet khi ho so approved.
 - Admin tao tai khoan `operations` va `shipper`, gan kho phu trach. Nhan vien active can it nhat mot kho; admin co pham vi toan he thong.
+- Shipper con nhiem vu hoac kien dang giu phai giu vai tro, trang thai active va pham vi kho can ban giao. Thu hoi, nhap tra va ket thuc nhiem vu truoc khi chuyen kho nhan su. Form van cho giu/khoi phuc kho da ngung hoat dong de nhan tra hang cu.
+- Van hanh duyet ho so nguoi gui trong khu vuc cac kho duoc gan; Admin/xac minh ngan hang giu pham vi toan he thong. Shop hien co `area_id`, chua gan rieng mot kho.
 - Dang nhap dua nguoi gui ve van don/ho so cho duyet, van hanh ve dieu phoi, shipper ve nhiem vu cua minh, admin ve tong quan.
 
 ## Lien tinh
@@ -26,6 +28,17 @@ Noi tinh co the giao ngay sau khi nhap du kien. He thong hien ho tro chuyen truc
 - Khi tim du kien, sai lech van can nguoi khac co quyen xac minh va bo giu. Nhan du khong tu xoa sai lech.
 - Neu hoan lien tinh, dieu phoi kho nhan luu quyet dinh theo y kien nguoi gui, chuyen ve dung `origin_warehouse_id`, kho gui nhan du roi phan shipper hoan ve dia chi gui.
 - Snapshot cuoc, COD va phi hoan giu nguyen khi chuyen kho; collection chi tao o ket qua giao/hoan, khong thu tien tren phieu chuyen kho.
+
+## Mat hang va thay doi kho
+
+- Su co mat hang luon khoa van chuyen. Duyet boi thuong dong thoi chuyen kien lien quan sang `holder_type=lost`, `condition=lost`, bo vi tri ton/nguoi giu, tang phien ban custody va ghi lich su. Khong co kien cu the thi ket luan ap dung cho toan bo kien cua don. Kien da giao khach/shop hoac da xac nhan mat khong duoc ghi mat lai.
+- Mat toan bo kien dua don sang `lost`; huy nhiem vu va phieu ban giao cho. Mat mot phan thi thu hoi shipper de nhap tra so kien con lai. Don tiep tuc giu xu ly, khong duoc tu dong giao/hoan phan hang con lai. Chua co luong quyet dinh giao mot phan.
+- Chuyen kho co kien mat chi nhan cac kien con cho thuc te. `closed_loss` la ket thuc chuyen co mat kien; kien mat khong co `received_at` gia. Lich su/thong bao phan biet voi nhan du.
+- Ket luan khong boi thuong cho su co mat chi duoc duyet khi kien lien quan da o kho va khong con sai lech thieu cho xac minh. Duyet tai chinh khong go khoa van chuyen cua ket luan mat.
+- Su co mat da duyet boi thuong tu phien ban cu van chan van chuyen ke ca co khoa cu bi tat. Khong tu ghi lai custody cua du lieu lich su; can kiem ke va doi chieu tung ho so truoc khi sua du lieu cu.
+- Kho da phat sinh van don, kien hoac chuyen kho khong duoc doi khu vuc; tao kho moi de giu dung tuyen va lich su. Ten/dia chi/trang thai van sua duoc.
+- Kho hoac khu vuc ngung hoat dong chan phan cong moi, lay hang thanh cong, lap va xac nhan phieu xuat, xuat chuyen. Van cho thu hoi, nhap tra, nhan chuyen da xuat va hoan tat hang da giao cho shipper truoc do. Khong tu go quyen hay huy chung tu cu.
+- Khieu nai giu kho tiep nhan ban dau. Nhan vien xu ly duoc lien ket ma/trang thai su co cung van don tai kho dich; quyen doc ho so/tai tep su co van theo kho cua su co.
 
 ## Migration va du lieu da co
 

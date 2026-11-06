@@ -30,6 +30,7 @@ class WarehouseService
             $this->ledger->ensure(! $task->handovers()->where('status', 'pending')->exists(), 'Đã có phiếu bàn giao chờ xác nhận.');
             $this->ledger->ensure($order->warehouse_id === $task->warehouse_id, 'Kho phụ trách đã thay đổi; cần kiểm tra lại nhiệm vụ.');
             if (! $inbound) {
+                app(OrderRouting::class)->ensureWarehouseActive($task->warehouse_id);
                 app(OrderRouting::class)->ensureReady($order, $task->type);
                 $this->ledger->ensure(in_array($task->type, ['delivery', 'return']) && $order->status === 'at_warehouse', 'Chỉ xuất giao/hoàn khi đơn tại kho.');
                 $this->unblocked($order);
@@ -63,6 +64,7 @@ class WarehouseService
             $this->ledger->ensure($doc->status === 'pending' && in_array($task->status, $inbound ? ['in_custody', 'recall_pending'] : ['assigned']), 'Phiếu đã xử lý hoặc nhiệm vụ không còn phù hợp.');
             $this->ledger->ensure($order->warehouse_id === $doc->warehouse_id && $task->warehouse_id === $doc->warehouse_id, 'Kho phụ trách không còn khớp phiếu bàn giao.');
             if (! $inbound) {
+                app(OrderRouting::class)->ensureWarehouseActive($doc->warehouse_id);
                 app(OrderRouting::class)->ensureReady($order, $task->type);
                 $this->unblocked($order);
             }
@@ -117,7 +119,7 @@ class WarehouseService
                 $order->status = 'at_warehouse';
                 $order->assigned_shipper_id = null;
                 $total = (int) $order->parcels()->sum('actual_weight_grams');
-                if ($total !== $order->weight_grams && ! $order->discrepancies()->where('type', 'weight')->where('status', 'open')->exists()) {
+                if ($total !== $order->weight_grams && ! $order->parcels()->where('holder_type', 'lost')->exists() && ! $order->discrepancies()->where('type', 'weight')->where('status', 'open')->exists()) {
                     $this->ledger->ensure($evidence !== null, 'Lệch cân cần ảnh cân làm bằng chứng.', 'evidence');
                     // Không sửa snapshot cước khi cân thực tế khác khai báo.
                     $this->discrepancy($actor, $doc, $lines->first()->warehouse_item_id, 'weight', 'Khai báo '.$order->weight_grams.'g; cân thực tế '.$total.'g. '.$data['reason'], $evidence);

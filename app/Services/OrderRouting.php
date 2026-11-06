@@ -2,13 +2,27 @@
 
 namespace App\Services;
 
+use App\Models\Area;
 use App\Models\Order;
 use App\Models\Warehouse;
 
 class OrderRouting
 {
+    public function warehouseActive(Order $order): bool
+    {
+        return Warehouse::whereKey($order->warehouse_id)->where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true))->exists();
+    }
+
+    public function ensureWarehouseActive(int $warehouseId, string $field = 'reason'): void
+    {
+        $warehouse = Warehouse::whereKey($warehouseId)->sharedLock()->first();
+        $area = $warehouse ? Area::whereKey($warehouse->area_id)->sharedLock()->first() : null;
+        app(LogisticsLedger::class)->ensure($warehouse?->is_active && $area?->is_active, 'Kho hoặc khu vực đã ngừng xuất hàng. Thu hồi nhiệm vụ hoặc chờ mở lại kho.', $field);
+    }
+
     public function ensureCoverage(int $warehouseId, int $areaId): void
     {
+        $this->ensureWarehouseActive($warehouseId, 'warehouse_id');
         $active = Warehouse::where('is_active', true)->whereHas('area', fn ($q) => $q->where('is_active', true));
         $ledger = app(LogisticsLedger::class);
         $ledger->ensure((clone $active)->whereKey($warehouseId)->exists(), 'Kho tiếp nhận đang ngừng phục vụ. Chọn kho khác trước khi gửi duyệt.', 'warehouse_id');

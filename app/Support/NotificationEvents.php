@@ -15,6 +15,7 @@ class NotificationEvents
         'logistics.transfer_dispatched' => ['transfer', 'Có chuyến chuyển kho chờ nhận'],
         'logistics.transfer_partial' => ['transfer', 'Chuyển kho chưa nhận đủ kiện'],
         'logistics.transfer_received' => ['transfer', 'Kho đích đã nhận đủ kiện'],
+        'logistics.transfer_closed_loss' => ['transfer', 'Kết thúc chuyển kho, có kiện đã xác nhận mất'],
         'delivery.attempt_recorded' => ['delivery', 'Giao hoặc hoàn hàng thất bại'],
         'incident.created' => ['incident', 'Có sự cố cần xử lý'],
         'finance.reconciliation_submit' => ['finance', 'Đối soát chờ duyệt'],

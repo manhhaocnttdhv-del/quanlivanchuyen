@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    public const STATUSES = ['draft' => 'Bản nháp', 'submitted' => 'Chờ duyệt', 'needs_info' => 'Cần bổ sung', 'rejected' => 'Từ chối', 'approved' => 'Đã duyệt', 'cancelled' => 'Đã hủy', 'picked_up' => 'Đã lấy hàng', 'at_warehouse' => 'Tại kho', 'in_transit' => 'Đang chuyển kho', 'out_for_delivery' => 'Đang giao', 'delivered' => 'Đã giao', 'delivery_failed' => 'Giao thất bại', 'returning' => 'Đang hoàn', 'returned' => 'Đã hoàn', 'return_failed' => 'Hoàn thất bại'];
+    public const STATUSES = ['draft' => 'Bản nháp', 'submitted' => 'Chờ duyệt', 'needs_info' => 'Cần bổ sung', 'rejected' => 'Từ chối', 'approved' => 'Đã duyệt', 'cancelled' => 'Đã hủy', 'picked_up' => 'Đã lấy hàng', 'at_warehouse' => 'Tại kho', 'in_transit' => 'Đang chuyển kho', 'out_for_delivery' => 'Đang giao', 'delivered' => 'Đã giao', 'delivery_failed' => 'Giao thất bại', 'returning' => 'Đang hoàn', 'returned' => 'Đã hoàn', 'return_failed' => 'Hoàn thất bại', 'lost' => 'Đã xác nhận mất toàn bộ kiện'];
 
     public const EDITABLE = ['draft', 'needs_info', 'rejected'];
 

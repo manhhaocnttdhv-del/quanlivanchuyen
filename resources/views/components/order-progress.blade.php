@@ -1,4 +1,7 @@
 @props(['order'])
+@if ($order->status === 'lost')
+    <div class="alert alert-danger" role="status"><i data-lucide="package-x" aria-hidden="true"></i> Đã xác nhận mất hàng. Vận đơn dừng vận chuyển; bồi thường được theo dõi riêng.</div>
+@else
 @php
     $steps = ['Tiếp nhận', 'Lấy hàng', 'Kho & vận chuyển', 'Giao / hoàn', 'Hoàn tất'];
     $current = match ($order->status) {
@@ -16,3 +19,4 @@
         </li>
     @endforeach
 </ol>
+@endif

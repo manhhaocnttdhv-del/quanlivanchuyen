@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WarehouseTransfer extends Model
 {
-    public const STATUSES = ['in_transit' => 'Đang chuyển', 'partial' => 'Nhận một phần', 'received' => 'Đã nhận đủ'];
+    public const STATUSES = ['in_transit' => 'Đang chuyển', 'partial' => 'Nhận một phần', 'received' => 'Đã nhận đủ', 'closed_loss' => 'Kết thúc chuyến có mất kiện'];
 
     protected $guarded = ['id', 'active_order_id'];
 

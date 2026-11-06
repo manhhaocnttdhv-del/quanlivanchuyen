@@ -21,7 +21,7 @@ class IncidentController extends Controller
     {
         abort_unless($this->policy->viewAny($request->user()), 403);
         $filters = $request->validated();
-        $query = Incident::visibleTo($request->user())->with(['order', 'assignee', 'warehouse'])
+        $query = Incident::visibleTo($request->user())->with(['order', 'assignee', 'warehouse', 'approvedAction'])
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where(fn ($q) => $q->where('code', 'like', $v.'%')->orWhereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%'))))
             ->when($filters['mine'] ?? null, fn ($q) => $q->where('assigned_to', $request->user()->id));
         foreach (['status', 'type', 'severity', 'order_id'] as $field) {
