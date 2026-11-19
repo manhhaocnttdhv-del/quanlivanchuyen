@@ -342,6 +342,13 @@ aside .work-section .field-group + .field-group { margin-top: 14px; }
 .label-barcode { text-align: center; padding: 20px 0 10px; }
 .label-barcode svg { width: 100%; max-width: 350px; height: 55px; }
 .label-barcode strong { display: block; font-family: ui-monospace, monospace; font-size: 12px; }
+.label-qr { text-align: center; margin-bottom: 10px; }
+.label-qr img { width: 36mm; height: 36mm; max-width: 100%; object-fit: contain; }
+.order-qr { display: flex; flex-direction: column; align-items: flex-start; margin-top: 24px; }
+.order-qr img { display: block; width: 200px; height: 200px; max-width: 100%; object-fit: contain; }
+.order-scanner { max-width: 640px; }
+.scan-video { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #111; margin-bottom: 16px; }
+.scan-video[hidden] { display: none; }
 .shipping-label section { border-top: 1px solid #222; padding: 12px 0; font-size: 12px; }
 .shipping-label section > strong { display: block; margin: 8px 0 5px; }
 .shipping-label small { font-size: 10px; display: block; }

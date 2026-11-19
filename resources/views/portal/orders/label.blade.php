@@ -17,6 +17,7 @@
             <header><strong>Gửi Việt.</strong><span>{{ config('shipping.services.' . $order->service . '.label') }} · Kiện
                     {{ $parcel }}/{{ $order->parcel_count }}</span></header>
             <div class="label-barcode">{!! $barcode !!}<strong>{{ $order->tracking_code }}</strong></div>
+            <div class="label-qr"><img src="{{ route('orders.qr', $order) }}" width="140" height="140" alt="QR vận đơn {{ $order->tracking_code }}"></div>
             <section><small>NGƯỜI GỬI ·
                     {{ $order->sender_snapshot['shop'] }}</small><strong>{{ $order->sender_snapshot['name'] }} ·
                     {{ $order->sender_snapshot['phone'] }}</strong>

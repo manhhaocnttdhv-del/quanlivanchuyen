@@ -47,4 +47,10 @@ class CustomerPortalController extends Controller
         return $request->expectsJson() ? response()->json($result)
             : redirect()->to(route('home').'#cong-cu')->withInput()->with('tracking', $result);
     }
+
+    public function trackingForm(string $code)
+    {
+        return response()->view('customer.tracking', ['trackingCode' => strtoupper($code)])
+            ->header('Cache-Control', 'no-store');
+    }
 }

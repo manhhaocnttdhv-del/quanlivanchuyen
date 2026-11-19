@@ -68,6 +68,13 @@
                         gửi duyệt.</p>
                 @endif
             </aside>
+            <section class="work-section order-qr">
+                <h2>QR vận đơn</h2>
+                <a href="{{ route('shipping.track-form', ['code' => $order->tracking_code]) }}" aria-label="Tra cứu {{ $order->tracking_code }}">
+                    <img src="{{ route('orders.qr', $order) }}" width="200" height="200" alt="QR vận đơn {{ $order->tracking_code }}">
+                </a>
+                <a class="btn btn-outline-primary" href="{{ route('orders.qr', $order) }}" download="{{ $order->tracking_code }}-qr.png"><i data-lucide="download"></i> Tải QR</a>
+            </section>
         </div>
     </div>
     @can('update', $order)

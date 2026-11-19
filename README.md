@@ -29,6 +29,10 @@ php -v
 
 Kiem tra: `php artisan test`, `php vendor/bin/pint --test`, `npm run build`.
 
+## Action, luồng và QR vận đơn
+
+Xem [thống kê action và luồng hoạt động](docs/actions-and-workflows.md) và [báo cáo web test 19/11/2026](docs/web-test-2026-11-19.md). Mỗi đơn có mã `GV` + ULID duy nhất; chi tiết và tem có QR riêng theo đơn, tải PNG, quét camera/ảnh hoặc nhập mã tại `/quet-van-don`. Link QR công khai vẫn yêu cầu 4 số cuối điện thoại nhận. Sau cập nhật chạy `composer install`, `npm ci`, `npm run build`; PHP cần GD (QR) và ZIP (Excel). Không cần migration mới cho QR.
+
 ## Dữ liệu mẫu và kiểm thử
 
 Chạy `php artisan db:seed` để tạo vai trò, quyền và khu vực. Dữ liệu demo chỉ dùng ở môi trường local/testing; đặt mật khẩu riêng qua biến môi trường, không commit mật khẩu:

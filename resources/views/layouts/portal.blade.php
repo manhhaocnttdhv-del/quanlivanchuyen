@@ -57,7 +57,7 @@
                             href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> {{ auth()->user()->shop->isIndividual() ? 'Người gửi & địa chỉ' : 'Cửa hàng & địa chỉ' }}</a>
                     @endif
                     @can('viewAny', \App\Models\Order::class)
-                        <a class="{{ request()->routeIs('orders.*') ? 'active' : '' }}"
+                        <a class="{{ request()->routeIs('orders.*') && !request()->routeIs('orders.scan*') ? 'active' : '' }}"
                             href="{{ route('orders.index') }}"><i data-lucide="clipboard-list"></i> Vận đơn</a>
                     @endcan
                     @if ($dispatchAccess || $warehouseAccess || auth()->user()->hasRole('shipper'))
@@ -65,6 +65,9 @@
                             href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}"><i
                                 data-lucide="truck"></i>
                             {{ auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Trung tâm vận hành' }}</a>
+                    @endif
+                    @if (auth()->user()->hasRole('admin') || auth()->user()->hasPermission('orders.review') || auth()->user()->shop || auth()->user()->hasRole('shipper'))
+                        <a class="{{ request()->routeIs('orders.scan*') ? 'active' : '' }}" href="{{ route('orders.scan') }}"><i data-lucide="qr-code"></i> Quét vận đơn</a>
                     @endif
                     @if (auth()->user()->hasRole('admin') ||
                             auth()->user()->hasRole('shipper') ||
