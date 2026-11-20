@@ -2,7 +2,7 @@ import './bootstrap';
 import $ from 'jquery';
 import { Collapse, Tab, Tooltip, Modal, Offcanvas } from 'bootstrap';
 import {
-    createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight,
+    createIcons, PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, Play, Pause, Maximize2,
     Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus, QrCode, Camera, Square,
     ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck,
     Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store,
@@ -10,7 +10,7 @@ import {
 
 window.$ = window.jQuery = $;
 const iconSet = { PackageCheck, Menu, ClipboardList, Plus, ArrowLeft, ArrowRight, ArrowUpRight, Package, ScanSearch, Calculator, Search, ShieldCheck, Truck, Zap, Banknote, Wallet, ChartColumn, Download, Filter, MapPinHouse, MapPin, ReceiptText, Info, Save, Pencil, Trash2, CircleCheck, FilePlus2, Route, Printer, RotateCcw, Send, X, Phone, Image, TriangleAlert, MessagesSquare, Paperclip, Clock3, LockKeyhole, UserRound, Store };
-Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus, QrCode, Camera, Square });
+Object.assign(iconSet, { Bell, Mail, MailCheck, CheckCheck, LogOut, ArrowRightLeft, UserPlus, QrCode, Camera, Square, Play, Pause, Maximize2 });
 const money = (value) => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 
 function renderQuote($target, quote) {
@@ -96,6 +96,13 @@ $(function () {
     $('[data-print]').on('click', () => window.print());
     if (document.querySelector('[data-order-scanner]')) {
         import('./order-scanner').then(({ setupOrderScanner }) => setupOrderScanner());
+    }
+    if (document.querySelector('[data-shipper-simulation]')) {
+        import('./shipper-map').then(({ setupShipperMap }) => setupShipperMap())
+            .catch(() => {
+                document.querySelector('[data-map-load-error]').hidden = false;
+                document.querySelector('[data-demo-play]').disabled = true;
+            });
     }
     $('[data-notification-counter]').each((_, element) => {
         const refresh = () => {

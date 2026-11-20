@@ -42,11 +42,7 @@
                     <div><span class="small text-secondary">{{ $stop['phase'] }}</span><h2 class="h5">{{ $stop['name'] }}</h2><p>{{ $stop['address'] }} · {{ $stop['area'] }}</p></div>
                     <span class="status-badge">{{ \App\Models\DeliveryTask::TYPES[$selected->type] }}</span>
                 </div>
-                @if ($stop['embed'])
-                    <iframe class="shipper-map-canvas" src="{{ $stop['embed'] }}" title="Bản đồ điểm đến của nhiệm vụ" loading="lazy" referrerpolicy="no-referrer" allowfullscreen></iframe>
-                @else
-                    <div class="shipper-map-unavailable"><i data-lucide="map-pin"></i><p>Chưa có địa chỉ điểm đến</p></div>
-                @endif
+                @include('portal.delivery.partials.map-simulation')
                 <div class="shipper-map-actions">
                     <span class="small text-secondary logistics-code">{{ $selected->order->tracking_code }} · {{ $selected->order->parcel_count }} kiện</span>
                     <div class="d-flex flex-wrap gap-2">

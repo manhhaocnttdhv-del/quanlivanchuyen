@@ -15,6 +15,7 @@
         "@zxing/browser": "^0.1.5",
         "bootstrap": "^5.3.8",
         "jquery": "^4.0.0",
+        "leaflet": "1.9.4",
         "lucide": "^1.63.0"
     }
 }

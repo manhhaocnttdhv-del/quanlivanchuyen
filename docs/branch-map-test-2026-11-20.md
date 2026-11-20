@@ -66,3 +66,21 @@ Bằng chứng local được giữ ở `D:/codex-work/quanlivanchuyen-qr/eviden
 Không còn lỗi được xác nhận trong các ca trên. Bản đồ dùng Google Maps theo địa chỉ, cần Internet; địa chỉ demo giả có thể ra kết quả rộng hoặc sai. URL nhúng/chỉ đường gửi địa chỉ điểm đến cho Google, không kèm tên, điện thoại, mã đơn, tiền hoặc referrer. Chưa có GPS thời gian thực, theo dõi nền, ETA hay tối ưu tuyến nhiều điểm; chưa kiểm thử lái xe ngoài thực tế, gọi điện thật hoặc dẫn đường từ GPS thiết bị.
 
 Không chạy audit dependency mới trong đợt này; các cảnh báo Composer Laravel/Symfony có từ lần kiểm tra trước chưa được xử lý trong phạm vi bản đồ. Không coi kiểm tra này là PASS về audit dependency.
+
+## Bổ sung Leaflet và mô phỏng di chuyển: PASS
+
+Theo yêu cầu demo di chuyển, trang bản đồ nay mở ở chế độ Mô phỏng dùng Leaflet 1.9.4, nền OpenStreetMap/HOT từ OSM France. Chế độ Địa chỉ đơn giữ bản đồ Google và chỉ gán URL iframe khi được chọn. Thư viện được đóng gói bằng Vite; ba tuyến mẫu GeoJSON được lưu trong source, có ghi nguồn OSRM/OpenStreetMap tại `resources/js/data/README.md`. Không thêm migration, không gọi GPS/geocoding/OSRM trong lúc chạy mẫu.
+
+Tuyến mặc định theo khu vực kho của task, có thể chọn mẫu Hà Nội/TP.HCM/Đà Nẵng. Có chạy/tạm dừng, chạy lại, reset, tốc độ 1x/2x/4x, kéo tiến độ, xem toàn tuyến và công tắc theo shipper. 90 giây mô phỏng cho một tuyến tại 1x, 22,5 giây tại 4x; quãng đường là khoảng cách dọc tuyến mẫu, không phải khoảng cách giao đơn thực. Không tạo request thay đổi đơn, lịch sử kho hoặc tiền thu.
+
+| Bước kiểm thử | Kết quả cập nhật |
+| --- | --- |
+| 1. Phạm vi | PASS: mở rộng UI mô phỏng, giữ quyền shipper/kho và hành vi nghiệp vụ |
+| 2. Môi trường | PASS: cùng database verify riêng; thêm một dependency Leaflet được khóa 1.9.4; không đổi `.env` |
+| 3. Ca kiểm thử | PASS: mặc định TP.HCM theo task 94, đổi HN/DN, chạy/dừng/reset/replay, tốc độ, tiến độ, chuyển chế độ, desktop/mobile |
+| 4. Kiểm tra tĩnh | PASS: Pint, `node --check resources/js/shipper-map.js`, Vite build và diff check |
+| 5. Tự động | PASS: toàn bộ **261 test, 3.307 assertion**, 129,31 giây; thêm assertion UI và khu vực mẫu vào test hiện có |
+| 6. Trình duyệt | PASS: tile nền thật, marker đổi vị trí khi chạy và giữ nguyên sau pause; chạy hết tuyến 4x về 100%, còn lại 0,00 km và “Đã đến điểm mẫu”; replay/reset hoạt động; kéo tiến độ bằng bàn phím; đổi tuyến reset về 0%; chuyển Địa chỉ đơn tải iframe và dừng mô phỏng |
+| 7. Bằng chứng/giới hạn | PASS trong phạm vi: desktop 1280×900 và mobile 390×844 không tràn ngang; ảnh `leaflet-simulation-desktop.jpg`, `leaflet-simulation-mobile.jpg` trong thư mục evidence local. Chỉ là chuyển động giả; không kiểm thử dẫn đường/GPS thực tế |
+
+Máy chủ tile OSM tiêu chuẩn không kết nối được ở môi trường này; CARTO trả ảnh yêu cầu API key. Đã chuyển sang OSM France/HOT và xác nhận tile đường phố tải thật, với attribution hiện trên bản đồ. Các cảnh báo/lỗi thử provider ban đầu không được coi là kết quả PASS; kết quả trên thuộc provider cuối cùng. Nền bản đồ vẫn cần Internet; khi lỗi tile có thông báo và tuyến/mô phỏng vẫn còn. Cần chọn dịch vụ tile phù hợp nếu đưa lên hệ thống có lưu lượng lớn.

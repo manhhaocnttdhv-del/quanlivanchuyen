@@ -20,7 +20,9 @@ class ShipperMapService
         $stops = $tasks->getCollection()->mapWithKeys(fn ($task) => [$task->id => $this->stop($task)]);
         $stop = $selected ? $this->stop($selected) : null;
 
-        return compact('tasks', 'counts', 'selected', 'stops', 'stop');
+        $demoArea = $selected?->warehouse->area?->code;
+
+        return compact('tasks', 'counts', 'selected', 'stops', 'stop', 'demoArea');
     }
 
     private function stop(DeliveryTask $task): array

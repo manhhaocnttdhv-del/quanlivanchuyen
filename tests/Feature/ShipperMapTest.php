@@ -84,6 +84,8 @@ class ShipperMapTest extends DatabaseTestCase
         $before = $task->order->getAttributes();
         $audits = AuditLog::count();
         $response = $this->actingAs($this->shipper)->get(route('delivery.map', ['task' => $task->id]))->assertOk();
+        $response->assertSee('Mô phỏng')->assertSee('Địa chỉ đơn')->assertSee('data-shipper-simulation', false);
+        $this->assertSame($this->depot->area->code, $response->viewData('demoArea'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $stop = $response->viewData('stop');
         foreach (['embed', 'directions'] as $field) {
