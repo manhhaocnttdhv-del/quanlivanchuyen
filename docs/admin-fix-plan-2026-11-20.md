@@ -23,7 +23,9 @@ Phạm vi thuộc Sprint 01: tài khoản và danh mục. Nhánh triển khai: `
 - [x] Sửa Form Request, Service, Controller và Blade trong phạm vi đã nêu.
 - [x] Chạy test tập trung, toàn bộ PHPUnit, Pint, Vite build và kiểm tra diff.
 - [x] Kiểm tra trình duyệt trên database QA riêng; lưu bằng chứng.
-- [ ] Ghi kết quả, commit Conventional Commits và mở PR vào `main`.
+- [x] Ghi kết quả, commit Conventional Commits và mở PR vào `main`.
+
+Commit triển khai: `44885ae` (`fix(admin): preserve customer access and validate warehouse areas`). PR vào `main`: [#15](https://github.com/manhhaocnttdhv-del/quanlivanchuyen/pull/15), đang mở để review.
 
 ## Tiêu chí nghiệm thu
 
