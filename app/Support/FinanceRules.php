@@ -46,7 +46,8 @@ class FinanceRules
 
     public static function reconciliation(): array
     {
-        return self::base() + ['warehouse_id' => ['required', 'integer'], 'shop_id' => ['required', 'integer'], 'period_start' => ['required', 'date_format:Y-m-d'], 'period_end' => ['required', 'date_format:Y-m-d', 'after_or_equal:period_start']] + self::selection();
+        return self::base() + ['warehouse_id' => ['required', 'integer'], 'shop_id' => ['required', 'integer'], 'period_start' => ['required', 'date_format:Y-m-d'],
+            'period_end' => ['required', 'date_format:Y-m-d', Rule::when(fn ($input) => is_string($input->period_start) && $input->period_start !== '', 'after_or_equal:period_start')]] + self::selection();
     }
 
     public static function payment(): array

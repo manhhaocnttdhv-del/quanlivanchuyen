@@ -54,13 +54,39 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->put('auth_version', $user->auth_version);
 
-        // Một nhân viên có thể mở nút gửi hàng trước đăng nhập; đưa về công việc đúng vai trò.
-        $intendedPath = parse_url((string) $request->session()->get('url.intended', ''), PHP_URL_PATH);
-        if (! $user->shop && in_array($intendedPath, ['/gui-hang', '/don-hang', '/cua-hang'])) {
+        $this->clearUnavailableIntendedPage($request, $user);
+
+        return redirect()->intended(route($user->workspaceRoute()));
+    }
+
+    public function workspace(Request $request)
+    {
+        return redirect()->route($request->user()->workspaceRoute());
+    }
+
+    private function clearUnavailableIntendedPage(Request $request, User $user): void
+    {
+        $path = parse_url((string) $request->session()->get('url.intended', ''), PHP_URL_PATH) ?? '';
+        // Không đưa nhân viên về form người gửi sau đăng nhập.
+        if (! $user->shop && in_array($path, ['/gui-hang', '/don-hang', '/cua-hang'])) {
             $request->session()->forget('url.intended');
         }
 
-        return redirect()->intended(route($user->workspaceRoute()));
+        $permissions = [
+            '/quan-tri/tai-khoan' => 'users.manage', '/quan-tri/danh-muc' => 'catalog.manage',
+            '/quan-tri/khu-vuc' => 'catalog.manage', '/quan-tri/kho' => 'catalog.manage',
+            '/quan-tri/bieu-phi' => 'catalog.manage', '/quan-tri/nhat-ky' => 'audit.view',
+            '/quan-tri/shops' => 'any-shop-review',
+        ];
+        foreach ($permissions as $prefix => $permission) {
+            // Chi tiết shop có Policy theo từng hồ sơ; chỉ kiểm Gate cho danh sách shop.
+            $matches = $path === $prefix || ($permission !== 'any-shop-review' && str_starts_with($path, $prefix.'/'));
+            if ($matches && ! $user->can($permission)) {
+                $request->session()->forget('url.intended');
+
+                return;
+            }
+        }
     }
 
     public function store(RegisterRequest $request, ShopService $service)

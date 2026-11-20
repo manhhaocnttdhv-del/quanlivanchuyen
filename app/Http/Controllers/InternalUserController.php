@@ -37,10 +37,12 @@ class InternalUserController extends Controller
     private function form(?User $user = null)
     {
         // Tài khoản shop đăng ký bằng luồng riêng, không gán vai trò shop từ form nhân sự.
+        $isCustomer = $user?->hasRole('shop') ?? false;
         $retained = $user ? $user->warehouses()->pluck('warehouses.id')->merge($user->requiredShipperWarehouseIds()) : collect();
 
-        return view('portal.users.form', ['record' => $user, 'roles' => Role::whereIn('name', Role::INTERNAL_NAMES)->get(),
-            'warehouses' => Warehouse::where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $retained))->get()]);
+        return view('portal.users.form', ['record' => $user, 'isCustomer' => $isCustomer,
+            'roles' => $isCustomer ? $user->roles : Role::whereIn('name', Role::INTERNAL_NAMES)->get(),
+            'warehouses' => $isCustomer ? $user->warehouses : Warehouse::where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $retained))->get()]);
     }
 
     public function store(InternalUserRequest $request, IdentityService $service)
@@ -54,6 +56,6 @@ class InternalUserController extends Controller
     {
         $service->save($request->user(), $request->validated(), $user);
 
-        return redirect()->route('users.index')->with('status', 'Đã cập nhật tài khoản, vai trò và phạm vi kho.');
+        return redirect()->route('users.index')->with('status', 'Đã cập nhật tài khoản.');
     }
 }

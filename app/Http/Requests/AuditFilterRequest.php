@@ -22,7 +22,7 @@ class AuditFilterRequest extends PortalRequest
             'subject_id' => ['nullable', 'integer', 'min:1'],
             'event' => ['nullable', 'string', 'max:80', 'regex:/^[a-z][a-z0-9_.-]*$/'],
             'from' => ['nullable', 'date_format:Y-m-d'],
-            'until' => ['nullable', 'date_format:Y-m-d', Rule::when($this->filled('from'), 'after_or_equal:from')],
+            'until' => ['nullable', 'date_format:Y-m-d', Rule::when(fn ($input) => is_string($input->from) && $input->from !== '', 'after_or_equal:from')],
             'request_id' => ['nullable', 'uuid'],
             'page' => ['nullable', 'integer', 'min:1', 'max:1000000'],
         ];

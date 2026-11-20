@@ -14,7 +14,7 @@ class FeeVersionRequest extends PortalRequest
     public function rules(): array
     {
         return ['name' => ['required', 'string', 'max:100'], 'active_from' => ['required', 'date_format:Y-m-d\TH:i'],
-            'active_until' => ['nullable', 'date_format:Y-m-d\TH:i', 'after:active_from'],
+            'active_until' => ['nullable', 'date_format:Y-m-d\TH:i', Rule::when(fn ($input) => is_string($input->active_from) && $input->active_from !== '', 'after:active_from')],
             'rules' => ['required', 'array', 'min:6', 'max:60'],
             'rules.*' => ['array:route,service,min_weight_grams,max_weight_grams,base_weight_grams,step_weight_grams,base_fee,step_fee,max_cod,return_fee'],
             'rules.*.route' => ['required', Rule::in(['local', 'regional', 'national'])],
