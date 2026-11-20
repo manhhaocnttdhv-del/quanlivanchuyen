@@ -23,7 +23,10 @@ class CatalogController extends Controller
 
     public function warehouse(?Warehouse $warehouse = null)
     {
-        return view('portal.catalog.warehouse', ['record' => $warehouse, 'areas' => Area::where('is_active', true)->pluck('name', 'id')]);
+        $areas = Area::where(fn ($q) => $q->where('is_active', true)->when($warehouse, fn ($q) => $q->orWhere('id', $warehouse->area_id)))
+            ->orderBy('name')->get()->mapWithKeys(fn ($area) => [$area->id => $area->name.($area->is_active ? '' : ' (ngừng phục vụ)')]);
+
+        return view('portal.catalog.warehouse', ['record' => $warehouse, 'areas' => $areas]);
     }
 
     public function saveArea(AreaRequest $request, CatalogService $service, ?Area $area = null)

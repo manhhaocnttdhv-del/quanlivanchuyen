@@ -1,5 +1,5 @@
 @extends('layouts.portal')
-{{-- Chọn nhiều vai trò và phạm vi kho; mật khẩu trống khi sửa sẽ giữ mật khẩu cũ, Service bảo vệ admin cuối. --}}
+{{-- Quyền khách hàng chỉ đọc; tài khoản nội bộ chọn nhiều vai trò và phạm vi kho. --}}
 @section('heading', $record ? 'Cập nhật tài khoản' : 'Tạo tài khoản nội bộ')
 @section('content')
     <form method="post" class="edit-form" action="{{ $record ? route('users.update', $record) : route('users.store') }}">
@@ -20,25 +20,39 @@
             <div class="col-lg-6">
                 <fieldset class="choice-list">
                     <legend>Vai trò</legend>
-                    <p class="form-text">Vận hành phụ trách điều phối, kho và CSKH. Admin kiêm kế toán. Cá nhân và cửa hàng tự đăng ký ở trang khách hàng.</p>
-                    @foreach ($roles as $role)
-                        <label class="form-check"><input class="form-check-input" type="checkbox" name="role_ids[]"
-                                value="{{ $role->id }}"
-                                @checked(in_array($role->id, (array) old('role_ids', $record?->roles->modelKeys() ?? [])))><span>{{ $role->label }}</span></label>
-                    @endforeach
+                    @if ($isCustomer)
+                        <p class="mb-0">{{ $roles->pluck('label')->implode(', ') }}</p>
+                    @else
+                        <p class="form-text">Vận hành phụ trách điều phối, kho và CSKH. Admin kiêm kế toán. Cá nhân và cửa hàng tự đăng ký ở trang khách hàng.</p>
+                        @foreach ($roles as $role)
+                            <label class="form-check"><input class="form-check-input" type="checkbox" name="role_ids[]"
+                                    value="{{ $role->id }}"
+                                    @checked(in_array($role->id, (array) old('role_ids', $record?->roles->modelKeys() ?? [])))><span>{{ $role->label }}</span></label>
+                        @endforeach
+                    @endif
+                    @error('role_ids')<p class="text-danger small">{{ $message }}</p>@enderror
+                    @error('role_ids.*')<p class="text-danger small">{{ $message }}</p>@enderror
                 </fieldset>
                 <fieldset class="choice-list">
                     <legend>Phạm vi kho</legend>
-                    <p class="form-text">Vận hành và shipper cần ít nhất một kho. Tài khoản từng kho chỉ chọn đúng kho phụ trách.</p>
-                    @foreach ($warehouses as $warehouse)
-                        <label class="form-check"><input class="form-check-input" type="checkbox" name="warehouse_ids[]"
-                                value="{{ $warehouse->id }}"
-                                @checked(in_array($warehouse->id, (array) old('warehouse_ids', $record?->warehouses->modelKeys() ?? [])))><span>{{ $warehouse->name }}{{ $warehouse->is_active ? '' : ' (ngừng xuất hàng)' }}</span></label>
-                    @endforeach
+                    @if ($isCustomer)
+                        @forelse ($warehouses as $warehouse)
+                            <p class="mb-1">{{ $warehouse->name }}{{ $warehouse->is_active ? '' : ' (ngừng xuất hàng)' }}</p>
+                        @empty
+                            <p class="mb-0">Không có phạm vi kho.</p>
+                        @endforelse
+                    @else
+                        <p class="form-text">Vận hành và shipper cần ít nhất một kho. Tài khoản từng kho chỉ chọn đúng kho phụ trách.</p>
+                        @foreach ($warehouses as $warehouse)
+                            <label class="form-check"><input class="form-check-input" type="checkbox" name="warehouse_ids[]"
+                                    value="{{ $warehouse->id }}"
+                                    @checked(in_array($warehouse->id, (array) old('warehouse_ids', $record?->warehouses->modelKeys() ?? [])))><span>{{ $warehouse->name }}{{ $warehouse->is_active ? '' : ' (ngừng xuất hàng)' }}</span></label>
+                        @endforeach
+                    @endif
                     @error('warehouse_ids')<p class="text-danger small">{{ $message }}</p>@enderror
                     @error('warehouse_ids.*')<p class="text-danger small">{{ $message }}</p>@enderror
                 </fieldset>
-                <x-field name="reason" label="Lý do tạo / thay đổi quyền" type="textarea" rows="3" required />
+                <x-field name="reason" label="Lý do tạo / cập nhật tài khoản" type="textarea" rows="3" required />
             </div>
         </div>
         <div class="form-actions"><button class="btn btn-primary"><i data-lucide="save"></i> Lưu tài khoản</button><a

@@ -23,6 +23,11 @@ class IdentityService
             $before = $user->only(['name', 'email', 'phone', 'status']);
             if ($user->exists) {
                 $before += ['role_ids' => $user->roles()->pluck('roles.id')->all(), 'warehouse_ids' => $user->warehouses()->pluck('warehouses.id')->all()];
+                // Sửa khách hàng không đổi quyền; lấy phạm vi từ tài khoản đã khóa trong transaction.
+                if ($user->hasRole('shop')) {
+                    $data['role_ids'] = $before['role_ids'];
+                    $data['warehouse_ids'] = $before['warehouse_ids'];
+                }
             }
             $wasAdmin = $user->exists && $user->hasRole('admin') && $user->status === 'active';
             $adminId = Role::where('name', 'admin')->value('id');

@@ -1,5 +1,5 @@
 @extends('layouts.portal')
-{{-- Form tạo/sửa dùng POST/PUT; khu vực gợi ý đang hoạt động, server kiểm tra lại trước lưu. --}}
+{{-- Cho giữ khu vực hiện tại khi ngừng phục vụ; kho mới chỉ chọn khu vực hoạt động. --}}
 @section('heading', $record ? 'Cập nhật kho' : 'Thêm kho')
 @section('content')
     <form class="edit-form narrow-form" method="post"

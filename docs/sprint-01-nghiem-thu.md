@@ -30,6 +30,8 @@ Audit writer có từ sprint này. Mọi thay đổi nghiệp vụ trong service
 
 Các trường hợp đã phủ: đăng nhập email/điện thoại, thử sai, tài khoản khóa và phiên bị thu hồi; bảo vệ admin cuối; sửa hồ sơ đúng chủ; ngân hàng giữ lịch sử và mã hóa; phạm vi shop/địa chỉ; biểu phí trùng lịch hoặc trùng cân bị từ chối; audit cùng rollback; render các màn hình theo quyền.
 
+Đợt sửa quản trị 20/11/2026 bổ sung sửa/khóa/mở lại tài khoản khách hàng mà không đổi role hoặc phạm vi kho; kho được giữ khu vực hiện tại đã ngừng phục vụ khi cập nhật; ID khu vực sai kiểu bị chặn bằng validation. Kế hoạch, tiêu chí và kết quả kiểm tra nằm trong [kế hoạch sửa lỗi quản trị](admin-fix-plan-2026-11-20.md).
+
 ## Các quyết định cần giải thích khi bảo vệ
 
 - Quyền chức năng khác phạm vi dữ liệu: được điều phối không đồng nghĩa xem được mọi kho. Sprint 02 dùng lại danh sách kho để lọc vận đơn.
