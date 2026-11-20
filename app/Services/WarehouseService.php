@@ -70,7 +70,7 @@ class WarehouseService
             }
             $lines = $doc->lines()->with('item')->orderBy('id')->get();
             $provided = collect($data['lines']);
-            $this->ledger->ensure($provided->count() === $lines->count() && $provided->keys()->map(fn ($key) => (int) $key)->sort()->values()->all() === $lines->pluck('id')->sort()->values()->all(), 'Phải kiểm đếm toàn bộ và đúng các dòng của phiếu.', 'lines');
+            $this->ledger->ensure($provided->keys()->sort()->values()->all() === $lines->pluck('id')->sort()->values()->all(), 'Phải kiểm đếm toàn bộ và đúng các dòng của phiếu.', 'lines');
             $location = null;
             if ($inbound) {
                 $location = WarehouseLocation::whereKey($data['location_id'] ?? null)->where('warehouse_id', $doc->warehouse_id)->where('is_active', true)->first();

@@ -17,11 +17,15 @@
     <section class="work-section">
         <h2>Kiện chuyển kho</h2>
         <div class="table-responsive"><table class="table align-middle">
-            <thead><tr><th>Kiện</th><th>Trạng thái nhận</th><th>Người nhận / vị trí</th><th>Bằng chứng</th></tr></thead>
+            <thead><tr><th>Kiện</th><th>Trạng thái nhận</th><th>Kiểm đếm / vị trí</th><th>Bằng chứng</th></tr></thead>
             <tbody>@foreach ($transfer->lines as $line)
                 <tr><td>#{{ $line->item->parcel_number }}</td>
                     <td>{{ $line->condition === 'lost' ? 'Đã xác nhận mất' : ($line->received_at ? ($line->condition === 'damaged' ? 'Đã nhận · Hư hỏng' : 'Đã nhận') : 'Chưa nhận') }}</td>
-                    <td>{{ $line->receiver?->name ?? '—' }}<br><small>{{ $line->location?->name }} {{ $line->received_at?->format('H:i d/m/Y') }}</small></td>
+                    <td>
+                        {{ $line->receiver?->name ?? '—' }}
+                        @if ($line->location)<small class="d-block">{{ $line->location->name }}</small>@endif
+                        @if ($line->received_at)<small class="d-block"><time datetime="{{ $line->received_at->toIso8601String() }}">{{ $line->received_at->format('H:i d/m/Y') }}</time></small>@endif
+                    </td>
                     <td>@if ($line->evidence_path)<a href="{{ route('transfers.evidence', [$transfer, $line]) }}" target="_blank" rel="noopener">Xem ảnh</a>@else — @endif</td>
                 </tr>
             @endforeach</tbody>

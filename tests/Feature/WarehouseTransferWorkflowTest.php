@@ -234,6 +234,32 @@ class WarehouseTransferWorkflowTest extends DatabaseTestCase
         $this->assertSame(2, $transfer->lines()->whereNotNull('received_at')->count());
     }
 
+    public function test_receipt_rejects_noncanonical_line_identifiers_without_changing_custody(): void
+    {
+        $order = $this->stocked();
+        $transfer = app(WarehouseTransferService::class)->dispatch($this->sender, $order, $this->dispatchData($order));
+        $data = $this->receiptData($transfer);
+        $lineId = array_key_first($data['lines']);
+        $before = $order->fresh()->getAttributes();
+        $histories = $order->histories()->count();
+        $auditCount = AuditLog::count();
+        foreach ([$lineId.'invalid', '0'.$lineId, $lineId.'.0'] as $invalidId) {
+            $invalid = $data;
+            $invalid['lines'][$invalidId] = $invalid['lines'][$lineId];
+            unset($invalid['lines'][$lineId]);
+            $this->actingAs($this->receiver)->postJson(route('transfers.receive', $transfer), $invalid)
+                ->assertUnprocessable()->assertJsonValidationErrors('lines');
+            $this->assertSame($before, $order->fresh()->getAttributes());
+            $this->assertSame('in_transit', $transfer->fresh()->status);
+            $this->assertSame(0, $transfer->lines()->whereNotNull('received_at')->count());
+            $this->assertSame(2, $order->parcels()->where('holder_type', 'transfer')->count());
+            $this->assertSame($histories, $order->histories()->count());
+            $this->assertSame($auditCount, AuditLog::count());
+        }
+        app(WarehouseTransferService::class)->receive($this->receiver, $transfer, $data, null);
+        $this->assertSame('received', $transfer->fresh()->status);
+    }
+
     public function test_transfer_and_custody_roll_back_when_audit_fails(): void
     {
         $order = $this->stocked();
