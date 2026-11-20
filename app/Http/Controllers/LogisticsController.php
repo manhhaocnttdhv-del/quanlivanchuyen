@@ -168,14 +168,27 @@ class LogisticsController extends Controller
         $ids = $this->warehouseIds($user);
         $filters = $request->validated();
         // Tồn chỉ gồm kiện kho đang thực giữ, không chỉ dựa vào trạng thái vận đơn.
-        $items = WarehouseItem::with(['order', 'location'])->withCount(['discrepancies as hold_count' => fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true)])
+        $items = WarehouseItem::with(['warehouse', 'location', 'order' => fn ($q) => $q->withCount([
+            'discrepancies as dispatch_discrepancies_count' => fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true),
+            'incidents as dispatch_incidents_count' => fn ($q) => $q->blockingDispatch(),
+        ]), 'order.transfers' => fn ($q) => $q->whereIn('status', ['in_transit', 'partial'])->latest('id')])
             ->whereIn('warehouse_id', $ids)->where('holder_type', 'warehouse')
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%')))
             ->when($filters['warehouse_id'] ?? null, fn ($q, $v) => $q->where('warehouse_id', $v))
             ->when($filters['location_id'] ?? null, fn ($q, $v) => $q->where('warehouse_location_id', $v))
-            ->when($filters['hold'] ?? null, fn ($q) => $q->whereHas('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true)));
+            ->when($filters['hold'] ?? null, fn ($q) => $q->whereHas('order', fn ($q) => $q->where(fn ($q) => $q
+                ->whereHas('discrepancies', fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
+                ->orWhereHas('incidents', fn ($q) => $q->blockingDispatch()))));
+        $orderCount = (clone $items)->distinct()->count('order_id');
+        $items = $items->latest('id')->paginate(25)->withQueryString();
+        foreach ($items as $item) {
+            $canOpenOrder = $ids->contains($item->order->warehouse_id);
+            $transfer = $item->order->transfers->firstWhere('destination_warehouse_id', $item->warehouse_id);
+            $item->source_url = $canOpenOrder ? route('logistics.order', $item->order)
+                : ($transfer ? route('transfers.show', $transfer) : null);
+        }
 
-        return view('portal.logistics.inventory', ['items' => $items->latest('id')->paginate(25)->withQueryString(), 'warehouses' => Warehouse::whereIn('id', $ids)->pluck('name', 'id'),
+        return view('portal.logistics.inventory', ['items' => $items, 'orderCount' => $orderCount, 'warehouses' => Warehouse::whereIn('id', $ids)->pluck('name', 'id'),
             'locations' => WarehouseLocation::with('warehouse')->whereIn('warehouse_id', $ids)->orderBy('code')->get(),
             'discrepancies' => Discrepancy::with(['order', 'item', 'creator', 'resolver'])->whereIn('warehouse_id', $ids)
                 ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('warehouse_id', $id))

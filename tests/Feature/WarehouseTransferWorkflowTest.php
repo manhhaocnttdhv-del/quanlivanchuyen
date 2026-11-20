@@ -18,6 +18,7 @@ use App\Services\FeeVersionService;
 use App\Services\NotificationService;
 use App\Services\OrderService;
 use App\Services\PublicTrackingService;
+use App\Services\ReportService;
 use App\Services\WarehouseService;
 use App\Services\WarehouseTransferService;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -203,6 +204,75 @@ class WarehouseTransferWorkflowTest extends DatabaseTestCase
         $this->invalid(fn () => app(WarehouseService::class)->resolve($this->receiver, $difference, 'Tự xác nhận đã tìm đủ kiện'));
         app(WarehouseService::class)->resolve($this->admin, $difference, 'Xác minh kiện tìm lại, kho đích đã nhận đủ');
         $this->assertSame('assigned', $this->assign($this->receiver, $this->destinationShipper, $order)->status);
+    }
+
+    public function test_partial_receipt_inventory_uses_physical_warehouse_scope_and_accessible_source_links(): void
+    {
+        $order = $this->stocked();
+        $service = app(WarehouseTransferService::class);
+        $transfer = $service->dispatch($this->sender, $order, $this->dispatchData($order));
+        $data = $this->receiptData($transfer);
+        $data['lines'][array_key_last($data['lines'])]['received'] = false;
+        $service->receive($this->receiver, $transfer, $data, 'missing.png');
+        $filters = ['from' => now()->toDateString(), 'until' => now()->toDateString(),
+            'group_by' => 'warehouse', 'metric' => 'inventory', 'ledger' => 'collections'];
+        $reports = app(ReportService::class);
+        $admin = $reports->build($this->admin, 'operations', $filters);
+        $this->assertSame(1, $admin['summary']['inventory']['value']);
+        $this->assertSame($this->destination->id, $admin['rows']->sole()->warehouse_id);
+        $this->assertSame(1, $admin['groups']->firstWhere('group_id', $this->destination->id)['inventory']);
+        $sender = $reports->build($this->sender, 'operations', $filters);
+        $this->assertSame(0, $sender['summary']['inventory']['value']);
+        $this->assertSame(0, $sender['rows']->total());
+        $receiver = $reports->build($this->receiver, 'operations', $filters + [
+            'warehouse_id' => $this->destination->id, 'shop_id' => $order->shop_id, 'area_id' => $order->area_id]);
+        $this->assertSame(1, $receiver['summary']['inventory']['value']);
+        $this->assertSame($order->id, $receiver['rows']->sole()->order_id);
+        $this->assertSame(route('transfers.show', $transfer), $receiver['rows']->sole()->source_url);
+        $this->actingAs($this->receiver)->get($receiver['rows']->sole()->source_url)->assertOk();
+        $this->get(route('logistics.inventory'))->assertOk()->assertSee(route('transfers.show', $transfer), false)
+            ->assertViewHas('items', fn ($items) => $items->total() === 1);
+        $this->get(route('orders.show', $order))->assertForbidden();
+        $this->get(route('logistics.order', $order))->assertForbidden();
+        $owner = $reports->build($this->owner, 'operations', $filters);
+        $this->assertSame(1, $owner['summary']['inventory']['value']);
+        $this->assertSame($this->destination->id, $owner['rows']->sole()->warehouse_id);
+        $this->assertSame(route('orders.show', $order), $owner['rows']->sole()->source_url);
+        $ownerFiltered = $reports->build($this->owner, 'operations', $filters + ['warehouse_id' => $this->destination->id], 10);
+        $this->assertCount(1, $ownerFiltered['rows']);
+        $exportRows = $reports->build($this->receiver, 'operations', $filters, 10)['rows'];
+        $this->assertCount(1, $exportRows);
+        $this->assertSame($this->destination->id, $exportRows->sole()->warehouse_id);
+        $this->actingAs($this->person('operations'))->get(route('reports.index', ['type' => 'operations', 'metric' => 'inventory']))
+            ->assertOk()->assertDontSee($order->tracking_code);
+        $this->get(route('reports.index', ['type' => 'operations', 'metric' => 'inventory', 'warehouse_id' => $this->destination->id]))->assertForbidden();
+        $service->receive($this->receiver, $transfer, $this->receiptData($transfer), null);
+        $received = $reports->build($this->receiver, 'operations', $filters);
+        $this->assertSame(1, $received['summary']['inventory']['value']);
+        $this->assertSame(1, $received['rows']->total());
+        $this->assertSame(route('orders.show', $order), $received['rows']->sole()->source_url);
+        $this->actingAs($this->receiver)->get(route('logistics.inventory'))->assertOk()
+            ->assertSee(route('logistics.order', $order), false)->assertViewHas('items', fn ($items) => $items->total() === 2);
+    }
+
+    public function test_inventory_hold_filter_includes_all_parcels_of_a_blocked_order_and_unknown_weight_is_not_zero(): void
+    {
+        $order = $this->stocked();
+        $first = $order->parcels()->firstOrFail();
+        $first->update(['actual_weight_grams' => null]);
+        $difference = $order->discrepancies()->create(['warehouse_id' => $this->source->id, 'warehouse_item_id' => $first->id,
+            'created_by' => $this->sender->id, 'type' => 'damaged', 'severity' => 'high', 'reason' => 'Giữ cả đơn để xác minh kiện hỏng']);
+        $this->actingAs($this->sender)->get(route('logistics.inventory', ['hold' => 1]))->assertOk()
+            ->assertSee('Khóa vận chuyển')->assertSee('Chưa cân')->assertViewHas('items', fn ($items) => $items->total() === 2);
+        $difference->update(['status' => 'resolved', 'resolved_by' => $this->admin->id, 'resolved_at' => now()]);
+        $incident = $order->incidents()->create(['warehouse_id' => $this->source->id, 'created_by' => $this->sender->id,
+            'client_token' => (string) Str::uuid(), 'creation_hash' => str_repeat('a', 64), 'code' => 'SC'.Str::ulid(),
+            'type' => 'other', 'severity' => 'high', 'title' => 'Khóa vận chuyển để xác minh',
+            'description' => 'Kiểm tra bộ lọc tồn kho khi sự cố chặn xuất hàng', 'blocks_dispatch' => true]);
+        $this->get(route('logistics.inventory', ['hold' => 1]))->assertOk()->assertSee('Sự cố')
+            ->assertViewHas('items', fn ($items) => $items->total() === 2);
+        $incident->update(['blocks_dispatch' => false]);
+        $this->get(route('logistics.inventory', ['hold' => 1]))->assertOk()->assertViewHas('items', fn ($items) => $items->total() === 0);
     }
 
     public function test_transfer_permissions_wrong_route_location_stale_revision_and_duplicate_receipt_are_rejected(): void

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\WarehouseTransfer;
 use App\Support\ReportPeriod;
 use Illuminate\Support\Facades\DB;
 
@@ -19,7 +20,9 @@ class OperationalReport
     public function query(User $user, array $filters, ?string $metric = null)
     {
         $metric ??= $filters['metric'];
-        $query = $this->scope->orders($user, 'operations');
+        $inventory = $metric === 'inventory';
+        $warehouse = $inventory ? 'inventory_stock.warehouse_id' : 'orders.warehouse_id';
+        $query = $inventory ? $this->scope->inventoryOrders($user) : $this->scope->orders($user, 'operations');
         $event = in_array($metric, ['delivered', 'returned', 'failed']);
         $shipper = $event ? 'event.shipper_id' : 'orders.assigned_shipper_id';
         $date = match ($metric) {
@@ -31,9 +34,6 @@ class OperationalReport
             $query->join('delivery_attempts as event', 'event.order_id', '=', 'orders.id')
                 ->where('event.type', $metric === 'returned' ? 'return' : 'delivery')
                 ->where('event.outcome', $metric === 'failed' ? 'failed' : 'success');
-        } elseif ($metric === 'inventory') {
-            $query->whereExists(fn ($q) => $q->selectRaw('1')->from('warehouse_items')
-                ->whereColumn('warehouse_items.order_id', 'orders.id')->where('holder_type', 'warehouse'));
         } elseif ($metric === 'overdue') {
             $query->whereNotIn('orders.status', ['delivered', 'returned', 'cancelled', 'rejected', 'lost'])
                 ->where('orders.approved_at', '<', now()->subHours(config('reports.overdue_hours')));
@@ -42,17 +42,24 @@ class OperationalReport
         if (! in_array($metric, ['inventory', 'overdue'])) {
             ReportPeriod::apply($query, $date, $filters);
         }
-        $this->scope->filterOrders($query, $filters, $shipper);
+        $this->scope->filterOrders($query, $filters, $shipper, $warehouse);
 
-        return $query->leftJoin('shops', 'shops.id', '=', 'orders.shop_id')
-            ->leftJoin('warehouses', 'warehouses.id', '=', 'orders.warehouse_id')
+        $query->leftJoin('shops', 'shops.id', '=', 'orders.shop_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', $warehouse)
             ->leftJoin('areas', 'areas.id', '=', 'orders.area_id')
             ->leftJoin('users as report_shipper', 'report_shipper.id', '=', $shipper)
             ->select(['orders.id', 'orders.id as order_id', 'orders.tracking_code as code', 'orders.status as category',
-                'orders.shop_id', 'orders.warehouse_id', 'orders.area_id',
+                'orders.shop_id', 'orders.warehouse_id as responsible_warehouse_id', 'orders.area_id',
                 'shops.name as shop', 'warehouses.name as warehouse', 'areas.name as area', 'report_shipper.name as shipper'])
-            ->selectRaw($shipper.' AS shipper_id')
+            ->selectRaw($warehouse.' AS warehouse_id')->selectRaw($shipper.' AS shipper_id')
             ->selectRaw($date.' AS occurred_at');
+        if ($inventory) {
+            $query->selectSub(WarehouseTransfer::select('id')->whereColumn('order_id', 'orders.id')
+                ->whereColumn('destination_warehouse_id', 'inventory_stock.warehouse_id')
+                ->whereIn('status', ['in_transit', 'partial'])->latest('id')->limit(1), 'transfer_id');
+        }
+
+        return $query;
     }
 
     public function summary(User $user, array $filters): array
