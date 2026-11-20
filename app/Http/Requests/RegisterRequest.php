@@ -15,6 +15,6 @@ class RegisterRequest extends PortalRequest
             'password' => ['required', 'string', 'min:10', 'max:100', 'confirmed'],
             'shop_name' => ['exclude_unless:account_type,business', 'required_if:account_type,business', 'string', 'max:150'],
             'address' => ['required', 'string', 'max:255'],
-            'area_id' => ['required', Rule::exists('areas', 'id')->where('is_active', true)]];
+            'area_id' => ['bail', 'required', 'integer', Rule::exists('areas', 'id')->where('is_active', true)]];
     }
 }

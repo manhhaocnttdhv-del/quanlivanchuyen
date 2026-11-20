@@ -18,6 +18,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/dang-ky', [AuthController::class, 'store'])->middleware('throttle:5,1')->name('register.store');
 });
 Route::middleware('auth')->group(function () {
+    Route::get('/admin', [AuthController::class, 'workspace'])->name('admin');
     Route::post('/dang-xuat', [AuthController::class, 'logout'])->name('logout');
     Route::get('/tong-quan', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/ho-so', [ProfileController::class, 'edit'])->name('profile.edit');

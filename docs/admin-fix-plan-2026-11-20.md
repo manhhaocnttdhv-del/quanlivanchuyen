@@ -25,7 +25,7 @@ Phạm vi thuộc Sprint 01: tài khoản và danh mục. Nhánh triển khai: `
 - [x] Kiểm tra trình duyệt trên database QA riêng; lưu bằng chứng.
 - [x] Ghi kết quả, commit Conventional Commits và mở PR vào `main`.
 
-Commit triển khai: `44885ae` (`fix(admin): preserve customer access and validate warehouse areas`). PR vào `main`: [#15](https://github.com/manhhaocnttdhv-del/quanlivanchuyen/pull/15), đang mở để review.
+Commit triển khai ban đầu: `44885ae` (`fix(admin): preserve customer access and validate warehouse areas`). PR vào `main`: [#15](https://github.com/manhhaocnttdhv-del/quanlivanchuyen/pull/15). Đợt kiểm tra sâu và triển khai tiếp theo được ghi tại [admin-deep-check-2026-11-20.md](admin-deep-check-2026-11-20.md), với kết quả mới nhất và giới hạn môi trường local.
 
 ## Tiêu chí nghiệm thu
 

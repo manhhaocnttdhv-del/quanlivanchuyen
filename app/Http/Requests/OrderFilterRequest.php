@@ -18,6 +18,6 @@ class OrderFilterRequest extends PortalRequest
             'status' => ['nullable', Rule::in(array_keys(Order::STATUSES))],
             'shop_id' => ['nullable', 'integer', 'min:1'], 'area_id' => ['nullable', 'integer', 'min:1'],
             'assigned_shipper_id' => ['nullable', 'integer', 'min:1'],
-            'from' => ['nullable', 'date_format:Y-m-d'], 'until' => ['nullable', 'date_format:Y-m-d', Rule::when($this->filled('from'), 'after_or_equal:from')]];
+            'from' => ['nullable', 'date_format:Y-m-d'], 'until' => ['nullable', 'date_format:Y-m-d', Rule::when(fn ($input) => is_string($input->from) && $input->from !== '', 'after_or_equal:from')]];
     }
 }

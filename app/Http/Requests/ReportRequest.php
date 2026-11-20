@@ -37,7 +37,7 @@ class ReportRequest extends PortalRequest
 
         return [
             'from' => ['required', 'date_format:Y-m-d'],
-            'until' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'until' => ['required', 'date_format:Y-m-d', Rule::when(fn ($input) => is_string($input->from) && $input->from !== '', 'after_or_equal:from')],
             'group_by' => ['required', Rule::in($deposits ? ['warehouse'] : ($orderFilters ? ['warehouse', 'shop', 'area', 'shipper'] : ['warehouse', 'shop']))],
             'metric' => ['required', Rule::in(['created', 'received', 'delivered', 'returned', 'failed', 'inventory', 'overdue'])],
             'ledger' => ['required', Rule::in($ledgers)],
