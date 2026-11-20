@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderQrController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [CustomerPortalController::class, 'index'])->name('home');
@@ -9,8 +10,12 @@ Route::post('/uoc-tinh-cuoc', [CustomerPortalController::class, 'estimate'])
     ->middleware('throttle:30,1')->name('shipping.estimate');
 Route::post('/tra-cuu', [CustomerPortalController::class, 'track'])
     ->middleware('throttle:10,1')->name('shipping.track');
+Route::get('/tra-cuu/{code}', [CustomerPortalController::class, 'trackingForm'])
+    ->where('code', '[A-Za-z0-9-]{1,32}')->middleware('throttle:60,1')->name('shipping.track-form');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/quet-van-don', [OrderQrController::class, 'scan'])->name('orders.scan');
+    Route::post('/quet-van-don', [OrderQrController::class, 'resolve'])->middleware('throttle:30,1')->name('orders.scan-resolve');
     Route::get('/gui-hang', [OrderController::class, 'create'])->name('orders.create');
     Route::get('/don-hang', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/don-hang/bang-ke', [OrderController::class, 'manifest'])->name('orders.manifest');
@@ -25,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/don-hang/{order}/de-nghi-huy', [OrderController::class, 'requestCancel'])->name('orders.request-cancel');
     Route::post('/de-nghi/{change}/duyet', [OrderController::class, 'reviewChange'])->name('orders.change-review');
     Route::get('/don-hang/{order}/tem', [OrderController::class, 'label'])->name('orders.label');
+    Route::get('/don-hang/{order}/qr', [OrderQrController::class, 'image'])->name('orders.qr');
 });
 
 require __DIR__.'/portal.php';

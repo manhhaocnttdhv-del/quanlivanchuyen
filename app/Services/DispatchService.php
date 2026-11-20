@@ -6,7 +6,6 @@ use App\Models\DeliveryTask;
 use App\Models\Discrepancy;
 use App\Models\Order;
 use App\Models\User;
-use App\Models\Warehouse;
 use App\Policies\LogisticsPolicy;
 use Illuminate\Support\Facades\DB;
 
@@ -19,28 +18,17 @@ class DispatchService
         return DB::transaction(function () use ($actor, $order, $data) {
             $order = $this->ledger->lock($order);
             abort_unless($this->policy->dispatch($actor, $order->warehouse_id), 403);
+            app(OrderRouting::class)->ensureWarehouseActive($order->warehouse_id);
             $this->ledger->ensure($order->revision === (int) $data['revision'], 'Đơn đã thay đổi. Tải lại trước khi phân công.', 'revision');
-            $this->ledger->ensure(! $order->pendingChange()->exists(), 'Đang có đề nghị thay đổi; xử lý đề nghị trước.');
-            $this->ledger->ensureNoIncidentDispatchHold($order);
-            $this->ledger->ensure(! $order->tasks()->whereIn('status', DeliveryTask::ACTIVE)->exists(), 'Đơn đã có nhiệm vụ đang hiệu lực.');
-            $this->ledger->ensure(! $order->discrepancies()->where('status', 'open')->where('blocks_dispatch', true)->exists(), 'Đơn đang giữ do sai lệch; cần người có quyền xử lý.');
-            $this->ledger->ensure(Warehouse::whereKey($order->warehouse_id)->where('is_active', true)->exists(), 'Kho đang ngừng hoạt động.');
+            $readiness = app(DispatchReadiness::class)->inspect($order);
+            $this->ledger->ensure($readiness['canAssign'], $readiness['blockers'][0] ?? 'Trạng thái vận đơn không đủ điều kiện phân công.');
             $shipper = User::lockForUpdate()->findOrFail($data['shipper_id']);
             $this->ledger->ensure($shipper->status === 'active' && $shipper->hasRole('shipper') && $shipper->warehouses()->whereKey($order->warehouse_id)->exists(), 'Shipper phải hoạt động và thuộc kho của đơn.', 'shipper_id');
             $type = $data['type'];
             $this->ledger->ensure(isset(DeliveryTask::TYPES[$type]), 'Loại nhiệm vụ không hợp lệ.', 'type');
-            if ($type === 'pickup') {
-                $this->ledger->ensure($order->status === 'approved' && $order->custody_status === 'uncollected' && ! $order->parcels()->exists(), 'Chỉ phân công lấy đơn đã duyệt, chưa nhận kiện.');
-            } else {
-                $this->ledger->ensure($order->status === 'at_warehouse' && $order->parcels()->where('holder_type', 'warehouse')->count() === $order->parcel_count, 'Phải đủ kiện tại kho trước khi phân công giao/hoàn.');
-                $this->ledger->ensure($type === 'return' ? $order->return_authorized_by !== null : ($order->return_authorized_by === null && $order->delivery_attempt_count < $order->delivery_attempt_limit), 'Hoàn cần quyết định điều phối; giao phải còn lượt và chưa có quyết định hoàn.');
-                if ($type === 'delivery' && $order->delivery_attempt_count > 0) {
-                    $this->ledger->ensure($order->retry_authorized_attempt === $order->delivery_attempt_count + 1, 'Cần quyết định giao lại và ý kiến shop trước nhiệm vụ mới.');
-                    // Chỉ dùng hết lượt cho phép khi có kết quả giao thực tế; thu hồi chưa giao vẫn được gán lại.
-                }
-                if ($type === 'return') {
-                    app(DeliveryDecisionService::class)->ensureReturnRecord($actor, $order);
-                }
+            $this->ledger->ensure($type === $readiness['type'], 'Loại nhiệm vụ không phù hợp với phương án và trạng thái của đơn.', 'type');
+            if ($type === 'return') {
+                app(DeliveryDecisionService::class)->ensureReturnRecord($actor, $order);
             }
             $before = $this->ledger->snapshot($order);
             $task = $order->tasks()->create(['warehouse_id' => $order->warehouse_id, 'shipper_id' => $shipper->id, 'created_by' => $actor->id, 'type' => $type, 'reason' => $data['reason']]);
@@ -65,6 +53,7 @@ class DispatchService
             $successful = (bool) $data['successful'];
             $task->pickupAttempt()->create(['created_by' => $actor->id, 'successful' => $successful, 'condition' => $data['condition'], 'evidence_path' => $evidence, 'reason' => $data['reason']]);
             if ($successful) {
+                app(OrderRouting::class)->ensureCoverage($order->warehouse_id, $order->area_id);
                 $this->ledger->ensureNoIncidentDispatchHold($order);
                 for ($number = 1; $number <= $order->parcel_count; $number++) {
                     $item = $order->parcels()->create(['parcel_number' => $number, 'holder_type' => 'shipper', 'holder_user_id' => $actor->id, 'warehouse_id' => $order->warehouse_id, 'condition' => $data['condition']]);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class DeliveryTask extends Model
@@ -17,6 +18,12 @@ class DeliveryTask extends Model
     protected $attributes = ['status' => 'assigned'];
 
     protected $casts = ['finished_at' => 'datetime'];
+
+    public function scopeForShipper(Builder $query, User $shipper): void
+    {
+        $query->where('shipper_id', $shipper->id)
+            ->whereIn('warehouse_id', $shipper->warehouses()->select('warehouses.id'));
+    }
 
     public function order()
     {

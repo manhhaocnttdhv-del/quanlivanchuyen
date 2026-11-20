@@ -9,4 +9,9 @@ class Area extends Model
     protected $fillable = ['code', 'name', 'region', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
+
+    public function warehouses()
+    {
+        return $this->hasMany(Warehouse::class);
+    }
 }

@@ -15,6 +15,11 @@ class WarehouseItem extends Model
         return $this->belongsTo(Order::class);
     }
 
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
     public function holder()
     {
         return $this->belongsTo(User::class, 'holder_user_id');

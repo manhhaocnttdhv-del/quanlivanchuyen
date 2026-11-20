@@ -6,8 +6,11 @@ use App\Models\Area;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AuditService;
+use App\Services\FeeCalculator;
 use App\Services\FeeVersionService;
 use App\Services\ShopService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\DatabaseTestCase;
@@ -202,6 +205,81 @@ class IdentityCatalogTest extends DatabaseTestCase
         $adjacent = $service->save($admin, $this->feeData('2028-01-01T00:00', null));
         $this->post(route('fees.publish', $adjacent), ['reason' => 'Công bố kế tiếp'])->assertRedirect();
         $this->assertSame('published', $adjacent->fresh()->status);
+    }
+
+    public function test_future_fee_publication_can_supersede_an_open_ended_version(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-20 12:00:00'));
+        $admin = $this->person();
+        $service = app(FeeVersionService::class);
+        $current = $service->save($admin, $this->feeData('2026-01-01T00:00', null));
+        $this->actingAs($admin)->post(route('fees.publish', $current), ['reason' => 'Công bố biểu phí hiện hành'])->assertRedirect();
+
+        $data = $this->feeData('2027-01-01T00:00', null);
+        $data['rules'][0]['base_fee'] += 1000;
+        $next = $service->save($admin, $data);
+        $originalRules = $current->rules()->get()->toArray();
+        $this->get(route('fees.edit', $next))->assertOk()->assertSee('Biểu phí được thay thế');
+        $this->actingAs($admin)->post(route('fees.publish', $next), [
+            'reason' => 'Thay biểu phí từ năm sau', 'replaces_version_id' => $current->id,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('published', $next->fresh()->status);
+        $this->assertSame('2027-01-01 00:00:00', $current->fresh()->active_until->format('Y-m-d H:i:s'));
+        $this->assertSame('published', $current->fresh()->status);
+        $this->assertSame($originalRules, $current->rules()->get()->toArray());
+        $audit = AuditLog::where('event', 'fee.superseded')->sole();
+        $this->assertNull($audit->old_values['active_until']);
+        $this->assertSame('2027-01-01 00:00:00', $audit->new_values['active_until']);
+        $area = Area::where('code', 'HN')->firstOrFail();
+        $this->travelTo(Carbon::parse('2026-12-31 23:59:59'));
+        $this->assertSame($current->id, app(FeeCalculator::class)->calculate($area, $area, 500, 'standard')['version_id']);
+        $this->travelTo(Carbon::parse('2027-01-01 00:00:00'));
+        $this->assertSame($next->id, app(FeeCalculator::class)->calculate($area, $area, 500, 'standard')['version_id']);
+        $this->travelBack();
+    }
+
+    public function test_fee_replacement_rejects_backdating_invalid_basis_and_other_overlaps(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-20 12:00:00'));
+        $admin = $this->person();
+        $service = app(FeeVersionService::class);
+        $current = $service->save($admin, $this->feeData('2026-01-01T00:00', '2028-01-01T00:00'));
+        $service->publish($admin, $current, 'Publish current tariff');
+        $scheduled = $service->save($admin, $this->feeData('2028-01-01T00:00', null));
+        $service->publish($admin, $scheduled, 'Publish scheduled tariff');
+        $next = $service->save($admin, $this->feeData('2027-01-01T00:00', null));
+        $this->actingAs($admin)->post(route('fees.publish', $next), ['reason' => 'Overlap must remain blocked', 'replaces_version_id' => $current->id])
+            ->assertSessionHasErrors('active_from');
+        $this->assertSame('2028-01-01', $current->fresh()->active_until->toDateString());
+        $this->post(route('fees.publish', $next), ['reason' => 'Cannot replace self', 'replaces_version_id' => $next->id])
+            ->assertSessionHasErrors('replaces_version_id');
+        $this->post(route('fees.publish', $next), ['reason' => 'Cannot replace later tariff', 'replaces_version_id' => $scheduled->id])
+            ->assertSessionHasErrors('replaces_version_id');
+        $past = $service->save($admin, $this->feeData('2026-02-01T00:00', '2026-03-01T00:00'));
+        $this->post(route('fees.publish', $past), ['reason' => 'Cannot change past coverage', 'replaces_version_id' => $current->id])
+            ->assertSessionHasErrors('replaces_version_id');
+        $this->actingAs($this->person('operations'))->post(route('fees.publish', $next), ['reason' => 'Staff cannot publish', 'replaces_version_id' => $current->id])->assertForbidden();
+        $this->assertSame(0, AuditLog::where('event', 'fee.superseded')->count());
+    }
+
+    public function test_fee_replacement_rolls_back_both_versions_if_audit_fails(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-20 12:00:00'));
+        $admin = $this->person();
+        $service = app(FeeVersionService::class);
+        $current = $service->save($admin, $this->feeData('2026-01-01T00:00', null));
+        $service->publish($admin, $current, 'Publish current tariff');
+        $next = $service->save($admin, $this->feeData('2027-01-01T00:00', null));
+        $this->mock(AuditService::class)->shouldReceive('record')->once()->andThrow(new \RuntimeException('Audit unavailable'));
+        try {
+            app(FeeVersionService::class)->publish($admin, $next, 'Replace tariff with audit', $current->id);
+            $this->fail('Expected audit error');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('Audit unavailable', $error->getMessage());
+        }
+        $this->assertNull($current->fresh()->active_until);
+        $this->assertSame('draft', $next->fresh()->status);
     }
 
     public function test_fee_editor_recovers_empty_rows_and_keeps_error_indexes_after_deleting_rows(): void

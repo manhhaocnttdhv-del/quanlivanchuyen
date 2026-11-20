@@ -16,10 +16,13 @@ class IncidentPolicy
         return $user->hasPermission('incidents.manage') || $user->hasPermission('incidents.approve') || $user->hasRole('shipper');
     }
 
-    public function createForOrder(User $user, Order $order): bool
+    public function createForOrder(User $user, Order $order, ?int $discrepancyId = null): bool
     {
-        return $order->status !== 'draft' && $this->logistics->inWarehouse($user, $order->warehouse_id) &&
+        $warehouseId = $discrepancyId ? $order->discrepancies()->whereKey($discrepancyId)->value('warehouse_id') : null;
+
+        return $order->status !== 'draft' && $this->logistics->inWarehouse($user, $warehouseId ?? $order->warehouse_id) &&
             ($user->hasPermission('incidents.manage') || ($user->hasRole('shipper') &&
+                $this->logistics->inWarehouse($user, $order->warehouse_id) &&
                 $order->tasks()->where('shipper_id', $user->id)->whereIn('status', DeliveryTask::ACTIVE)->exists()));
     }
 

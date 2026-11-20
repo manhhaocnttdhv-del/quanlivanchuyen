@@ -11,7 +11,7 @@ class IncidentRequest extends PortalRequest
     {
         $policy = app(IncidentPolicy::class);
         if ($this->routeIs('incidents.store')) {
-            return $policy->createForOrder($this->user(), $this->route('order'));
+            return $policy->createForOrder($this->user(), $this->route('order'), filter_var($this->input('discrepancy_id'), FILTER_VALIDATE_INT) ?: null);
         }
 
         return match ($this->route('operation')) {

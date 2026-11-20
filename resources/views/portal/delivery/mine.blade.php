@@ -2,6 +2,7 @@
 {{-- Chỉ nhiệm vụ của shipper trong kho còn được gán; số tab tính trước bộ lọc loại/từ khóa. --}}
 @section('heading', 'Nhiệm vụ của tôi')
 @section('actions')
+    <a class="btn btn-outline-primary" href="{{ route('delivery.map') }}"><i data-lucide="map-pin"></i> Bản đồ</a>
     <a class="btn btn-outline-primary" href="{{ route('delivery.collections') }}">
         <i data-lucide="banknote"></i> Sổ thu của tôi</a>
 @endsection
@@ -69,6 +70,8 @@
                 @if ($attempt?->outcome === 'failed')
                     <p class="alert alert-warning small">Đã ghi thất bại, không phát sinh khoản thu.
                         {{ $task->status === 'recall_pending' ? 'Cần trả kiện về kho.' : 'Đã kết thúc lượt giao.' }}</p>
+                @elseif ($task->status === 'recall_pending')
+                    <p class="alert alert-warning small">Đã thu hồi nhiệm vụ. Cần bàn giao kiện đang giữ về kho.</p>
                 @elseif ($task->type !== 'pickup')
                     <dl class="delivery-money">
                         <div>
@@ -87,7 +90,7 @@
                 @endif
                 <div class="delivery-item-actions"><a class="btn btn-outline-primary" href="tel:{{ $phone }}"><i
                             data-lucide="phone"></i> {{ $phone }}</a><a class="btn btn-primary"
-                        href="{{ route('logistics.show', $task) }}"><i data-lucide="arrow-right"></i> Mở nhiệm vụ</a></div>
+                            href="{{ route('logistics.show', $task) }}"><i data-lucide="arrow-right"></i> {{ $task->status === 'recall_pending' ? 'Bàn giao về kho' : 'Mở nhiệm vụ' }}</a></div>
             </article>
         @empty
             <div class="empty-state py-5"><i data-lucide="package-check"></i>

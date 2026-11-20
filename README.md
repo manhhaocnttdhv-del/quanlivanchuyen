@@ -29,6 +29,12 @@ php -v
 
 Kiem tra: `php artisan test`, `php vendor/bin/pint --test`, `npm run build`.
 
+## Action, luồng và QR vận đơn
+
+Xem [thống kê action và luồng hoạt động](docs/actions-and-workflows.md) và [báo cáo web test 19/11/2026](docs/web-test-2026-11-19.md). Mỗi đơn có mã `GV` + ULID duy nhất; chi tiết và tem có QR riêng theo đơn, tải PNG, quét camera/ảnh hoặc nhập mã tại `/quet-van-don`. Link QR công khai vẫn yêu cầu 4 số cuối điện thoại nhận. Sau cập nhật chạy `composer install`, `npm ci`, `npm run build`; PHP cần GD (QR) và ZIP (Excel). Không cần migration mới cho QR.
+
+Shipper có **Bản đồ shipper** tại `/ban-do-shipper`: lọc lấy/giao/hoàn, tìm mã, gọi điện, mở chỉ đường và nhiệm vụ. Tab **Vị trí shipper** dùng Leaflet/OpenStreetMap, chỉ bật GPS sau khi bấm **Bật vị trí của tôi** và cho phép vị trí trong trình duyệt (HTTPS hoặc localhost). Xe bám giữa bản đồ, trượt mượt giữa hai lần cập nhật; kéo bản đồ để xem xung quanh, bấm nút định tâm để theo xe trở lại. Có tắt GPS, độ chính xác, tốc độ, thời điểm cập nhật và cảnh báo tín hiệu cũ. Mục phụ **Tuyến mẫu** giữ ba tuyến Hà Nội/TP.HCM/Đà Nẵng để kiểm tra chuyển động, ghi rõ dữ liệu mẫu. Tab **Điểm đến** tải Google Maps theo đơn. GPS chỉ dùng trên thiết bị hiện tại, chưa gửi/lưu tọa độ ở server hoặc theo dõi nền; mở bản đồ không đổi trạng thái hay tiền. Nền bản đồ cần Internet. Phạm vi nhiệm vụ luôn theo shipper và kho còn được gán. Xem [kiểm thử chi nhánh và bản đồ 20/11/2026](docs/branch-map-test-2026-11-20.md). Cập nhật bằng `npm ci`, `npm run build`; không cần migration mới cho bản đồ.
+
 ## Dữ liệu mẫu và kiểm thử
 
 Chạy `php artisan db:seed` để tạo vai trò, quyền và khu vực. Dữ liệu demo chỉ dùng ở môi trường local/testing; đặt mật khẩu riêng qua biến môi trường, không commit mật khẩu:

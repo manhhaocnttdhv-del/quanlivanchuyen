@@ -77,4 +77,17 @@ class Incident extends Model
             $query->where('created_by', $user->id);
         }
     }
+
+    public function scopeBlockingDispatch(Builder $query): void
+    {
+        // Legacy approved loss cases may predate the custody correction.
+        $query->where(fn ($q) => $q->where('blocks_dispatch', true)->orWhere(fn ($q) => $q->where('type', 'lost')->where('status', 'closed')
+            ->whereHas('approvedAction', fn ($q) => $q->where('payload->outcome', 'compensation'))));
+    }
+
+    public function isDispatchBlocked(): bool
+    {
+        return $this->blocks_dispatch || ($this->type === 'lost' && $this->status === 'closed'
+            && ($this->approvedAction?->payload['outcome'] ?? null) === 'compensation');
+    }
 }

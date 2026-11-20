@@ -84,6 +84,7 @@ class PersonalShippingTest extends DatabaseTestCase
     {
         $admin = $this->person();
         $warehouse = $this->warehouse();
+        $this->warehouse('HCM');
         $fee = app(FeeVersionService::class)->save($admin, $this->feeData());
         app(FeeVersionService::class)->publish($admin, $fee, 'Biểu phí kiểm thử gửi cá nhân');
         $this->post(route('register.store'), $this->registration())->assertRedirect();

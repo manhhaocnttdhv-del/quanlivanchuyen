@@ -87,7 +87,7 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         $orders = app(OrderService::class);
         $order = $orders->saveDraft($this->owner, ['client_token' => (string) Str::uuid(), 'pickup_address_id' => $this->owner->shop->addresses()->value('id'),
             'warehouse_id' => ($warehouse ?? $this->depot)->id,
-            'area_id' => Area::where('code', 'HCM')->value('id'), 'recipient_name' => 'Người nhận', 'recipient_phone' => '0987656789', 'recipient_address' => '10 Đường kiểm thử',
+            'area_id' => Area::where('code', 'HN')->value('id'), 'recipient_name' => 'Người nhận', 'recipient_phone' => '0987656789', 'recipient_address' => '10 Đường kiểm thử',
             'weight_grams' => 1000, 'parcel_count' => 2, 'service' => 'standard', 'cod_amount' => 500000, 'fee_payer' => 'recipient', 'items' => [['name' => 'Sách', 'quantity' => 2]]]);
         $orders->submit($this->owner, $order, $order->revision);
         $orders->review($this->admin, $order->fresh(), $order->fresh()->revision, 'approved', 'Thông tin hợp lệ');

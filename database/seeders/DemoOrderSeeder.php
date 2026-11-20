@@ -23,9 +23,9 @@ class DemoOrderSeeder extends Seeder
         $samples = [
             ['Nguyễn Minh Anh', 'HN', 'Áo thun cotton', 500, 285000, 'approved', 'recipient'],
             ['Trần Hoàng Nam', 'HCM', 'Sách và vở', 1500, 420000, 'submitted', 'sender'],
-            ['Lê Thu Hà', 'DN', 'Túi vải', 501, 150000, 'needs_info', 'recipient'],
-            ['Phạm Gia Huy', 'HP', 'Đồ dùng học tập', 1000, 350000, 'approved', 'sender'],
-            ['Võ Bảo Ngọc', 'CT', 'Áo khoác', 1200, 590000, 'submitted', 'recipient'],
+            ['Lê Thu Hà', 'HCM', 'Túi vải', 501, 150000, 'needs_info', 'recipient'],
+            ['Phạm Gia Huy', 'HN', 'Đồ dùng học tập', 1000, 350000, 'approved', 'sender'],
+            ['Võ Bảo Ngọc', 'HCM', 'Áo khoác', 1200, 590000, 'submitted', 'recipient'],
             ['Đặng Khánh Linh', 'HN', 'Phụ kiện tóc', 200, 95000, 'draft', 'sender'],
             ['Bùi Đức Long', 'HCM', 'Bình nước', 800, 180000, 'cancelled', 'recipient'],
             ['Hoàng Mai Chi', 'HN', 'Hộp quà', 700, 260000, 'change', 'recipient'],

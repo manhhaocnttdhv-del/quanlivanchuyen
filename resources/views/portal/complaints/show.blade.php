@@ -101,13 +101,13 @@
                     @if ($complaint->incident_id)
                         @php($linked = $incidents->firstWhere('id', $complaint->incident_id))
                         @if ($linked)
-                            <p class="mt-3"><a class="logistics-code"
-                                    href="{{ route('incidents.show', $linked) }}">{{ $linked->code }}</a> ·
+                            <p class="mt-3">@can('view', $linked)<a class="logistics-code"
+                                    href="{{ route('incidents.show', $linked) }}">{{ $linked->code }}</a>@else<span class="logistics-code">{{ $linked->code }}</span>@endcan ·
                                 {{ \App\Models\Incident::STATUSES[$linked->status] }}</p>
                         @endif
                     @else
-                        <a href="{{ route('incidents.create', ['order_id' => $complaint->order_id]) }}"
-                            class="btn btn-outline-primary mt-3"><i data-lucide="triangle-alert"></i> Mở sự cố</a>
+                        @if (app(\App\Policies\IncidentPolicy::class)->createForOrder(auth()->user(), $complaint->order))<a href="{{ route('incidents.create', ['order_id' => $complaint->order_id]) }}"
+                            class="btn btn-outline-primary mt-3"><i data-lucide="triangle-alert"></i> Mở sự cố</a>@endif
                         <form method="post" action="{{ route('complaints.action', [$complaint, 'link']) }}"
                             class="mt-3">
                             @csrf<input type="hidden" name="revision" value="{{ $complaint->revision }}"><x-field

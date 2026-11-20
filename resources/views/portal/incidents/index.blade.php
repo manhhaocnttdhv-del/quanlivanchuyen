@@ -37,7 +37,7 @@
                                 class="case-priority priority-{{ $incident->severity }}">{{ \App\Models\Incident::SEVERITIES[$incident->severity] }}</span>
                         </td>
                         <td><span class="status-badge">{{ \App\Models\Incident::STATUSES[$incident->status] }}</span>
-                            @if ($incident->blocks_dispatch)
+                            @if ($incident->isDispatchBlocked())
                                 <small class="text-danger">Khóa giao / hoàn</small>
                                 @endif @if ($incident->blocks_reconciliation)
                                     <small class="text-danger">Khóa đối soát</small>

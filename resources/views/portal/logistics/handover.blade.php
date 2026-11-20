@@ -6,7 +6,9 @@
         data-lucide="printer"></i> In phiếu</button>@endsection
 @section('content')
     {{-- Nhập: kho nhận; xuất: shipper nhận. Người lập phiếu không tự xác nhận phía nhận. --}}
-    @php($canConfirm = $doc->status === 'pending' && $doc->created_by !== auth()->id() && ($doc->direction === 'inbound' ? $policy->warehouse(auth()->user(), $doc->warehouse_id) : $policy->shipper(auth()->user(), $doc->task)))
+    @php($outboundStopped = $doc->direction === 'outbound' && $doc->status === 'pending' && !app(\App\Services\OrderRouting::class)->warehouseActive($doc->order))
+    @php($canConfirm = !$outboundStopped && $doc->status === 'pending' && $doc->created_by !== auth()->id() && ($doc->direction === 'inbound' ? $policy->warehouse(auth()->user(), $doc->warehouse_id) : $policy->shipper(auth()->user(), $doc->task)))
+    @if ($outboundStopped)<p class="alert alert-warning">Kho hoặc khu vực đã ngừng xuất hàng. Phiếu chưa được giao kiện; liên hệ điều phối thu hồi nhiệm vụ hoặc chờ mở lại kho.</p>@endif
     <div class="order-identity">
         <div><strong class="order-code logistics-code">{{ $doc->code }}</strong>
             <p>{{ $doc->order->tracking_code }} · {{ $doc->lines->count() }} kiện · {{ $doc->shipper->name }}</p>

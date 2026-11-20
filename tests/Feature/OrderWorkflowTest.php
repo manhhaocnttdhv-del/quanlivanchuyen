@@ -9,8 +9,10 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\AuditService;
+use App\Services\DispatchService;
 use App\Services\FeeCalculator;
 use App\Services\FeeVersionService;
+use App\Services\OrderQrService;
 use App\Services\OrderService;
 use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -36,6 +38,7 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->admin = $this->person();
         $this->owner = $this->shopOwner();
         $this->depot = $this->warehouse();
+        $this->warehouse('HCM');
         $service = app(FeeVersionService::class);
         $version = $service->save($this->admin, $this->feeData());
         $service->publish($this->admin, $version, 'Biểu phí kiểm thử');
@@ -481,6 +484,97 @@ class OrderWorkflowTest extends DatabaseTestCase
         $this->assertTrue($list[0]->relationLoaded('shop'));
         $this->get(route('orders.index', ['q' => $order->tracking_code, 'area_id' => $order->area_id, 'assigned_shipper_id' => $shipper->id]))->assertOk()->assertViewHas('orders', fn ($list) => $list->total() === 1);
         $this->getJson('/don-hang?q[]=bad')->assertUnprocessable();
+    }
+
+    public function test_database_rejects_duplicate_tracking_codes(): void
+    {
+        $first = $this->draft();
+        $second = $this->draft();
+        $this->expectException(UniqueConstraintViolationException::class);
+        DB::table('orders')->where('id', $second->id)->update(['tracking_code' => $first->tracking_code]);
+    }
+
+    public function test_each_order_has_a_stable_private_png_qr_and_foreign_shop_cannot_download_it(): void
+    {
+        $order = $this->draft();
+        $other = $this->draft();
+        $this->get(route('orders.qr', $order))->assertRedirect(route('login'));
+        $image = $this->actingAs($this->owner)->get(route('orders.qr', $order))->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->assertStringContainsString('no-store', $image->headers->get('Cache-Control'));
+        $dimensions = getimagesizefromstring($image->getContent());
+        $this->assertSame([400, 400], [$dimensions[0], $dimensions[1]]);
+        $this->assertNotSame($image->getContent(), $this->get(route('orders.qr', $other))->getContent());
+        $this->orders->saveDraft($this->owner, $this->details(['revision' => $order->revision, 'note' => 'Đổi thông tin nhưng giữ QR']), $order);
+        $this->assertSame($image->getContent(), $this->get(route('orders.qr', $order))->getContent());
+        $this->actingAs($this->shopOwner())->get(route('orders.qr', $order))->assertForbidden();
+    }
+
+    public function test_qr_link_only_prefills_code_and_public_tracking_still_requires_phone_verification(): void
+    {
+        $order = $this->submitted();
+        $url = app(OrderQrService::class)->url($order);
+        $this->assertStringNotContainsString($order->recipient_phone, $url);
+        $this->get($url)->assertOk()->assertSee('value="'.$order->tracking_code.'"', false)
+            ->assertDontSee($order->recipient_name)->assertDontSee($order->recipient_phone)->assertDontSee($order->recipient_address);
+        $this->postJson(route('shipping.track'), ['tracking_code' => $order->tracking_code])->assertUnprocessable()->assertJsonValidationErrors('phone_suffix');
+        $this->postJson(route('shipping.track'), ['tracking_code' => $order->tracking_code, 'phone_suffix' => '0000'])->assertJsonPath('found', false);
+        $this->postJson(route('shipping.track'), ['tracking_code' => $order->tracking_code, 'phone_suffix' => '6789'])->assertJsonPath('found', true);
+        $this->get(route('shipping.track-form', ['code' => 'GV-UNKNOWN']))->assertOk()->assertDontSee($order->recipient_name);
+    }
+
+    public function test_scan_accepts_code_or_local_qr_link_without_mutating_order_or_money(): void
+    {
+        $order = $this->approved();
+        $historyCount = $order->histories()->count();
+        $auditCount = AuditLog::count();
+        $this->get(route('orders.scan'))->assertRedirect(route('login'));
+        $this->post(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertRedirect(route('login'));
+        $this->actingAs($this->owner)->get(route('orders.scan'))->assertOk();
+        foreach (['  '.strtolower($order->tracking_code).'  ', app(OrderQrService::class)->url($order)] as $code) {
+            $this->post(route('orders.scan-resolve'), ['code' => $code])->assertRedirect(route('orders.show', $order));
+        }
+        $this->assertSame('approved', $order->fresh()->status);
+        $this->assertSame($historyCount, $order->histories()->count());
+        $this->assertSame($auditCount, AuditLog::count());
+        $this->assertSame(0, $order->collections()->count());
+        $this->get(route('orders.label', $order))->assertOk()->assertSee(route('orders.qr', $order), false);
+    }
+
+    public function test_scan_rejects_external_urls_invalid_payloads_and_out_of_scope_orders(): void
+    {
+        $order = $this->approved();
+        $this->actingAs($this->owner);
+        foreach (['https://example.com/tra-cuu/'.$order->tracking_code, '//example.com', 'javascript:alert(1)', ['bad'], str_repeat('G', 33), ''] as $code) {
+            $this->postJson(route('orders.scan-resolve'), ['code' => $code])->assertUnprocessable()->assertJsonValidationErrors('code');
+        }
+        $this->actingAs($this->shopOwner());
+        $foreign = $this->postJson(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertUnprocessable()->json('errors.code');
+        $unknown = $this->postJson(route('orders.scan-resolve'), ['code' => 'GV-UNKNOWN'])->assertUnprocessable()->json('errors.code');
+        $this->assertSame($foreign, $unknown);
+        $operator = $this->person('operations');
+        $this->actingAs($operator)->postJson(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertUnprocessable();
+        $operator->warehouses()->attach($order->warehouse_id);
+        $this->post(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertRedirect(route('orders.show', $order));
+        $draft = $this->draft();
+        $this->postJson(route('orders.scan-resolve'), ['code' => $draft->tracking_code])->assertUnprocessable();
+    }
+
+    public function test_shipper_scan_opens_only_own_active_task_in_current_warehouse_scope(): void
+    {
+        $order = $this->approved();
+        $shipper = $this->person('shipper');
+        $shipper->warehouses()->attach($order->warehouse_id);
+        $task = app(DispatchService::class)->assign($this->admin, $order, ['revision' => $order->revision,
+            'shipper_id' => $shipper->id, 'type' => 'pickup', 'reason' => 'Phân công để kiểm tra QR']);
+        $this->actingAs($shipper)->get(route('orders.scan'))->assertOk();
+        $this->post(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertRedirect(route('logistics.show', $task));
+        $this->actingAs($this->person('shipper'))->postJson(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertUnprocessable();
+        $this->actingAs($shipper);
+        $shipper->warehouses()->detach();
+        $this->postJson(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertUnprocessable();
+        $shipper->warehouses()->attach($order->warehouse_id);
+        app(DispatchService::class)->recall($this->admin, $task, 'Thu hồi để kiểm tra phạm vi QR');
+        $this->postJson(route('orders.scan-resolve'), ['code' => $order->tracking_code])->assertUnprocessable();
     }
 
     public function test_label_barcode_and_manifest_totals_follow_permissions_and_snapshots(): void

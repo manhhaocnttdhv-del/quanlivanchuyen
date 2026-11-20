@@ -25,6 +25,7 @@ class RoleConsolidationTest extends DatabaseTestCase
     public function test_operations_can_review_shops_but_cannot_manage_users_or_verify_bank_accounts(): void
     {
         $operator = $this->person('operations');
+        $operator->warehouses()->attach($this->warehouse());
         $owner = $this->shopOwner(false);
 
         $this->assertSame(['admin', 'operations', 'shipper', 'shop'], Role::orderBy('name')->pluck('name')->all());

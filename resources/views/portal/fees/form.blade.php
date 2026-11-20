@@ -1,6 +1,9 @@
 @extends('layouts.portal')
 {{-- Chỉ bản nháp được soạn; rule lưu theo tuyến/dịch vụ/bậc cân, Service kiểm tra chồng lấn trước công bố. --}}
 @section('heading', $version ? 'Biểu phí: ' . $version->name : 'Tạo phiên bản biểu phí')
+@section('actions')
+    <a class="btn btn-outline-primary" href="{{ route('fees.index') }}"><i data-lucide="arrow-left"></i> Danh sách biểu phí</a>
+@endsection
 @section('content')
     @php($published = $version && $version->status === 'published')
     @if ($published)
@@ -57,9 +60,14 @@
     @if ($version && !$published)
         <section class="work-section">
             <h2>Công bố biểu phí</h2>
-            <form method="post" action="{{ route('fees.publish', $version) }}">@csrf<x-field name="reason"
-                    label="Căn cứ công bố" required /><button class="btn btn-outline-primary mt-3">Công bố phiên bản đã
-                    lưu</button></form>
+            <form method="post" action="{{ route('fees.publish', $version) }}" data-confirm="Công bố mức phí đã lưu từ {{ $version->active_from->format('H:i d/m/Y') }}? Nếu chọn thay thế, biểu phí cũ sẽ kết thúc đúng thời điểm này.">
+                @csrf
+                @if ($replacements->isNotEmpty())
+                    <x-field name="replaces_version_id" label="Biểu phí được thay thế" :options="['' => 'Không thay thế'] + $replacements->all()" />
+                @endif
+                <x-field name="reason" label="Căn cứ công bố" minlength="5" maxlength="1000" required />
+                <button class="btn btn-primary mt-3"><i data-lucide="send"></i> Công bố phiên bản đã lưu</button>
+            </form>
         </section>
     @endif
 @endsection

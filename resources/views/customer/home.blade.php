@@ -17,7 +17,7 @@
                 <p class="hero-category"><span></span> Đồng hành cùng cửa hàng của bạn</p>
                 <h1 id="hero-title">Giao hàng COD</h1>
                 <p class="hero-copy">Từ cửa hàng của bạn<br>đến tay người nhận.</p>
-                <a href="{{ route('orders.create') }}" class="btn btn-light">Bắt đầu gửi hàng <i
+                <a href="{{ auth()->guest() ? route('register') : route(auth()->user()->shop ? 'orders.create' : auth()->user()->workspaceRoute()) }}" class="btn btn-light">{{ auth()->check() && !auth()->user()->shop ? 'Vào không gian làm việc' : 'Bắt đầu gửi hàng' }} <i
                         data-lucide="arrow-up-right"></i></a>
             </div>
             <div class="hero-caption"><i data-lucide="package"></i> Mỗi kiện hàng, một hành trình.</div>
@@ -104,9 +104,14 @@
                     </div>
                     <aside class="col-lg-3 quick-draft">
                         <span class="icon-tile"><i data-lucide="clipboard-list"></i></span>
-                        <h2>Đơn hàng của bạn</h2>
-                        <p>Tiếp tục chỉnh sửa các kiện hàng đã lưu.</p>
-                        <a href="{{ route('orders.index') }}">Mở danh sách <i data-lucide="arrow-right"></i></a>
+                        @guest
+                            <h2>Tài khoản người gửi</h2>
+                            <a href="{{ route('login') }}">Đăng nhập <i data-lucide="arrow-right"></i></a>
+                            <a class="d-block mt-3" href="{{ route('register') }}">Đăng ký gửi hàng <i data-lucide="user-plus"></i></a>
+                        @else
+                            <h2>{{ auth()->user()->shop ? 'Đơn hàng của bạn' : 'Công việc của bạn' }}</h2>
+                            <a href="{{ route(auth()->user()->workspaceRoute()) }}">{{ auth()->user()->shop ? 'Mở tài khoản gửi hàng' : 'Vào không gian làm việc' }} <i data-lucide="arrow-right"></i></a>
+                        @endguest
                     </aside>
                 </div>
             </div>
@@ -148,7 +153,7 @@
                                     class="service-tag">Cho cửa hàng</span></div>
                             <h3>Gửi hàng thu hộ</h3>
                             <p>Ghi rõ tiền hàng cần thu hộ, tách biệt với phí vận chuyển và người trả phí.</p><a
-                                href="{{ route('orders.create') }}">Chuẩn bị đơn COD <i
+                                href="{{ auth()->check() && !auth()->user()->shop ? route(auth()->user()->workspaceRoute()) : route('orders.create') }}">{{ auth()->check() && !auth()->user()->shop ? 'Mở công việc' : 'Chuẩn bị đơn COD' }} <i
                                     data-lucide="arrow-up-right"></i></a>
                         </article>
                     </div>
@@ -162,7 +167,7 @@
                     <div>
                         <p class="section-label">Chuẩn bị gửi hàng</p>
                         <h2>Sẵn sàng trong 3 bước.</h2>
-                    </div><a href="{{ route('orders.create') }}" class="btn btn-outline-primary">Tạo đơn hàng <i
+                    </div><a href="{{ auth()->check() && !auth()->user()->shop ? route(auth()->user()->workspaceRoute()) : route('orders.create') }}" class="btn btn-outline-primary">{{ auth()->check() && !auth()->user()->shop ? 'Mở công việc' : 'Tạo đơn hàng' }} <i
                             data-lucide="arrow-right"></i></a>
                 </div>
                 <div class="row g-4">

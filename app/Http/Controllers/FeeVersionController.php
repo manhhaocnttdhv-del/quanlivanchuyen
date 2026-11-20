@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FeePublicationRequest;
 use App\Http\Requests\FeeVersionRequest;
-use App\Http\Requests\ReasonRequest;
 use App\Models\FeeVersion;
 use App\Services\FeeVersionService;
 
@@ -27,7 +27,12 @@ class FeeVersionController extends Controller
             }
         }
 
-        return view('portal.fees.form', compact('version', 'rules'));
+        $replacements = $version && $version->status === 'draft' && $version->active_from->isFuture()
+            ? FeeVersion::where('status', 'published')->where('active_from', '<', $version->active_from)
+                ->where(fn ($q) => $q->whereNull('active_until')->orWhere('active_until', '>', $version->active_from))
+                ->orderBy('active_from')->pluck('name', 'id') : collect();
+
+        return view('portal.fees.form', compact('version', 'rules', 'replacements'));
     }
 
     public function save(FeeVersionRequest $request, FeeVersionService $service, ?FeeVersion $version = null)
@@ -37,9 +42,9 @@ class FeeVersionController extends Controller
         return redirect()->route('fees.edit', $version)->with('status', 'Đã lưu bản nháp biểu phí.');
     }
 
-    public function publish(ReasonRequest $request, FeeVersion $version, FeeVersionService $service)
+    public function publish(FeePublicationRequest $request, FeeVersion $version, FeeVersionService $service)
     {
-        $service->publish($request->user(), $version, $request->validated('reason'));
+        $service->publish($request->user(), $version, $request->validated('reason'), $request->filled('replaces_version_id') ? $request->integer('replaces_version_id') : null);
 
         return back()->with('status', 'Đã công bố biểu phí.');
     }

@@ -7,7 +7,6 @@ use App\Models\Incident;
 use App\Models\Order;
 use App\Models\User;
 use App\Policies\ComplaintPolicy;
-use App\Policies\IncidentPolicy;
 use App\Support\CaseRules;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -84,8 +83,8 @@ class ComplaintService
                     $body = 'Đã phân công nhân viên tiếp nhận và xử lý.';
                 } elseif ($operation === 'link') {
                     $incident = Incident::lockForUpdate()->findOrFail($data['incident_id']);
-                    abort_unless(app(IncidentPolicy::class)->view($actor, $incident), 403);
-                    $this->ledger->ensure($incident->order_id === $complaint->order_id && $incident->warehouse_id === $complaint->warehouse_id, 'Sự cố phải thuộc đúng đơn và kho.', 'incident_id');
+                    // Kho tiếp nhận khiếu nại được liên kết căn cứ cùng đơn, không mở quyền đọc hồ sơ kho khác.
+                    $this->ledger->ensure($incident->order_id === $complaint->order_id, 'Sự cố phải thuộc đúng vận đơn của khiếu nại.', 'incident_id');
                     $this->ledger->ensure(! $complaint->incident_id, 'Đã liên kết sự cố; không được ghi đè căn cứ.');
                     $complaint->incident_id = $incident->id;
                     $body = 'Đã liên kết hồ sơ xác minh sự cố cho khiếu nại.';

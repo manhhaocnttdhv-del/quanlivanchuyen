@@ -57,14 +57,20 @@
                             href="{{ route('shop.profile') }}"><i data-lucide="map-pin-house"></i> {{ auth()->user()->shop->isIndividual() ? 'Người gửi & địa chỉ' : 'Cửa hàng & địa chỉ' }}</a>
                     @endif
                     @can('viewAny', \App\Models\Order::class)
-                        <a class="{{ request()->routeIs('orders.*') ? 'active' : '' }}"
+                        <a class="{{ request()->routeIs('orders.*') && !request()->routeIs('orders.scan*') ? 'active' : '' }}"
                             href="{{ route('orders.index') }}"><i data-lucide="clipboard-list"></i> Vận đơn</a>
                     @endcan
                     @if ($dispatchAccess || $warehouseAccess || auth()->user()->hasRole('shipper'))
                         <a class="{{ request()->routeIs('logistics.index', 'logistics.show', 'logistics.order', 'logistics.handover', 'delivery.mine') ? 'active' : '' }}"
                             href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}"><i
                                 data-lucide="truck"></i>
-                            {{ auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Điều phối & bàn giao' }}</a>
+                            {{ auth()->user()->hasRole('shipper') ? 'Nhiệm vụ của tôi' : 'Trung tâm vận hành' }}</a>
+                    @endif
+                    @if (auth()->user()->hasRole('admin') || auth()->user()->hasPermission('orders.review') || auth()->user()->shop || auth()->user()->hasRole('shipper'))
+                        <a class="{{ request()->routeIs('orders.scan*') ? 'active' : '' }}" href="{{ route('orders.scan') }}"><i data-lucide="qr-code"></i> Quét vận đơn</a>
+                    @endif
+                    @if (auth()->user()->hasRole('shipper'))
+                        <a class="{{ request()->routeIs('delivery.map') ? 'active' : '' }}" href="{{ route('delivery.map') }}"><i data-lucide="map-pin"></i> Bản đồ nhiệm vụ</a>
                     @endif
                     @if (auth()->user()->hasRole('admin') ||
                             auth()->user()->hasRole('shipper') ||
@@ -75,6 +81,8 @@
                             hàng</a>
                     @endif
                     @if ($warehouseAccess || $dispatchAccess)
+                        <a class="{{ request()->routeIs('transfers.*') ? 'active' : '' }}"
+                            href="{{ route('transfers.index') }}"><i data-lucide="arrow-right-left"></i> Chuyển kho</a>
                         <a class="{{ request()->routeIs('logistics.inventory') ? 'active' : '' }}"
                             href="{{ route('logistics.inventory') }}"><i data-lucide="package-check"></i> Tồn kho & sai
                             lệch</a>
@@ -119,7 +127,7 @@
                             href="{{ route('audit.index') }}"><i data-lucide="scan-search"></i> Nhật ký thay đổi</a>
                     @endcan
                     <div class="portal-user">
-                        <strong>{{ auth()->user()->name }}</strong><small>{{ auth()->user()->roles->pluck('label')->join(', ') }}</small><small>{{ auth()->user()->warehouses->pluck('name')->join(', ') ?: 'Chưa gán phạm vi kho' }}</small>
+                        <strong>{{ auth()->user()->name }}</strong><small>{{ auth()->user()->roles->pluck('label')->join(', ') }}</small><small>{{ auth()->user()->hasRole('admin') ? 'Toàn hệ thống' : (auth()->user()->warehouses->pluck('name')->join(', ') ?: (auth()->user()->shop ? 'Dữ liệu người gửi của bạn' : 'Chưa gán phạm vi kho')) }}</small>
                     </div>
                 </nav>
             </div>
@@ -127,11 +135,15 @@
         <main class="portal-main" id="portal-main" tabindex="0" aria-label="Nội dung chính">
             @include('portal.partials.feedback')
             <div class="portal-heading">
-                <h1>@yield('heading')</h1>@yield('actions')
+                <h1>@yield('heading')</h1>
+                @hasSection('actions')
+                    <div class="portal-heading-actions">@yield('actions')</div>
+                @endif
             </div>
             @yield('content')
         </main>
     </div>
+    @include('portal.partials.confirmation')
 </body>
 
 </html>

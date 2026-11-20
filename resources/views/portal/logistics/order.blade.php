@@ -10,6 +10,8 @@
             <p>{{ $order->shop->name }} · {{ $order->warehouse->name }} · {{ $order->parcel_count }} kiện</p>
         </div><span class="status-badge">{{ \App\Models\Order::STATUSES[$order->status] }}</span>
     </div>
+    <x-order-progress :order="$order" />
+    @include('portal.logistics.readiness')
     <dl class="detail-grid">
         <dt>Lấy hàng</dt>
         <dd>{{ $order->sender_snapshot['address'] ?? '' }} · {{ $order->sender_snapshot['area'] ?? '' }}</dd>
@@ -21,11 +23,13 @@
             @endif
         </dd>
     </dl>
+    @include('portal.transfers.create')
     @if ($policy->dispatch(auth()->user(), $order->warehouse_id))
         @if (
             $order->tasks->whereIn('status', \App\Models\DeliveryTask::ACTIVE)->isEmpty() &&
                 in_array($order->status, ['approved', 'at_warehouse']))
-            <section class="work-section">
+            @if ($workflow['canAssign'])
+                <section class="work-section">
                 <h2>Phân công nhiệm vụ</h2>
                 <form method="post" action="{{ route('logistics.assign', $order) }}" class="narrow-form mt-3">@csrf
                     <input type="hidden" name="revision" value="{{ $order->revision }}">
@@ -40,14 +44,15 @@
                         công</button>
                 </form>
             </section>
-            @if ($order->status === 'at_warehouse' && !$order->return_authorized_by)
+            @endif
+            @if ($workflow['canDecide'])
                 <section class="work-section">
-                    <h2>Phương án giao lại / hoàn</h2>
+                    <h2>{{ $order->delivery_attempt_count ? 'Phương án giao lại / hoàn' : 'Yêu cầu hoàn hàng' }}</h2>
                     <form method="post" action="{{ route('delivery.decide', $order) }}" class="narrow-form mt-3"
                         data-confirm="Lưu phương án xử lý theo ý kiến shop?">
                         @csrf<input type="hidden" name="revision" value="{{ $order->revision }}">
                         <div class="row g-3">
-                            <div class="col-sm-6"><x-field name="decision" label="Phương án" :options="\App\Models\DeliveryDecision::TYPES" required />
+                            <div class="col-sm-6"><x-field name="decision" label="Phương án" :options="$decisions" required />
                             </div>
                             <div class="col-sm-6"><x-field name="fee_payment" label="Cách thu phí nếu hoàn"
                                     :options="\App\Models\ReturnRecord::PAYMENTS" required /></div>
@@ -61,6 +66,15 @@
                 </section>
             @endif
         @endif
+    @endif
+    @if ($transfers->isNotEmpty())
+        <section class="work-section"><h2>Lịch sử chuyển kho</h2>
+            @foreach ($transfers as $transfer)
+                @if (app(\App\Policies\WarehouseTransferPolicy::class)->view(auth()->user(), $transfer))
+                    <p class="mt-3"><a href="{{ route('transfers.show', $transfer) }}">{{ $transfer->code }}</a> · {{ $transfer->source->name }} → {{ $transfer->destination->name }} · {{ \App\Models\WarehouseTransfer::STATUSES[$transfer->status] }}</p>
+                @endif
+            @endforeach
+        </section>
     @endif
     @if ($order->return_reason)
         <p class="alert alert-warning">Quyết định hoàn: {{ $order->return_reason }}</p>
@@ -82,8 +96,8 @@
     <section class="work-section">
         <h2>Các nhiệm vụ</h2>
         @forelse ($order->tasks->sortByDesc('id') as $task)
-            <p><a href="{{ route('logistics.show', $task) }}">#{{ $task->id }} ·
-                    {{ \App\Models\DeliveryTask::TYPES[$task->type] }} · {{ $task->shipper->name }}</a> <span
+            <p>@if ($policy->view(auth()->user(), $task))<a href="{{ route('logistics.show', $task) }}">@endif#{{ $task->id }} ·
+                    {{ \App\Models\DeliveryTask::TYPES[$task->type] }} · {{ $task->shipper->name }}@if ($policy->view(auth()->user(), $task))</a>@endif <span
                 class="status-badge">{{ \App\Models\DeliveryTask::STATUSES[$task->status] }}</span></p>@empty<p
                 class="text-secondary">Chưa phân công.</p>
         @endforelse
