@@ -95,6 +95,33 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         return $order->fresh();
     }
 
+    public function test_inbound_receipt_rejects_noncanonical_line_identifiers_without_receiving_parcels(): void
+    {
+        $task = $this->picked();
+        $service = app(WarehouseService::class);
+        $doc = $service->prepare($this->shipper, $task, 'inbound', 'Prepare receipt validation');
+        $lines = $doc->lines->mapWithKeys(fn ($line) => [$line->id => [
+            'received' => true, 'condition' => 'good', 'weight_grams' => 500,
+        ]])->all();
+        $lineId = array_key_first($lines);
+        $before = $task->order->fresh()->getAttributes();
+        foreach ([$lineId.'invalid', '0'.$lineId, $lineId.'.0'] as $invalidId) {
+            $invalid = $lines;
+            $invalid[$invalidId] = $invalid[$lineId];
+            unset($invalid[$lineId]);
+            $this->actingAs($this->clerk)->postJson(route('logistics.confirm', $doc), [
+                'location_id' => $this->location->id, 'reason' => 'Reject invalid receipt line identifiers', 'lines' => $invalid,
+            ])->assertUnprocessable()->assertJsonValidationErrors('lines');
+            $this->assertSame('pending', $doc->fresh()->status);
+            $this->assertSame(0, $doc->lines()->where('received', true)->count());
+            $this->assertSame(2, $task->order->parcels()->where('holder_type', 'shipper')->count());
+            $this->assertSame($before, $task->order->fresh()->getAttributes());
+        }
+        $service->confirm($this->clerk, $doc, ['location_id' => $this->location->id,
+            'reason' => 'Receive valid parcel identifiers', 'lines' => $lines], null);
+        $this->assertSame('confirmed', $doc->fresh()->status);
+    }
+
     public function test_dispatch_uses_customer_selected_warehouse_and_its_staff_scope(): void
     {
         $selected = $this->warehouse();
@@ -367,6 +394,23 @@ class LogisticsWorkflowTest extends DatabaseTestCase
         $this->invalid(fn () => $this->assign($order, 'delivery'));
         app(DispatchService::class)->authorizeReturn($this->dispatcher, $order, 'Shop đồng ý hoàn sau ba lượt thất bại');
         $this->assertSame('assigned', $this->assign($order, 'return')->status);
+    }
+
+    public function test_stocktake_rejects_noncanonical_line_identifiers_without_saving_counts(): void
+    {
+        $this->stocked();
+        $service = app(StocktakeService::class);
+        $stocktake = $service->start($this->clerk, ['warehouse_id' => $this->depot->id, 'reason' => 'Validate stocktake identifiers']);
+        $line = $stocktake->lines()->firstOrFail();
+        foreach ([$line->id.'invalid', '0'.$line->id, $line->id.'.0'] as $invalidId) {
+            $this->actingAs($this->clerk)->postJson(route('stocktakes.submit', $stocktake), [
+                'finalize' => false, 'lines' => [$invalidId => ['actual_present' => true]],
+            ])->assertUnprocessable()->assertJsonValidationErrors('lines');
+            $this->assertSame(0, $stocktake->lines()->whereNotNull('actual_present')->count());
+            $this->assertSame('draft', $stocktake->fresh()->status);
+        }
+        $service->submit($this->clerk, $stocktake, ['finalize' => false, 'lines' => [$line->id => ['actual_present' => true]]]);
+        $this->assertSame(1, $stocktake->lines()->where('actual_present', true)->count());
     }
 
     public function test_stocktake_retains_snapshot_and_does_not_erase_missing_inventory(): void

@@ -43,7 +43,7 @@ class StocktakeService
             $this->ledger->ensure($stocktake->status === 'draft', 'Biên bản đã gửi, không thể sửa kiểm đếm.');
             $provided = collect($data['lines'] ?? []);
             $lines = $stocktake->lines()->whereIn('id', $provided->keys())->get();
-            $this->ledger->ensure($provided->count() === $lines->count(), 'Danh sách có dòng không thuộc biên bản.', 'lines');
+            $this->ledger->ensure($provided->keys()->sort()->values()->all() === $lines->pluck('id')->sort()->values()->all(), 'Danh sách có dòng không thuộc biên bản.', 'lines');
             foreach ($lines as $line) {
                 $input = $data['lines'][$line->id];
                 $this->ledger->ensure((bool) $input['actual_present'] || ! empty($input['note']), 'Kiện không tìm thấy phải có ghi chú.', 'lines.'.$line->id.'.note');

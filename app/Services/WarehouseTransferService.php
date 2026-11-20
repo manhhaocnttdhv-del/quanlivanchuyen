@@ -69,7 +69,7 @@ class WarehouseTransferService
             $this->ledger->ensure((bool) $location, 'Chọn vị trí đang hoạt động của đúng kho nhận.', 'location_id');
             $lines = $transfer->lines()->whereNull('received_at')->where(fn ($q) => $q->whereNull('condition')->orWhere('condition', '!=', 'lost'))->lockForUpdate()->get();
             $provided = collect($data['lines']);
-            $this->ledger->ensure($provided->keys()->map(fn ($id) => (int) $id)->sort()->values()->all() === $lines->pluck('id')->sort()->values()->all(), 'Kiểm đếm đúng toàn bộ kiện còn chờ; không nhận lại kiện đã nhập kho.', 'lines');
+            $this->ledger->ensure($provided->keys()->sort()->values()->all() === $lines->pluck('id')->sort()->values()->all(), 'Kiểm đếm đúng toàn bộ kiện còn chờ; không nhận lại kiện đã nhập kho.', 'lines');
             $before = $this->ledger->snapshot($order);
             foreach ($lines as $line) {
                 $input = $data['lines'][$line->id];
