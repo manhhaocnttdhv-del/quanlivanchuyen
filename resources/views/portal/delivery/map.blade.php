@@ -1,5 +1,5 @@
 @extends('layouts.portal')
-@section('heading', 'Bản đồ nhiệm vụ')
+@section('heading', 'Bản đồ shipper')
 @section('actions')
     <a class="btn btn-outline-primary" href="{{ route('delivery.mine') }}"><i data-lucide="clipboard-list"></i> Danh sách nhiệm vụ</a>
 @endsection
@@ -42,7 +42,7 @@
                     <div><span class="small text-secondary">{{ $stop['phase'] }}</span><h2 class="h5">{{ $stop['name'] }}</h2><p>{{ $stop['address'] }} · {{ $stop['area'] }}</p></div>
                     <span class="status-badge">{{ \App\Models\DeliveryTask::TYPES[$selected->type] }}</span>
                 </div>
-                @include('portal.delivery.partials.map-simulation')
+                @include('portal.delivery.partials.map-tracking')
                 <div class="shipper-map-actions">
                     <span class="small text-secondary logistics-code">{{ $selected->order->tracking_code }} · {{ $selected->order->parcel_count }} kiện</span>
                     <div class="d-flex flex-wrap gap-2">

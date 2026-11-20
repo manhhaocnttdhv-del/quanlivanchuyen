@@ -2,19 +2,18 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { createElement, Truck, Warehouse, Flag } from 'lucide';
 import routes from './data/shipper-demo-routes.json';
+import { createPositionWatcher } from './shipper-position.mjs';
 
-const duration = 90000;
+const previewDuration = 90000;
 const km = (metres) => `${(metres / 1000).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`;
-const clock = (milliseconds) => {
-    const seconds = Math.floor(milliseconds / 1000);
-    return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-};
 
 export function setupShipperMap() {
-    const root = document.querySelector('[data-shipper-simulation]');
+    const root = document.querySelector('[data-shipper-map]');
     if (!root) return;
     const field = (name) => root.querySelector(`[data-${name}]`);
-    const canvas = field('demo-map');
+    const canvas = field('tracking-map');
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    root.dataset.reducedMotion = String(reducedMotion.matches);
     const map = L.map(canvas, { scrollWheelZoom: false, zoomControl: false });
     L.control.zoom({ position: 'topright', zoomInTitle: 'Phóng to', zoomOutTitle: 'Thu nhỏ' }).addTo(map);
     L.tileLayer('https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -23,135 +22,281 @@ export function setupShipperMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, tiles <a href="https://www.hotosm.org/" target="_blank" rel="noopener noreferrer">HOT</a> / <a href="https://www.openstreetmap.fr/" target="_blank" rel="noopener noreferrer">OSM France</a>',
     }).on('tileerror', () => { field('tile-error').hidden = false; }).addTo(map);
 
-    const icon = (symbol, kind) => L.divIcon({
-        className: `shipper-demo-marker ${kind}`,
-        html: createElement(symbol, { 'aria-hidden': 'true' }).outerHTML,
-        iconSize: [36, 36], iconAnchor: [18, 18],
+    const icon = (symbol, kind, size = 36) => L.divIcon({
+        className: `shipper-map-marker ${kind}`,
+        html: `<span class="shipper-marker-body">${createElement(symbol, { 'aria-hidden': 'true' }).outerHTML}</span>`,
+        iconSize: [size, size], iconAnchor: [size / 2, size / 2],
     });
-    const planned = L.polyline([], { color: '#78878c', weight: 6, opacity: 0.6 }).addTo(map);
-    const travelled = L.polyline([], { color: '#087f73', weight: 6 }).addTo(map);
-    const start = L.marker([0, 0], { icon: icon(Warehouse, 'start'), title: 'Điểm xuất phát mẫu', keyboard: false }).addTo(map).bindTooltip('Điểm xuất phát mẫu');
-    const end = L.marker([0, 0], { icon: icon(Flag, 'end'), title: 'Điểm giao mẫu', keyboard: false }).addTo(map).bindTooltip('Điểm giao mẫu');
-    const shipper = L.marker([0, 0], { icon: icon(Truck, 'courier'), title: 'Shipper mô phỏng', keyboard: false, zIndexOffset: 1000 }).addTo(map).bindTooltip('Shipper mô phỏng');
+    const planned = L.polyline([], { color: '#78878c', weight: 6, opacity: 0.6 });
+    const travelled = L.polyline([], { color: '#087f73', weight: 6 });
+    const start = L.marker([0, 0], { icon: icon(Warehouse, 'start'), title: 'Điểm xuất phát mẫu', keyboard: false });
+    const end = L.marker([0, 0], { icon: icon(Flag, 'end'), title: 'Điểm giao mẫu', keyboard: false });
+    const shipper = L.marker([0, 0], { icon: icon(Truck, 'courier', 48), keyboard: false, zIndexOffset: 1000 });
+    const accuracy = L.circle([0, 0], { radius: 0, color: '#087f73', weight: 1, fillOpacity: 0.08, interactive: false });
+    const previewLayers = [planned, travelled, start, end];
+    let source = 'idle';
+    let follow = true;
+    let position = null;
+    let latestGpsPosition = null;
+    let motionFrame = null;
+    let previewFrame = null;
+    let previewRunning = false;
+    let previewElapsed = 0;
+    let lastTick = null;
     let points = [];
     let distances = [];
     let total = 0;
-    let elapsed = 0;
-    let running = false;
-    let frame = null;
-    let lastTick = null;
+    const gps = createPositionWatcher({
+        geolocation: navigator.geolocation,
+        onPosition: receivePosition,
+        onError: gpsError,
+        onStale: () => {
+            cancelAnimationFrame(motionFrame);
+            if (position) place(position);
+            status('Tín hiệu GPS cũ');
+            field('location-detail').textContent = 'Vị trí gần nhất';
+        },
+    });
 
-    function updateStatus() {
-        const button = field('demo-play');
-        const label = running ? 'Tạm dừng mô phỏng' : elapsed >= duration ? 'Chạy lại mô phỏng' : 'Chạy mô phỏng';
-        button.setAttribute('aria-label', label);
-        button.setAttribute('title', label);
-        button.setAttribute('aria-pressed', String(running));
-        field('play-icon').hidden = running;
-        field('pause-icon').hidden = !running;
-        field('demo-status').textContent = elapsed >= duration ? 'Đã đến điểm mẫu' : running ? 'Đang di chuyển' : elapsed > 0 ? 'Tạm dừng' : 'Sẵn sàng';
+    function status(label, kind = 'idle') {
+        field('location-status').textContent = label;
+        field('map-source').dataset.mapSource = kind;
     }
 
-    function pause() {
-        running = false;
-        cancelAnimationFrame(frame);
-        frame = null;
+    function setFollow(value) {
+        follow = value;
+        field('map-follow').setAttribute('aria-pressed', String(value));
+        field('map-follow').title = value ? 'Đang theo vị trí shipper' : 'Theo vị trí shipper';
+    }
+
+    function place(next, moving = false) {
+        position = next;
+        shipper.setLatLng(next);
+        if (!map.hasLayer(shipper)) shipper.addTo(map);
+        const marker = shipper.getElement();
+        marker.setAttribute('role', 'img');
+        marker.setAttribute('aria-label', source === 'preview' ? 'Shipper trên tuyến mẫu' : 'Vị trí shipper');
+        marker.dataset.moving = String(moving);
+        field('map-follow').disabled = false;
+        // Cập nhật camera cùng nhịp với marker để xe luôn nằm chính giữa khi bám vị trí.
+        if (follow) map.setView(next, map.getZoom(), { animate: false });
+    }
+
+    function glide(next, moving) {
+        cancelAnimationFrame(motionFrame);
+        const from = position;
+        if (!from || reducedMotion.matches || from.distanceTo(next) > 200) {
+            place(next, moving);
+            return;
+        }
+        let started = null;
+        function step(timestamp) {
+            started ??= timestamp;
+            const fraction = Math.min(1, (timestamp - started) / 850);
+            place(L.latLng(from.lat + (next.lat - from.lat) * fraction, from.lng + (next.lng - from.lng) * fraction), moving);
+            if (fraction < 1) motionFrame = requestAnimationFrame(step);
+        }
+        motionFrame = requestAnimationFrame(step);
+    }
+
+    function pausePreview() {
+        previewRunning = false;
+        cancelAnimationFrame(previewFrame);
+        previewFrame = null;
         lastTick = null;
-        updateStatus();
+        field('play-icon').hidden = false;
+        field('pause-icon').hidden = true;
+        field('preview-label').textContent = source === 'preview' && previewElapsed < previewDuration ? 'Tiếp tục tuyến mẫu' : 'Xem tuyến mẫu';
+        if (source === 'preview') {
+            status(previewElapsed >= previewDuration ? 'Đã đến điểm mẫu' : 'Tuyến mẫu · Tạm dừng', 'preview');
+            if (position) place(position);
+        }
     }
 
-    function render() {
-        const distance = total * elapsed / duration;
+    function stopGps(label = 'Đã tắt vị trí') {
+        gps.stop();
+        cancelAnimationFrame(motionFrame);
+        field('gps-start').disabled = false;
+        field('gps-label').textContent = 'Bật vị trí của tôi';
+        field('gps-stop').hidden = true;
+        if (source === 'gps') {
+            status(label);
+            field('location-detail').textContent = position ? 'Vị trí gần nhất' : 'GPS chưa kết nối';
+            if (position) place(position);
+        }
+    }
+
+    function gpsError(error) {
+        cancelAnimationFrame(motionFrame);
+        if (position) place(position);
+        if (error.code === 1) stopGps('Chưa được cấp vị trí');
+        else status(position ? 'Tín hiệu GPS gián đoạn' : 'Chưa lấy được vị trí');
+        field('location-error').hidden = false;
+        field('location-error').textContent = error.code === 1 ? 'Quyền vị trí bị từ chối. Hãy cho phép vị trí trong trình duyệt rồi thử lại.'
+            : error.code === 3 ? 'Lấy vị trí quá thời gian. Hãy kiểm tra GPS và thử lại.' : 'Chưa nhận được tín hiệu GPS. Hãy kiểm tra vị trí của thiết bị.';
+        field('gps-start').disabled = false;
+        field('gps-label').textContent = 'Thử lại GPS';
+        field('location-detail').textContent = position ? 'Vị trí gần nhất' : 'GPS chưa kết nối';
+    }
+
+    function startGps() {
+        stopGps();
+        pausePreview();
+        previewLayers.forEach((layer) => map.removeLayer(layer));
+        map.removeLayer(accuracy);
+        map.removeLayer(shipper);
+        field('map-follow').disabled = true;
+        position = null;
+        latestGpsPosition = null;
+        source = 'gps';
+        field('preview-label').textContent = 'Xem tuyến mẫu';
+        field('gps-metrics').hidden = true;
+        field('preview-remaining').hidden = true;
+        field('preview-fit').disabled = true;
+        field('location-error').hidden = true;
+        if (!window.isSecureContext || !navigator.geolocation) {
+            gpsError({ code: 2 });
+            field('location-error').textContent = 'GPS cần trình duyệt hỗ trợ vị trí và kết nối HTTPS hoặc localhost.';
+            return;
+        }
+        setFollow(true);
+        status('Đang lấy vị trí');
+        field('gps-start').disabled = true;
+        field('gps-label').textContent = 'Đang kết nối GPS';
+        field('gps-stop').hidden = false;
+        field('location-detail').textContent = 'Đang chờ GPS';
+        gps.start();
+    }
+
+    function receivePosition(fix, first) {
+        const { latitude, longitude, accuracy: radius, speed } = fix.coords;
+        const next = L.latLng(latitude, longitude);
+        latestGpsPosition = next;
+        const moving = Number.isFinite(speed) ? speed > 0.5 : !!position && position.distanceTo(next) > 5;
+        if (first) map.setView(next, 16, { animate: false });
+        glide(next, moving);
+        if (Number.isFinite(radius) && radius > 0 && radius <= 1000) accuracy.setLatLng(next).setRadius(radius).addTo(map);
+        else map.removeLayer(accuracy);
+        status('GPS đang kết nối', 'gps');
+        field('location-error').hidden = true;
+        field('gps-label').textContent = 'Đang dùng GPS';
+        field('gps-start').disabled = true;
+        field('location-detail').textContent = moving ? 'Đang di chuyển' : 'Đã có vị trí';
+        field('gps-metrics').hidden = false;
+        field('gps-accuracy').textContent = Number.isFinite(radius) ? `± ${Math.round(radius)} m` : '—';
+        field('gps-speed').textContent = Number.isFinite(speed) && speed >= 0 ? `${Math.round(speed * 3.6)} km/h` : '—';
+        field('gps-updated').textContent = new Date(fix.timestamp).toLocaleTimeString('vi-VN', { hour12: false });
+    }
+
+    function renderPreview() {
+        const distance = total * previewElapsed / previewDuration;
         let index = distances.findIndex((value) => value >= distance);
         index = Math.max(1, index < 0 ? points.length - 1 : index);
         const fraction = (distance - distances[index - 1]) / (distances[index] - distances[index - 1] || 1);
         const from = points[index - 1];
         const to = points[index];
-        const position = L.latLng(from.lat + (to.lat - from.lat) * fraction, from.lng + (to.lng - from.lng) * fraction);
-        shipper.setLatLng(position);
-        travelled.setLatLngs([...points.slice(0, index), position]);
-        field('demo-progress').value = String(Math.round(elapsed / duration * 1000));
-        field('demo-percent').textContent = `${Math.round(elapsed / duration * 100)}%`;
-        field('demo-travelled').textContent = km(distance);
-        field('demo-remaining').textContent = km(total - distance);
-        field('demo-time').textContent = clock(elapsed);
-        if (field('demo-follow').checked && !map.getBounds().pad(-0.15).contains(position)) {
-            map.panTo(position, { animate: false });
-        }
+        const next = L.latLng(from.lat + (to.lat - from.lat) * fraction, from.lng + (to.lng - from.lng) * fraction);
+        place(next, previewRunning);
+        travelled.setLatLngs([...points.slice(0, index), next]);
+        field('preview-remaining').textContent = `Còn ${km(total - distance)} trên tuyến mẫu`;
     }
 
-    function fit() {
-        map.fitBounds(planned.getBounds(), { padding: [35, 35], maxZoom: 16, animate: false });
-    }
-
-    function loadRoute() {
-        pause();
-        const geometry = routes[field('demo-route').value];
-        points = geometry.coordinates.map(([lng, lat]) => L.latLng(lat, lng));
-        distances = [0];
-        // Đo theo từng đoạn tuyến mẫu để xe đi đều qua cả đoạn ngắn và dài.
-        points.slice(1).forEach((point, index) => distances.push(distances[index] + points[index].distanceTo(point)));
-        total = distances.at(-1);
-        elapsed = 0;
-        planned.setLatLngs(points);
-        start.setLatLng(points[0]);
-        end.setLatLng(points.at(-1));
-        fit();
-        render();
-        updateStatus();
-    }
-
-    function tick(timestamp) {
-        if (!running) return;
-        if (lastTick !== null) elapsed = Math.min(duration, elapsed + (timestamp - lastTick) * Number(field('demo-speed').value));
+    function previewTick(timestamp) {
+        if (!previewRunning) return;
+        if (lastTick !== null) previewElapsed = Math.min(previewDuration, previewElapsed + timestamp - lastTick);
         lastTick = timestamp;
-        render();
-        if (elapsed >= duration) pause();
-        else frame = requestAnimationFrame(tick);
+        renderPreview();
+        if (previewElapsed >= previewDuration) pausePreview();
+        else previewFrame = requestAnimationFrame(previewTick);
     }
 
-    field('demo-play').addEventListener('click', () => {
-        if (running) { pause(); return; }
-        if (elapsed >= duration) elapsed = 0;
-        running = true;
+    function beginPreview(reload = false) {
+        stopGps();
+        map.removeLayer(accuracy);
+        field('gps-metrics').hidden = true;
+        field('location-error').hidden = true;
+        if (source !== 'preview' || reload || previewElapsed >= previewDuration) {
+            source = 'preview';
+            const geometry = routes[field('preview-route').value];
+            points = geometry.coordinates.map(([lng, lat]) => L.latLng(lat, lng));
+            distances = [0];
+            points.slice(1).forEach((point, index) => distances.push(distances[index] + points[index].distanceTo(point)));
+            total = distances.at(-1);
+            previewElapsed = 0;
+            position = null;
+            planned.setLatLngs(points);
+            start.setLatLng(points[0]);
+            end.setLatLng(points.at(-1));
+            previewLayers.forEach((layer) => layer.addTo(map));
+            setFollow(true);
+            map.setView(points[0], 16, { animate: false });
+        }
+        previewRunning = true;
         lastTick = null;
-        updateStatus();
-        frame = requestAnimationFrame(tick);
+        field('play-icon').hidden = true;
+        field('pause-icon').hidden = false;
+        field('preview-label').textContent = 'Tạm dừng tuyến mẫu';
+        field('location-detail').textContent = 'Dữ liệu mẫu';
+        field('preview-remaining').hidden = false;
+        field('preview-fit').disabled = false;
+        status('Đang di chuyển · Tuyến mẫu', 'preview');
+        renderPreview();
+        previewFrame = requestAnimationFrame(previewTick);
+    }
+
+    field('gps-start').addEventListener('click', startGps);
+    field('gps-stop').addEventListener('click', () => stopGps());
+    field('map-follow').addEventListener('click', () => {
+        setFollow(true);
+        map.stop();
+        if (position) map.setView(position, map.getZoom(), { animate: false });
     });
-    field('demo-reset').addEventListener('click', () => { pause(); elapsed = 0; fit(); render(); updateStatus(); });
-    field('demo-fit').addEventListener('click', fit);
-    field('demo-route').addEventListener('change', loadRoute);
-    field('demo-follow').addEventListener('change', () => {
-        if (field('demo-follow').checked) map.panTo(shipper.getLatLng());
+    map.on('dragstart', () => setFollow(false));
+    map.on('zoomend', () => { if (follow && position) map.panTo(position, { animate: false }); });
+    field('preview-play').addEventListener('click', () => previewRunning ? pausePreview() : beginPreview());
+    field('preview-route').addEventListener('change', () => {
+        pausePreview();
+        if (source === 'preview') beginPreview(true);
     });
-    field('demo-progress').addEventListener('input', () => {
-        pause();
-        elapsed = Number(field('demo-progress').value) / 1000 * duration;
-        render();
-        updateStatus();
+    field('preview-fit').addEventListener('click', () => {
+        setFollow(false);
+        map.fitBounds(planned.getBounds(), { padding: [35, 35], maxZoom: 16, animate: false });
     });
     root.querySelectorAll('[data-map-mode]').forEach((button) => button.addEventListener('click', () => {
-        const demo = button.dataset.mapMode === 'demo';
-        pause();
-        field('map-demo').hidden = !demo;
-        field('map-address').hidden = demo;
+        const tracking = button.dataset.mapMode === 'shipper';
+        if (!tracking) { pausePreview(); stopGps('GPS đã tạm dừng'); }
+        field('map-tracking').hidden = !tracking;
+        field('map-address').hidden = tracking;
         root.querySelectorAll('[data-map-mode]').forEach((mode) => {
-            const active = mode === button;
-            mode.classList.toggle('active', active);
-            mode.setAttribute('aria-pressed', String(active));
+            mode.classList.toggle('active', mode === button);
+            mode.setAttribute('aria-pressed', String(mode === button));
         });
-        if (demo) { map.invalidateSize(); render(); }
-        else {
+        if (tracking) {
+            map.invalidateSize({ pan: false });
+            if (follow && position) map.setView(position, map.getZoom(), { animate: false });
+        } else {
             const iframe = root.querySelector('[data-address-src]');
             if (iframe && !iframe.src) iframe.src = iframe.dataset.addressSrc;
         }
     }));
-    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-    window.addEventListener('pagehide', pause);
-    new ResizeObserver(() => map.invalidateSize()).observe(canvas);
-    field('demo-route').value = Object.hasOwn(routes, root.dataset.demoArea) ? root.dataset.demoArea : 'HN';
-    loadRoute();
-    shipper.getElement().setAttribute('aria-label', 'Shipper mô phỏng');
-    shipper.getElement().setAttribute('role', 'img');
-    field('demo-play').disabled = false;
+    function suspend() { pausePreview(); stopGps('GPS đã tạm dừng'); }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) suspend(); });
+    window.addEventListener('pagehide', suspend);
+    reducedMotion.addEventListener('change', () => {
+        root.dataset.reducedMotion = String(reducedMotion.matches);
+        if (!reducedMotion.matches) return;
+        pausePreview();
+        cancelAnimationFrame(motionFrame);
+        if (source === 'gps' && latestGpsPosition) place(latestGpsPosition);
+    });
+    new ResizeObserver(() => {
+        map.invalidateSize({ pan: false });
+        if (follow && position) map.setView(position, map.getZoom(), { animate: false });
+    }).observe(canvas);
+    const region = Object.hasOwn(routes, root.dataset.demoArea) ? root.dataset.demoArea : 'HN';
+    field('preview-route').value = region;
+    const [lng, lat] = routes[region].coordinates[0];
+    map.setView([lat, lng], 14, { animate: false });
+    field('gps-start').disabled = false;
+    field('preview-play').disabled = false;
 }

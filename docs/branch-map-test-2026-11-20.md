@@ -84,3 +84,21 @@ Tuyến mặc định theo khu vực kho của task, có thể chọn mẫu Hà 
 | 7. Bằng chứng/giới hạn | PASS trong phạm vi: desktop 1280×900 và mobile 390×844 không tràn ngang; ảnh `leaflet-simulation-desktop.jpg`, `leaflet-simulation-mobile.jpg` trong thư mục evidence local. Chỉ là chuyển động giả; không kiểm thử dẫn đường/GPS thực tế |
 
 Máy chủ tile OSM tiêu chuẩn không kết nối được ở môi trường này; CARTO trả ảnh yêu cầu API key. Đã chuyển sang OSM France/HOT và xác nhận tile đường phố tải thật, với attribution hiện trên bản đồ. Các cảnh báo/lỗi thử provider ban đầu không được coi là kết quả PASS; kết quả trên thuộc provider cuối cùng. Nền bản đồ vẫn cần Internet; khi lỗi tile có thông báo và tuyến/mô phỏng vẫn còn. Cần chọn dịch vụ tile phù hợp nếu đưa lên hệ thống có lưu lượng lớn.
+
+## Sửa căn tâm và chuyển sang giao diện GPS shipper: PASS trong phạm vi
+
+Phần này thay thế giao diện mô phỏng làm màn hình chính ở lần kiểm tra trước. Người dùng phản ánh xe không nằm giữa bản đồ: nguyên nhân là camera chỉ pan khi marker gần rời khung. Đã chuyển sang bám tâm mỗi lần cập nhật vị trí, tách thân icon khỏi phần tử Leaflet sở hữu transform và thêm hiệu ứng vị trí khi di chuyển. Màn hình chính có bật/tắt GPS; tuyến mẫu chuyển vào mục phụ, bỏ tốc độ và thanh tiến độ khỏi luồng làm việc chính.
+
+| Bước | Kết quả |
+| --- | --- |
+| 1. Phạm vi | PASS: sửa căn tâm/icon, GPS trên thiết bị, nội suy chuyển động; giữ nhiệm vụ và phân quyền hiện tại |
+| 2. Môi trường | PASS: preview/database verify như trên; GPS kiểm thử bằng fixture local có tọa độ tổng hợp, không đọc GPS người dùng |
+| 3. Ca kiểm thử | PASS: bám tâm, xem toàn tuyến, kéo/phóng to/định tâm, đổi tuyến/điểm đến, GPS bật/tắt/lỗi/khôi phục, giảm chuyển động |
+| 4. Tĩnh/build | PASS: Pint, Vite build, `node --check`, `git diff --check` |
+| 5. Tự động | PASS: `php artisan test --compact`: **261 test, 3.310 assertion**, 110,56 giây. `node --test tests/JavaScript/shipper-position.test.mjs`: **4 test đạt** về GPS opt-in, tọa độ hợp lệ/mới/đúng thứ tự, callback cũ sau dừng/restart, từ chối/timeout/phục hồi và tín hiệu cũ |
+| 6. Trình duyệt | PASS: marker lệch tâm bản đồ tối đa khoảng 1px sau render ổn định, SVG lệch tâm marker 0px; camera và nền đổi vị trí khi chạy; kéo map ngắt bám, nút định tâm bật lại, zoom giữ tâm; tuyến chạy hết về 0km. Desktop 1280×900, mobile 390×844 và 320×740 không tràn ngang. Sửa thêm phân trang bị xuống hàng trong cột điểm dừng desktop |
+| 7. Bằng chứng/giới hạn | PASS trong phạm vi: ảnh `shipper-centered-desktop.jpg`, `shipper-centered-mobile.jpg`, `shipper-gps-fixture.jpg` tại thư mục evidence local. Chưa thử di chuyển ngoài đường bằng GPS điện thoại |
+
+Fixture `tests/Support/shipper-map-browser.mjs` render đúng Blade partial và đóng gói module thật, thay riêng Geolocation API bằng nút phát tọa độ công khai tổng hợp. Chạy bằng `node tests/Support/shipper-map-browser.mjs` trên cổng loopback 8002; đặt `SHIPPER_MAP_TEST_PHP` nếu PHP mặc định dưới 8.2. Đã bấm bật GPS, phát hai điểm, quan sát nội suy và tâm; mô phỏng timeout, phục hồi, từ chối quyền, callback muộn, tắt GPS, chuyển Điểm đến, chuyển tuyến mẫu và giảm chuyển động. Fixture là công cụ test riêng, không có route production; server fixture được dừng sau kiểm tra. Không xem đây là kiểm chứng tín hiệu GPS phần cứng.
+
+GPS dùng `watchPosition`, chỉ bắt đầu khi người dùng bấm bật và cấp quyền, cần HTTPS hoặc localhost. Khi tắt/chuyển Điểm đến/ẩn tab/rời trang đều clearWatch, không tự khởi động lại khi quay về. Không gửi/lưu tọa độ ở server, chưa chia sẻ vị trí cho điều phối, chưa dẫn đường trong Leaflet hoặc tính tuyến từ GPS tới địa chỉ đơn. Dịch vụ ô nền nhận vùng bản đồ đang xem, nên có thể suy ra khu vực GPS khi bám vị trí. Tuyến mẫu luôn ghi rõ nguồn, không mạo nhận GPS. Quyền trình duyệt và chuyến đi thực tế: SKIPPED vì không tự cấp quyền hoặc di chuyển thiết bị thay người dùng. Không thay schema nên kiểm tra migration: SKIPPED trong lần sửa UI này.

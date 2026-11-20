@@ -1,0 +1,45 @@
+<div data-shipper-map data-demo-area="{{ $demoArea }}">
+    <div class="shipper-map-modes btn-group mb-3" role="group" aria-label="Nội dung bản đồ">
+        <button type="button" class="btn btn-outline-primary active" data-map-mode="shipper" aria-pressed="true">Vị trí shipper</button>
+        <button type="button" class="btn btn-outline-primary" data-map-mode="address" aria-pressed="false">Điểm đến</button>
+    </div>
+    <p class="text-danger small" data-map-load-error role="alert" hidden>Chưa tải được bản đồ. Vui lòng tải lại trang.</p>
+    <div data-map-tracking>
+        <div class="shipper-map-stage">
+            <div class="shipper-map-canvas shipper-leaflet-map" data-tracking-map role="region" aria-label="Bản đồ vị trí shipper"></div>
+            <div class="shipper-map-source" data-map-source="idle"><span class="shipper-map-signal" aria-hidden="true"></span><span data-location-status role="status">Chưa bật vị trí</span></div>
+            <button type="button" class="btn btn-light icon-button shipper-map-follow" data-map-follow aria-label="Theo vị trí shipper" title="Theo vị trí shipper" aria-pressed="true" disabled><i data-lucide="locate-fixed"></i></button>
+        </div>
+        <p class="text-danger small mt-2 mb-0" data-tile-error role="status" hidden>Không tải được nền bản đồ OpenStreetMap.</p>
+        <div class="shipper-tracking-controls">
+            <button type="button" class="btn btn-primary" data-gps-start disabled><i data-lucide="navigation"></i> <span data-gps-label>Bật vị trí của tôi</span></button>
+            <button type="button" class="btn btn-outline-secondary icon-button" data-gps-stop aria-label="Tắt vị trí" title="Tắt vị trí" hidden><i data-lucide="square"></i></button>
+            <span class="small text-secondary" data-location-detail>GPS chưa kết nối</span>
+        </div>
+        <p class="small text-danger mb-2" data-location-error role="alert" hidden></p>
+        <div class="shipper-tracking-metrics small" data-gps-metrics hidden>
+            <span>Độ chính xác <strong data-gps-accuracy>—</strong></span>
+            <span>Tốc độ <strong data-gps-speed>—</strong></span>
+            <span>Cập nhật <strong data-gps-updated>—</strong></span>
+        </div>
+        <details class="shipper-map-preview">
+            <summary>Tuyến mẫu</summary>
+            <div class="shipper-preview-controls">
+                <select class="form-select form-select-sm" aria-label="Khu vực tuyến mẫu" data-preview-route>
+                    <option value="HN">Hà Nội</option><option value="HCM">TP.HCM</option><option value="DN">Đà Nẵng</option>
+                </select>
+                <button type="button" class="btn btn-outline-primary" data-preview-play disabled><span data-play-icon><i data-lucide="play"></i></span><span data-pause-icon hidden><i data-lucide="pause"></i></span> <span data-preview-label>Xem tuyến mẫu</span></button>
+                <button type="button" class="btn btn-outline-secondary icon-button" data-preview-fit aria-label="Xem toàn tuyến mẫu" title="Xem toàn tuyến mẫu" disabled><i data-lucide="maximize-2"></i></button>
+                <span class="small text-secondary" data-preview-remaining hidden></span>
+            </div>
+        </details>
+    </div>
+    <div data-map-address hidden>
+        @if ($stop['embed'])
+            <iframe class="shipper-map-canvas" data-address-src="{{ $stop['embed'] }}" title="Bản đồ điểm đến" referrerpolicy="no-referrer" allowfullscreen></iframe>
+        @else
+            <div class="shipper-map-unavailable"><i data-lucide="map-pin"></i><p>Chưa có địa chỉ điểm đến</p></div>
+        @endif
+    </div>
+    <noscript><p class="text-secondary small mt-2">Bản đồ cần JavaScript.</p></noscript>
+</div>

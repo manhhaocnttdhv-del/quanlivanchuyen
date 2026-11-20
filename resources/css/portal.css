@@ -350,6 +350,9 @@ aside .work-section .field-group + .field-group { margin-top: 14px; }
 .shipper-map-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .shipper-map-layout { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 24px; }
 .shipper-map-stops, .shipper-map-detail { min-width: 0; }
+.shipper-map-stops nav > .d-sm-flex { flex-wrap: wrap; gap: 8px; }
+.shipper-map-stops .pagination { flex-wrap: nowrap; margin-bottom: 0; }
+.shipper-map-stops nav p { margin-bottom: 0; }
 .shipper-stop-list { max-height: 640px; overflow-y: auto; }
 .shipper-stop { display: flex; flex-direction: column; gap: 5px; padding: 16px 12px; border-bottom: 1px solid var(--bs-border-color); color: inherit; text-decoration: none; overflow-wrap: anywhere; }
 .shipper-stop:hover, .shipper-stop:focus-visible { background: #f0f5f5; }
@@ -360,29 +363,40 @@ aside .work-section .field-group + .field-group { margin-top: 14px; }
 .shipper-map-canvas { display: block; width: 100%; height: 480px; border: 1px solid var(--bs-border-color); background: #eef2f3; }
 .shipper-map-unavailable { display: grid; place-content: center; justify-items: center; height: 360px; background: #eef2f3; }
 .shipper-map-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; }
-.shipper-leaflet-map { position: relative; z-index: 0; height: 420px; }
+.shipper-map-stage { position: relative; isolation: isolate; }
+.shipper-leaflet-map { position: relative; z-index: 0; height: 480px; }
 .shipper-leaflet-map .leaflet-control-attribution { max-width: 100%; font-size: 10px; }
-.shipper-demo-heading, .shipper-demo-controls, .shipper-demo-metrics { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.shipper-demo-heading { margin-bottom: 12px; }
-.shipper-demo-heading select { width: 130px; }
-.shipper-demo-controls { padding-top: 12px; }
-.shipper-demo-buttons { display: flex; align-items: center; gap: 8px; }
-.shipper-demo-buttons select { width: 70px; height: 42px; }
-.shipper-demo-buttons button { width: 42px; height: 42px; flex-shrink: 0; }
-.shipper-demo-progress { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: center; gap: 12px; margin: 12px 0; }
-.shipper-demo-progress input { margin: 0; }
-.shipper-demo-progress output, .shipper-demo-metrics strong { font-variant-numeric: tabular-nums; }
-.shipper-demo-metrics { padding-bottom: 12px; border-bottom: 1px solid var(--bs-border-color); color: #536566; }
-.shipper-demo-metrics strong { display: block; color: #203635; }
-.shipper-demo-marker { display: grid; place-items: center; border: 2px solid #fff; border-radius: 50%; background: #2475aa; color: #fff; box-shadow: 0 2px 5px #0004; }
-.shipper-demo-marker svg { width: 20px; height: 20px; }
-.shipper-demo-marker.end { background: #c04646; }
-.shipper-demo-marker.courier { background: #087f73; border-width: 3px; }
+.shipper-map-source { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 74px); min-height: 36px; padding: 8px 10px; background: #fff; color: #344946; border-radius: 4px; box-shadow: 0 1px 5px #0002; font-size: 12px; pointer-events: none; }
+.shipper-map-signal { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #78878c; }
+.shipper-map-source[data-map-source="gps"] .shipper-map-signal { background: #087f73; }
+.shipper-map-source[data-map-source="preview"] .shipper-map-signal { background: #bd7d17; }
+.shipper-map-follow { position: absolute; right: 12px; bottom: 32px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; background: #fff; box-shadow: 0 1px 5px #0003; }
+.shipper-map-follow[aria-pressed="true"] { color: #087f73; border-color: #087f73; }
+.shipper-tracking-controls, .shipper-preview-controls, .shipper-tracking-metrics { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.shipper-tracking-controls { padding: 12px 0; }
+.shipper-tracking-controls > span { margin-left: auto; }
+.shipper-tracking-controls [hidden], .shipper-tracking-metrics[hidden], .shipper-preview-controls [hidden] { display: none; }
+.shipper-tracking-metrics { justify-content: space-between; padding: 0 0 12px; color: #536566; }
+.shipper-tracking-metrics strong { display: block; color: #203635; font-variant-numeric: tabular-nums; }
+.shipper-map-preview { border-top: 1px solid var(--bs-border-color); padding-top: 12px; }
+.shipper-map-preview summary { width: fit-content; font-size: 12px; color: #536566; cursor: pointer; }
+.shipper-preview-controls { padding-top: 12px; }
+.shipper-preview-controls select { width: 120px; }
+.shipper-preview-controls button { min-height: 44px; }
+.shipper-map-marker { background: transparent; border: 0; }
+.shipper-marker-body { position: relative; display: grid; place-items: center; width: 100%; height: 100%; border: 3px solid #fff; border-radius: 50%; background: #2475aa; color: #fff; box-shadow: 0 2px 5px #0004; }
+.shipper-marker-body > svg { display: block; position: static; width: 22px; height: 22px; margin: 0; }
+.shipper-map-marker.end .shipper-marker-body { background: #c04646; }
+.shipper-map-marker.courier .shipper-marker-body { background: #087f73; }
+.shipper-map-marker.courier[data-moving="true"] .shipper-marker-body::before { content: ''; position: absolute; inset: -8px; border: 2px solid #087f7380; border-radius: 50%; animation: shipper-location-pulse 1.8s ease-out infinite; }
+[data-shipper-map][data-reduced-motion="true"] .shipper-map-marker.courier .shipper-marker-body::before { animation: none; }
+@keyframes shipper-location-pulse { from { opacity: .8; transform: scale(.8); } to { opacity: 0; transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .shipper-map-marker.courier .shipper-marker-body::before { animation: none; } }
 @media (max-width: 767.98px) {
     .shipper-map-layout { grid-template-columns: minmax(0, 1fr); }
     .shipper-map-detail { grid-row: 1; }
     .shipper-map-canvas { height: 360px; }
-    .shipper-leaflet-map { height: 330px; }
+    .shipper-leaflet-map { height: 420px; }
     .shipper-stop-list { max-height: none; }
     .shipper-map-toolbar .delivery-search { width: 100%; }
     .shipper-map-toolbar .delivery-search input { min-width: 0; }
