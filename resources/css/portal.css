@@ -370,6 +370,11 @@ aside .work-section .field-group + .field-group { margin-top: 14px; }
 .shipper-map-signal { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #78878c; }
 .shipper-map-source[data-map-source="gps"] .shipper-map-signal { background: #087f73; }
 .shipper-map-source[data-map-source="preview"] .shipper-map-signal { background: #bd7d17; }
+.shipper-map-source[data-map-source="manual"] .shipper-map-signal { background: #2475aa; }
+.shipper-manual-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 12px; }
+.shipper-manual-controls [hidden], .shipper-manual-points[hidden] { display: none; }
+.shipper-manual-points { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
+.shipper-manual-points dd { margin: 4px 0 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .shipper-map-follow { position: absolute; right: 12px; bottom: 32px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; background: #fff; box-shadow: 0 1px 5px #0003; }
 .shipper-map-follow[aria-pressed="true"] { color: #087f73; border-color: #087f73; }
 .shipper-tracking-controls, .shipper-preview-controls, .shipper-tracking-metrics { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

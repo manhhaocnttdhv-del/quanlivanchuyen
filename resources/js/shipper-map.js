@@ -35,6 +35,13 @@ export function setupShipperMap() {
     const shipper = L.marker([0, 0], { icon: icon(Truck, 'courier', 48), keyboard: false, zIndexOffset: 1000 })
         .bindTooltip('Shipper mẫu', { permanent: true, direction: 'bottom', offset: [0, 26] });
     const accuracy = L.circle([0, 0], { radius: 0, color: '#087f73', weight: 1, fillOpacity: 0.08, interactive: false });
+    const manualCourier = L.marker([0, 0], { icon: icon(Truck, 'courier', 48), draggable: true, title: 'Vị trí shipper', zIndexOffset: 1000 })
+        .bindTooltip('Shipper', { permanent: true, direction: 'bottom', offset: [0, 26] });
+    const manualDestination = L.marker([0, 0], { icon: icon(Flag, 'end'), draggable: true, title: 'Điểm nhận' })
+        .bindTooltip('Điểm nhận', { permanent: true, direction: 'top', offset: [0, -20] });
+    const manualLink = L.polyline([], { color: '#2475aa', weight: 3, dashArray: '6 8', interactive: false });
+    let selectedPoint = 'shipper';
+    const manualPoints = { shipper: null, destination: null };
     const previewLayers = [planned, travelled, start, end];
     let source = 'idle';
     let follow = true;
@@ -69,6 +76,75 @@ export function setupShipperMap() {
         follow = value;
         field('map-follow').setAttribute('aria-pressed', String(value));
         field('map-follow').title = value ? 'Đang theo vị trí shipper' : 'Theo vị trí shipper';
+    }
+
+    function selectPoint(kind) {
+        selectedPoint = kind;
+        root.querySelectorAll('[data-manual-select]').forEach((button) => {
+            const active = button.dataset.manualSelect === kind;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', String(active));
+        });
+        canvas.style.cursor = kind ? 'crosshair' : '';
+        field('manual-center').disabled = !kind;
+    }
+
+    function hideManual() {
+        [manualCourier, manualDestination, manualLink].forEach((layer) => map.removeLayer(layer));
+        selectPoint(null);
+        field('manual-points').hidden = true;
+        field('manual-distance').hidden = true;
+        field('manual-directions').hidden = true;
+    }
+
+    function renderManual() {
+        const { shipper: origin, destination } = manualPoints;
+        const coordinate = (point) => point ? `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}` : 'Chưa chọn';
+        field('manual-shipper').textContent = coordinate(origin);
+        field('manual-destination').textContent = coordinate(destination);
+        field('manual-points').hidden = false;
+        if (origin) manualCourier.setLatLng(origin).addTo(map);
+        else map.removeLayer(manualCourier);
+        if (destination) manualDestination.setLatLng(destination).addTo(map);
+        else map.removeLayer(manualDestination);
+        field('manual-fit').disabled = !origin && !destination;
+        field('manual-clear').disabled = !origin && !destination;
+        const complete = !!origin && !!destination;
+        field('manual-distance').hidden = !complete;
+        field('manual-directions').hidden = !complete;
+        if (complete) {
+            manualLink.setLatLngs([origin, destination]).addTo(map);
+            field('manual-distance').textContent = `Khoảng cách thẳng: ${km(origin.distanceTo(destination))}`;
+            const query = new URLSearchParams({ api: '1', origin: `${origin.lat},${origin.lng}`, destination: `${destination.lat},${destination.lng}`, travelmode: 'driving' });
+            field('manual-directions').href = `https://www.google.com/maps/dir/?${query}`;
+        } else {
+            map.removeLayer(manualLink);
+            field('manual-directions').removeAttribute('href');
+        }
+        status(!origin ? 'Chưa chọn vị trí shipper' : !destination ? 'Chưa chọn điểm nhận' : 'Hai vị trí đã chọn', 'manual');
+    }
+
+    function showManual() {
+        pausePreview();
+        stopGps();
+        source = 'manual';
+        [...previewLayers, shipper, accuracy].forEach((layer) => map.removeLayer(layer));
+        position = null;
+        setFollow(false);
+        field('map-follow').disabled = true;
+        field('gps-metrics').hidden = true;
+        field('location-error').hidden = true;
+        field('preview-remaining').hidden = true;
+        field('preview-fit').disabled = true;
+        field('preview-reset').disabled = true;
+        field('preview-label').textContent = 'Chạy mô phỏng';
+        renderManual();
+    }
+
+    function putManualPoint(kind, point) {
+        manualPoints[kind] = L.latLng(point.lat, point.lng).wrap();
+        renderManual();
+        selectPoint(!manualPoints.shipper ? 'shipper' : !manualPoints.destination ? 'destination' : null);
     }
 
     function place(next, moving = false) {
@@ -146,6 +222,7 @@ export function setupShipperMap() {
     function startGps() {
         stopGps();
         pausePreview();
+        hideManual();
         previewLayers.forEach((layer) => map.removeLayer(layer));
         map.removeLayer(accuracy);
         map.removeLayer(shipper);
@@ -217,6 +294,7 @@ export function setupShipperMap() {
 
     function preparePreview(reload = false) {
         stopGps();
+        hideManual();
         map.removeLayer(accuracy);
         field('gps-metrics').hidden = true;
         field('location-error').hidden = true;
@@ -268,6 +346,29 @@ export function setupShipperMap() {
     }
 
     field('gps-start').addEventListener('click', startGps);
+    root.querySelectorAll('[data-manual-select]').forEach((button) => button.addEventListener('click', () => {
+        showManual();
+        selectPoint(button.dataset.manualSelect);
+    }));
+    map.on('click', (event) => {
+        if (source === 'manual' && selectedPoint) putManualPoint(selectedPoint, event.latlng);
+    });
+    manualCourier.on('dragend', () => putManualPoint('shipper', manualCourier.getLatLng()));
+    manualDestination.on('dragend', () => putManualPoint('destination', manualDestination.getLatLng()));
+    field('manual-center').addEventListener('click', () => {
+        if (source === 'manual' && selectedPoint) putManualPoint(selectedPoint, map.getCenter());
+    });
+    field('manual-fit').addEventListener('click', () => {
+        showManual();
+        const bounds = L.latLngBounds(Object.values(manualPoints).filter(Boolean));
+        if (bounds.isValid()) map.fitBounds(bounds, { paddingTopLeft: [45, 70], paddingBottomRight: [45, 65], maxZoom: 16, animate: false });
+    });
+    field('manual-clear').addEventListener('click', () => {
+        manualPoints.shipper = null;
+        manualPoints.destination = null;
+        showManual();
+        selectPoint('shipper');
+    });
     field('gps-stop').addEventListener('click', () => stopGps());
     field('map-follow').addEventListener('click', () => {
         setFollow(true);
@@ -315,8 +416,10 @@ export function setupShipperMap() {
     }).observe(canvas);
     const region = Object.hasOwn(routes, root.dataset.demoArea) ? root.dataset.demoArea : 'HN';
     field('preview-route').value = region;
-    // Hiện sẵn hai điểm mẫu; chỉ đọc GPS khi người dùng chủ động chọn.
-    resetPreview();
+    const [lng, lat] = routes[region].coordinates[0];
+    map.setView([lat, lng], 14, { animate: false });
+    showManual();
+    selectPoint('shipper');
     field('gps-start').disabled = false;
     field('preview-play').disabled = false;
 }

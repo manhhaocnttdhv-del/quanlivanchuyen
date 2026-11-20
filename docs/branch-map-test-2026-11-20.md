@@ -111,3 +111,12 @@ Theo yêu cầu demo không cần bật GPS, màn hình chính nay hiện sẵn 
 - Tự động: **261 test, 3.310 assertion đạt**, 92,27 giây; **4 test JavaScript đạt**. Pint, Vite build, kiểm tra cú pháp JavaScript và diff check đạt.
 - Môi trường: PHP 8.3, MySQL cổng 3308, database testing hiện có. Hai test xuất Excel ban đầu lỗi do thiếu ZipArchive; lượt cuối nạp extension ZIP riêng qua PHP_INI_SCAN_DIR. Ổ C hết dung lượng khi render cache; cache và file tạm kiểm thử chuyển sang D:/codex-work/quanlivanchuyen-map-check, không đổi .env hoặc php.ini hệ thống. Ảnh desktop/mobile được lưu cùng thư mục này. Fixture được dừng sau kiểm tra.
 - Không thay schema hoặc nghiệp vụ kho, vận đơn, tài chính. Chưa có tọa độ shipper lưu trên server, tọa độ người nhận hay định tuyến thực tế giữa hai điểm của đơn.
+
+## Cập nhật theo lựa chọn: tự đặt hai điểm trên bản đồ
+
+Màn hình mặc định cuối cùng là chọn tay, thay cho mở sẵn tuyến mẫu ở phần trước. Chọn vị trí shipper rồi điểm nhận bằng cách bấm bản đồ, kéo ghim để sửa; có đặt tại tâm bản đồ, xem hai điểm, xóa và chỉ đường Google theo hai tọa độ. Không tự tìm địa chỉ hoặc đọc GPS. Hai điểm chỉ giữ trong trang, không thay tọa độ hay địa chỉ đơn. Nét đứt biểu thị khoảng cách thẳng. Tuyến mẫu và GPS là hai mục phụ; trở về chọn tay dừng GPS/mô phỏng và phục hồi hai điểm đã chọn.
+
+- PASS trình duyệt: bấm đặt hai điểm tự chuyển lựa chọn, kéo ghim cập nhật tọa độ/khoảng cách/URL chỉ đường, xem cả hai điểm, chuyển tuyến mẫu rồi phục hồi, GPS tổng hợp rồi phục hồi và clearWatch. Số lần gọi GPS khi chọn tay là 0. Kiểm tra xóa và đặt hai điểm trùng nhau tại tâm cho khoảng cách 0,00 km.
+- Desktop, 390px và 320px không tràn ngang. Ảnh `manual-points-result.jpg` và `manual-points-mobile.jpg` nằm ở D:/codex-work/quanlivanchuyen-map-check. Dùng tọa độ công khai tổng hợp, không đọc vị trí thiết bị người dùng.
+- PHPUnit cuối: **261 test, 3.312 assertion đạt**, 87,13 giây. Bốn test JavaScript, Pint, cú pháp JavaScript, Vite build và diff check đạt. Không thêm migration.
+- Để xử lý ổ C đầy, thư viện sinh tự động `vendor` và `node_modules` hiện nằm dưới D:/codex-work/quanlivanchuyen-map-check; đường dẫn cũ trong project là junction. Không xóa thư mục đích này khi dọn bằng chứng. Composer autoload đã tái tạo với COMPOSER_VENDOR_DIR trỏ tới thư mục vendor trên D; không thay composer.json, lockfile, .env hoặc php.ini hệ thống. Cache kiểm thử vẫn ở D như ghi trên. Preview cổng 8001 trả trang đăng nhập 200; fixture 8002 dừng sau kiểm tra.
