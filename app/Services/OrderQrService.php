@@ -25,8 +25,7 @@ class OrderQrService
     public function destination(User $actor, string $code): ?string
     {
         if ($actor->hasRole('shipper')) {
-            $task = DeliveryTask::where('shipper_id', $actor->id)->whereIn('status', DeliveryTask::ACTIVE)
-                ->whereIn('warehouse_id', $actor->warehouses()->select('warehouses.id'))
+            $task = DeliveryTask::forShipper($actor)->whereIn('status', DeliveryTask::ACTIVE)
                 ->whereHas('order', fn ($query) => $query->where('tracking_code', $code))->latest('id')->first();
 
             return $task && app(LogisticsPolicy::class)->view($actor, $task) ? route('logistics.show', $task) : null;

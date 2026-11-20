@@ -24,7 +24,7 @@ class DeliveryController extends Controller
         abort_unless($user->hasRole('shipper'), 403);
         $filters = $request->validated();
         // Kiểm tra cả người được giao việc và phạm vi kho hiện tại, kể cả với nhiệm vụ cũ.
-        $base = DeliveryTask::where('shipper_id', $user->id)->whereIn('warehouse_id', $user->warehouses()->select('warehouses.id'));
+        $base = DeliveryTask::forShipper($user);
         $active = ($filters['view'] ?? 'active') === 'active';
         $base = $active ? $base->whereIn('status', DeliveryTask::ACTIVE) : $base->whereNotIn('status', DeliveryTask::ACTIVE);
         $counts = (clone $base)->selectRaw('type, COUNT(*) as total')->groupBy('type')->pluck('total', 'type');

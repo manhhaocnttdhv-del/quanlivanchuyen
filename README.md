@@ -33,6 +33,8 @@ Kiem tra: `php artisan test`, `php vendor/bin/pint --test`, `npm run build`.
 
 Xem [thống kê action và luồng hoạt động](docs/actions-and-workflows.md) và [báo cáo web test 19/11/2026](docs/web-test-2026-11-19.md). Mỗi đơn có mã `GV` + ULID duy nhất; chi tiết và tem có QR riêng theo đơn, tải PNG, quét camera/ảnh hoặc nhập mã tại `/quet-van-don`. Link QR công khai vẫn yêu cầu 4 số cuối điện thoại nhận. Sau cập nhật chạy `composer install`, `npm ci`, `npm run build`; PHP cần GD (QR) và ZIP (Excel). Không cần migration mới cho QR.
 
+Shipper có **Bản đồ nhiệm vụ** tại `/ban-do-shipper`: lọc lấy/giao/hoàn, tìm mã, xem điểm đến theo bước hiện tại, gọi điện, mở chỉ đường và nhiệm vụ. Phạm vi luôn theo shipper và kho còn được gán. Google Maps cần Internet và địa chỉ chính xác; chưa có GPS trực tiếp hoặc tối ưu nhiều điểm. Xem [kiểm thử chi nhánh và bản đồ 20/11/2026](docs/branch-map-test-2026-11-20.md) để demo chuyển hàng Hà Nội → TP.HCM và kiểm tra quyền giữa sáu kho. Không cần migration mới cho bản đồ.
+
 ## Dữ liệu mẫu và kiểm thử
 
 Chạy `php artisan db:seed` để tạo vai trò, quyền và khu vực. Dữ liệu demo chỉ dùng ở môi trường local/testing; đặt mật khẩu riêng qua biến môi trường, không commit mật khẩu:

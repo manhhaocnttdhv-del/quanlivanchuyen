@@ -1,6 +1,6 @@
 # Thống kê action và luồng hoạt động
 
-Cập nhật ngày 19/11/2026 theo route, Policy, Service và migration đang triển khai. Đây là bảng chức năng của mã nguồn hiện tại; kết quả đã chạy nằm trong `web-test-2026-11-19.md`.
+Cập nhật ngày 20/11/2026 theo route, Policy, Service và migration đang triển khai. Đây là bảng chức năng của mã nguồn hiện tại; kết quả đã chạy nằm trong [web test QR](web-test-2026-11-19.md) và [kiểm thử chi nhánh, bản đồ shipper](branch-map-test-2026-11-20.md).
 
 ## 1. Vai trò và phạm vi
 
@@ -9,7 +9,7 @@ Cập nhật ngày 19/11/2026 theo route, Policy, Service và migration đang tr
 | Khách chưa đăng nhập | Công khai, kết quả tra cứu rút gọn | Đăng ký, đăng nhập, tính cước, tra cứu mã + 4 số cuối điện thoại nhận |
 | Người gửi (`shop`, cá nhân/cửa hàng) | Hồ sơ, vận đơn, khiếu nại, tài chính của mình | Quản lý địa chỉ/ngân hàng; lưu/sửa/gửi/hủy nháp; đề nghị đổi đơn sau duyệt; in tem, tải QR, quét mở đơn; xem thu hộ/đối soát |
 | Vận hành (`operations`) | Các kho được gán | Duyệt người gửi theo khu vực; duyệt đơn; phân công/thu hồi; nhập/xuất/chuyển kho; kiểm kê; giao lại/hoàn; xử lý sai lệch, sự cố, khiếu nại |
-| Shipper | Nhiệm vụ của mình trong kho còn được gán | Quét mở nhiệm vụ; lấy hàng; lập bàn giao về kho; nhận phiếu xuất; ghi kết quả giao/hoàn và tiền thực thu; đề nghị nộp tiền |
+| Shipper | Nhiệm vụ của mình trong kho còn được gán | Quét mở nhiệm vụ; xem bản đồ, gọi điện/chỉ đường; lấy hàng; lập bàn giao về kho; nhận phiếu xuất; ghi kết quả giao/hoàn và tiền thực thu; đề nghị nộp tiền |
 | Admin | Toàn hệ thống, vẫn kiểm tra người lập/người duyệt | Quản lý nhân sự/danh mục/biểu phí, xác minh ngân hàng, giám sát vận hành, xác nhận nộp tiền, đối soát/thanh toán/điều chỉnh, báo cáo và audit |
 
 ## 2. Danh mục action
@@ -37,6 +37,7 @@ Các dòng dưới là nhóm action nghiệp vụ, không phải số lượng e
 | Chuyển kho | `transfers.store`, `transfers.receive`, `transfers.show` | Kho gửi xuất, kho nhận kiểm từng kiện; người xuất không tự nhận; nhận thiếu vẫn giữ chuyển dở dang |
 | Kiểm kê | `stocktakes.store`, `stocktakes.submit`, `stocktakes.approve` | Lập, gửi, người khác duyệt; chênh lệch lưu lịch sử và sai lệch, không tự sửa tồn im lặng |
 | Giao/hoàn | `delivery.mine`, `delivery.record` | Chỉ shipper có nhiệm vụ và đang giữ đủ kiện; tên nhận, bằng chứng, thời gian, COD/cước thực thu riêng |
+| Bản đồ shipper | `delivery.map` | Lọc lấy/giao/hoàn, tìm mã, phân trang 12 nhiệm vụ; điểm đến theo bước hiện tại; gọi điện, mở chỉ đường và nhiệm vụ; kiểm tra lại shipper và kho trên mọi request |
 | Giao lại/hoàn | `delivery.decide`, `logistics.return` | Vận hành ghi phương án và ý kiến người gửi; giới hạn lượt; thu hồi/nhập lại trước khi gán mới |
 | Sổ thu | `delivery.collections`, `finance.collections.show` | Khoản thu gốc theo lần giao, loại COD/cước/phí hoàn; không tạo thu khi giao thất bại |
 | Nộp tiền | `finance.deposits.*` | Shipper đề nghị; Admin khác xác nhận thực nhận, bằng chứng, phân bổ; thiếu/thừa có căn cứ |
@@ -118,3 +119,22 @@ Mỗi thay đổi trạng thái, custody và tài chính ghi history/audit trong
 6. Shipper đề nghị nộp 532.000đ; Admin xác nhận và phân bổ 500.000đ COD + 32.000đ cước; tiền còn giữ bằng 0.
 7. Đối soát dùng nguồn COD đã về quỹ; Admin lập/gửi, Admin khác duyệt rồi ghi trả người gửi. Demo này cần hai tài khoản Admin.
 8. Quét QR công khai, nhập đúng/sai đuôi điện thoại; kiểm tra đổi trạng thái không đổi mã, sai xác minh không lộ thông tin đơn.
+
+## 7. Luồng bản đồ shipper và phối hợp chi nhánh
+
+Shipper mở **Bản đồ nhiệm vụ** tại `/ban-do-shipper`, hoặc nút **Bản đồ** trên nhiệm vụ đang thực hiện. Chỉ các nhiệm vụ của chính shipper trong kho còn được gán xuất hiện; ID trên URL không mở rộng quyền. Nhiệm vụ hoàn tất/hủy/thất bại không còn trên bản đồ.
+
+| Loại việc và trạng thái | Điểm tiếp theo |
+| --- | --- |
+| Lấy hàng, chờ nhận kiện | Địa chỉ người gửi trong snapshot đơn |
+| Lấy hàng, đã giữ kiện | Kho phụ trách để bàn giao |
+| Giao/hoàn, chưa nhận kiện | Kho phụ trách để nhận hàng |
+| Giao hàng, đang giữ kiện | Địa chỉ người nhận |
+| Hoàn hàng, đang giữ kiện | Địa chỉ người gửi trong snapshot đơn |
+| Đang thu hồi | Kho phụ trách để trả kiện |
+
+Các bộ lọc lấy/giao/hoàn và tìm theo tiền tố mã đơn giữ phạm vi hiện tại. Mở bản đồ hoặc chỉ đường không tự xác nhận bàn giao, giao hàng hay thu tiền. Thiếu địa chỉ hiển thị trạng thái riêng và không tạo URL bản đồ.
+
+Luồng liên tỉnh: vận hành kho gửi xuất chuyển → vận hành kho đích khác người lập kiểm đủ từng kiện → đơn chuyển quyền xử lý sang kho đích → phân shipper thuộc kho đích → lập xuất → shipper nhận đủ → bản đồ đổi từ kho sang người nhận. Chi nhánh thứ ba không mở/nhận chuyến ngoài phạm vi. Tài khoản có hai kho xem được cả hai kho đã gán; cùng tỉnh không tự có quyền kho còn lại.
+
+Bản đồ dùng Google Maps nhúng và liên kết chỉ đường, cần Internet và địa chỉ đủ chính xác. Địa chỉ điểm đến được gửi cho Google; URL không kèm tên, điện thoại, mã đơn hay số tiền, iframe không gửi referrer. Đây là bản đồ theo địa chỉ, chưa có GPS trực tiếp, theo dõi nền, tính ETA hay tối ưu tuyến nhiều điểm. Địa chỉ giả trong demo có thể trả kết quả không chính xác.

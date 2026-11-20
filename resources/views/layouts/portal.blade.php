@@ -69,6 +69,9 @@
                     @if (auth()->user()->hasRole('admin') || auth()->user()->hasPermission('orders.review') || auth()->user()->shop || auth()->user()->hasRole('shipper'))
                         <a class="{{ request()->routeIs('orders.scan*') ? 'active' : '' }}" href="{{ route('orders.scan') }}"><i data-lucide="qr-code"></i> Quét vận đơn</a>
                     @endif
+                    @if (auth()->user()->hasRole('shipper'))
+                        <a class="{{ request()->routeIs('delivery.map') ? 'active' : '' }}" href="{{ route('delivery.map') }}"><i data-lucide="map-pin"></i> Bản đồ nhiệm vụ</a>
+                    @endif
                     @if (auth()->user()->hasRole('admin') ||
                             auth()->user()->hasRole('shipper') ||
                             auth()->user()->hasPermission('delivery.collections.view') ||

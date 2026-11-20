@@ -7,6 +7,11 @@ use App\Models\User;
 
 class LogisticsPolicy
 {
+    public function map(User $user): bool
+    {
+        return $user->status === 'active' && $user->hasRole('shipper');
+    }
+
     public function inWarehouse(User $user, ?int $warehouseId): bool
     {
         return $warehouseId !== null && $user->status === 'active' && ($user->hasRole('admin') || $user->warehouses()->whereKey($warehouseId)->exists());

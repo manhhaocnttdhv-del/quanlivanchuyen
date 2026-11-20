@@ -1,7 +1,11 @@
 @extends('layouts.portal')
 {{-- Form lấy/giao/hoàn hoặc bàn giao phụ thuộc loại việc và người đang giữ; Policy kiểm lại ở server. --}}
 @section('heading', \App\Models\DeliveryTask::TYPES[$task->type] . ' · Nhiệm vụ #' . $task->id)
-@section('actions')<a class="btn btn-outline-primary"
+@section('actions')
+    @if ($policy->shipper(auth()->user(), $task) && in_array($task->status, \App\Models\DeliveryTask::ACTIVE))
+        <a class="btn btn-outline-primary" href="{{ route('delivery.map', ['task' => $task->id]) }}"><i data-lucide="map-pin"></i> Bản đồ</a>
+    @endif
+    <a class="btn btn-outline-primary"
         href="{{ route(auth()->user()->hasRole('shipper') ? 'delivery.mine' : 'logistics.index') }}">
     <i data-lucide="arrow-left"></i> Nhiệm vụ</a>@endsection
 @section('content')
