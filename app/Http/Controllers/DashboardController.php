@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeliveryTask;
 use App\Models\FeeVersion;
 use App\Models\Order;
 use App\Models\Shop;
@@ -29,6 +30,9 @@ class DashboardController extends Controller
 
         return view('portal.dashboard', [
             'reportStats' => $reportStats,
+            'shipperTasks' => $request->user()->hasRole('shipper')
+                ? DeliveryTask::forShipper($request->user())->whereIn('status', DeliveryTask::ACTIVE)
+                    ->selectRaw('type, COUNT(*) as total')->groupBy('type')->pluck('total', 'type') : null,
             'recentOrders' => $request->user()->can('viewAny', Order::class) ? (clone $visibleOrders)->latest('id')->limit(5)->get() : collect(),
             'shop' => $request->user()->shop()->with(['currentBankAccount', 'addresses.area'])->first(),
             'stats' => $request->user()->can('users.manage') ? [

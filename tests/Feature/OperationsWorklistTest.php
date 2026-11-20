@@ -253,6 +253,57 @@ class OperationsWorklistTest extends DatabaseTestCase
         $this->assertLessThanOrEqual($one + 5, $many, 'Danh sách không được query riêng cho từng vận đơn.');
     }
 
+    public function test_each_operations_tab_only_loads_its_visible_list(): void
+    {
+        $task = $this->assign($this->approved());
+        $this->actingAs($this->operator)->get(route('logistics.index'))->assertOk()
+            ->assertViewHas('tasks', null)->assertViewHas('waiting', fn ($rows) => $rows->total() === 1);
+        $this->get(route('logistics.index', ['view' => 'tasks']))->assertOk()
+            ->assertViewHas('waiting', null)->assertViewHas('incomingTransfers', null)
+            ->assertViewHas('queueCounts', [])->assertViewHas('tasks', fn ($rows) => $rows->modelKeys() === [$task->id])
+            ->assertSee('Công việc tại kho');
+        $this->get(route('logistics.index', ['queue' => 'receipt']))->assertOk()
+            ->assertViewHas('waiting', null)->assertViewHas('tasks', null)->assertSee('Chờ kho nhận kiểm đếm');
+    }
+
+    public function test_inventory_filters_apply_to_the_discrepancy_list_too(): void
+    {
+        $first = $this->stocked();
+        $second = $this->stocked();
+        $rows = [];
+        foreach ([$first, $second] as $order) {
+            $rows[] = Discrepancy::create(['warehouse_id' => $this->source->id, 'order_id' => $order->id,
+                'warehouse_item_id' => $order->parcels()->first()->id, 'created_by' => $this->operator->id,
+                'type' => 'damaged', 'severity' => 'high', 'reason' => 'Damaged parcel needs review']);
+        }
+        $this->actingAs($this->operator)->get(route('logistics.inventory', ['q' => $first->tracking_code]))->assertOk()
+            ->assertViewHas('discrepancies', fn ($items) => $items->modelKeys() === [$rows[0]->id]);
+        $this->operator->warehouses()->attach($this->destination);
+        $this->get(route('logistics.inventory', ['warehouse_id' => $this->destination->id]))->assertOk()
+            ->assertViewHas('items', fn ($items) => $items->isEmpty())
+            ->assertViewHas('discrepancies', fn ($rows) => $rows->isEmpty());
+        $rows[0]->update(['status' => 'resolved']);
+        $this->get(route('logistics.inventory', ['hold' => '1']))->assertOk()
+            ->assertViewHas('discrepancies', fn ($items) => $items->modelKeys() === [$rows[1]->id]);
+    }
+
+    public function test_shipper_dashboard_counts_only_currently_accessible_active_tasks_and_recall_has_a_clear_action(): void
+    {
+        $task = $this->assign($this->stocked(), 'delivery');
+        $stock = app(WarehouseService::class);
+        $doc = $stock->prepare($this->operator, $task, 'outbound', 'Issue parcels for shipping');
+        $stock->confirm($this->shipper, $doc, ['reason' => 'Received all parcels',
+            'lines' => $doc->lines->mapWithKeys(fn ($line) => [$line->id => ['received' => true, 'condition' => 'good']])->all()], null);
+        app(DispatchService::class)->recall($this->operator, $task, 'Return parcels to warehouse');
+        $this->actingAs($this->shipper)->get(route('dashboard'))->assertOk()
+            ->assertViewHas('shipperTasks', fn ($counts) => $counts->all() === ['delivery' => 1])
+            ->assertSee(route('delivery.mine', ['type' => 'delivery', 'view' => 'active']));
+        $this->get(route('delivery.mine', ['q' => $task->order->tracking_code]))->assertOk()
+            ->assertSee('Bàn giao về kho')->assertDontSee('Tổng cần thu');
+        $this->shipper->warehouses()->detach($this->source);
+        $this->get(route('dashboard'))->assertOk()->assertViewHas('shipperTasks', fn ($counts) => $counts->isEmpty());
+    }
+
     public function test_return_transfer_waits_for_an_active_original_warehouse(): void
     {
         $order = $this->stocked(true);

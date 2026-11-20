@@ -102,6 +102,9 @@ class DemoWebsiteSeederTest extends DatabaseTestCase
             $this->assertSame(34, Order::where('shop_id', $owner->shop->id)->count());
             $this->assertSame($code !== 'dn', $owner->shop->currentBankAccount->verified_at !== null);
             $this->actingAs($operator)->get(route('logistics.index'))->assertOk()
+                ->assertViewHas('tasks', null)
+                ->assertViewHas('waiting', fn ($orders) => $orders->isNotEmpty() && $orders->every(fn ($order) => $operator->warehouses->contains('id', $order->warehouse_id)));
+            $this->get(route('logistics.index', ['view' => 'tasks']))->assertOk()
                 ->assertViewHas('tasks', fn ($tasks) => $tasks->isNotEmpty() && $tasks->every(fn ($task) => $operator->warehouses->contains('id', $task->warehouse_id)));
             $this->get(route('logistics.inventory'))->assertOk()
                 ->assertViewHas('items', fn ($items) => $items->isNotEmpty())

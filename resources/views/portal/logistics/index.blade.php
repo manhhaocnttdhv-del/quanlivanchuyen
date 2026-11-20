@@ -1,7 +1,7 @@
 @extends('layouts.portal')
-@section('heading', $waiting ? 'Trung tâm vận hành' : 'Nhiệm vụ của tôi')
+@section('heading', $staff ? 'Trung tâm vận hành' : 'Nhiệm vụ của tôi')
 @section('content')
-    @if ($waiting)
+    @if ($staff)
         <nav class="nav nav-underline mb-3" aria-label="Không gian vận hành">
             <a class="nav-link {{ $workView ? 'active' : '' }}" @if ($workView) aria-current="page" @endif
                 href="{{ route('logistics.index', array_merge(request()->only(['q', 'warehouse_id', 'queue']), ['view' => 'work'])) }}">Công việc tại kho</a>

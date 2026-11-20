@@ -2,6 +2,22 @@
 {{-- Controller chỉ cấp thống kê đúng quyền; chỉ tiêu tồn hiện tại khác với số tạo/giao trong kỳ. --}}
 @section('heading', 'Tổng quan')
 @section('content')
+    @if ($shipperTasks !== null)
+        <section class="work-section">
+            <div class="report-section-heading">
+                <h2>Nhiệm vụ đang thực hiện</h2>
+                <a class="btn btn-outline-primary" href="{{ route('delivery.map') }}"><i data-lucide="map-pin"></i> Bản đồ nhiệm vụ</a>
+            </div>
+            <nav class="delivery-tabs" aria-label="Nhiệm vụ đang thực hiện">
+                @foreach (\App\Models\DeliveryTask::TYPES as $type => $label)
+                    <a href="{{ route('delivery.mine', ['type' => $type, 'view' => 'active']) }}">
+                        <i data-lucide="{{ ['pickup' => 'package-check', 'delivery' => 'truck', 'return' => 'rotate-ccw'][$type] }}"></i>
+                        <span>{{ $label }}</span><strong>{{ $shipperTasks[$type] ?? 0 }}</strong>
+                    </a>
+                @endforeach
+            </nav>
+        </section>
+    @endif
     @if ($reportStats)
         <section class="work-section">
             <div class="report-section-heading">

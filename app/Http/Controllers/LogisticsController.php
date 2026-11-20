@@ -38,37 +38,38 @@ class LogisticsController extends Controller
         $user = $request->user();
         $this->authorizeEntry($user);
         $filters = $request->validated();
-        $tasks = DeliveryTask::with(['order.shop', 'shipper', 'warehouse'])->whereIn('warehouse_id', $this->warehouseIds($user))
+        $warehouseIds = $this->warehouseIds($user);
+        $staff = $user->hasPermission('logistics.dispatch') || $user->hasPermission('logistics.warehouse');
+        $queue = $filters['queue'] ?? 'all';
+        $workView = $staff && ($filters['view'] ?? 'work') === 'work';
+        $tasks = DeliveryTask::with(['order.shop', 'shipper', 'warehouse'])->whereIn('warehouse_id', $warehouseIds)
             ->when(! $user->hasPermission('logistics.dispatch') && ! $user->hasPermission('logistics.warehouse'), fn ($q) => $q->where('shipper_id', $user->id))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%')));
         foreach (['warehouse_id', 'status', 'type'] as $field) {
             $tasks->when($filters[$field] ?? null, fn ($q, $v) => $q->where($field, $v));
         }
-        $staff = $user->hasPermission('logistics.dispatch') || $user->hasPermission('logistics.warehouse');
-        $queue = $filters['queue'] ?? 'all';
-        $workView = $staff && ($filters['view'] ?? 'work') === 'work';
-        $base = Order::whereIn('warehouse_id', $this->warehouseIds($user))
+        $base = Order::whereIn('warehouse_id', $warehouseIds)
             ->whereNotIn('status', ['draft', 'needs_info', 'rejected', 'cancelled', 'delivered', 'returned', 'lost'])
             ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('warehouse_id', $id))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where('tracking_code', 'like', $v.'%'));
         // Kho nhận có quyền với phiếu chuyển, chưa có quyền với đơn ở kho gửi.
-        $incoming = WarehouseTransfer::whereIn('destination_warehouse_id', $this->warehouseIds($user))->whereIn('status', ['in_transit', 'partial'])
+        $incoming = WarehouseTransfer::whereIn('destination_warehouse_id', $warehouseIds)->whereIn('status', ['in_transit', 'partial'])
             ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('destination_warehouse_id', $id))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $v.'%')));
         $queueCounts = [];
-        if ($staff) {
+        if ($workView) {
             foreach (OperationsWorklist::QUEUES as $key => $label) {
                 $queueCounts[$key] = $key === 'receipt' ? (clone $incoming)->count() : $worklist->filter(clone $base, $key)->count();
             }
             $queueCounts['all'] += $queueCounts['receipt'];
         }
-        $waiting = $staff ? $readiness->query($worklist->filter(clone $base, $queue))->oldest('updated_at')->orderBy('id')->paginate(12, ['*'], 'waiting_page')->withQueryString() : null;
+        $waiting = $workView && $queue !== 'receipt' ? $readiness->query($worklist->filter(clone $base, $queue))->oldest('updated_at')->orderBy('id')->paginate(12, ['*'], 'waiting_page')->withQueryString() : null;
         $workflow = $waiting?->getCollection()->mapWithKeys(fn ($order) => [$order->id => $readiness->inspect($order)]) ?? collect();
 
-        return view('portal.logistics.index', ['tasks' => $tasks->latest('id')->paginate(20)->withQueryString(),
-            'waiting' => $waiting, 'workflow' => $workflow, 'queue' => $queue, 'queueCounts' => $queueCounts, 'queues' => OperationsWorklist::QUEUES, 'workView' => $workView, 'reviewAccess' => $user->hasPermission('orders.review'),
-            'incomingTransfers' => $staff && in_array($queue, ['all', 'receipt']) ? $incoming->with(['order', 'source', 'destination'])->withCount(['lines', 'lines as received_count' => fn ($q) => $q->whereNotNull('received_at')])->oldest('id')->paginate(8, ['*'], 'incoming_page')->withQueryString() : null,
-            'warehouses' => Warehouse::whereIn('id', $this->warehouseIds($user))->pluck('name', 'id'), 'filters' => $filters]);
+        return view('portal.logistics.index', ['tasks' => $workView ? null : $tasks->latest('id')->paginate(20)->withQueryString(),
+            'waiting' => $waiting, 'workflow' => $workflow, 'queue' => $queue, 'queueCounts' => $queueCounts, 'queues' => OperationsWorklist::QUEUES, 'staff' => $staff, 'workView' => $workView, 'reviewAccess' => $user->hasPermission('orders.review'),
+            'incomingTransfers' => $workView && in_array($queue, ['all', 'receipt']) ? $incoming->with(['order', 'source', 'destination'])->withCount(['lines', 'lines as received_count' => fn ($q) => $q->whereNotNull('received_at')])->oldest('id')->paginate(8, ['*'], 'incoming_page')->withQueryString() : null,
+            'warehouses' => Warehouse::whereIn('id', $warehouseIds)->pluck('name', 'id'), 'filters' => $filters]);
     }
 
     public function order(Request $request, Order $order, DispatchReadiness $readiness)
@@ -176,7 +177,12 @@ class LogisticsController extends Controller
 
         return view('portal.logistics.inventory', ['items' => $items->latest('id')->paginate(25)->withQueryString(), 'warehouses' => Warehouse::whereIn('id', $ids)->pluck('name', 'id'),
             'locations' => WarehouseLocation::with('warehouse')->whereIn('warehouse_id', $ids)->orderBy('code')->get(),
-            'discrepancies' => Discrepancy::with(['order', 'item', 'creator', 'resolver'])->whereIn('warehouse_id', $ids)->orderByRaw("status = 'open' DESC")->latest('id')->paginate(15, ['*'], 'discrepancy_page')->withQueryString(), 'policy' => $this->policy, 'filters' => $filters]);
+            'discrepancies' => Discrepancy::with(['order', 'item', 'creator', 'resolver'])->whereIn('warehouse_id', $ids)
+                ->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where('warehouse_id', $id))
+                ->when($filters['q'] ?? null, fn ($q, $value) => $q->whereHas('order', fn ($q) => $q->where('tracking_code', 'like', $value.'%')))
+                ->when($filters['location_id'] ?? null, fn ($q, $id) => $q->whereHas('item', fn ($q) => $q->where('warehouse_location_id', $id)))
+                ->when($filters['hold'] ?? null, fn ($q) => $q->where('status', 'open')->where('blocks_dispatch', true))
+                ->orderByRaw("status = 'open' DESC")->latest('id')->paginate(15, ['*'], 'discrepancy_page')->withQueryString(), 'policy' => $this->policy, 'filters' => $filters]);
     }
 
     public function location(LogisticsRequest $request, AuditService $audit)

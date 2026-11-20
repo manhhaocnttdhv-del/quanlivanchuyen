@@ -24,7 +24,7 @@
                         <td>{{ $version->active_until?->format('d/m/Y H:i') ?? 'Không giới hạn' }}</td>
                         <td>{{ $version->rules_count }}</td>
                         <td>{{ $version->status === 'draft' ? 'Bản nháp' : 'Đã công bố' }}</td>
-                        <td><a class="btn btn-outline-primary" href="{{ route('fees.edit', $version) }}">Xem / sửa</a></td>
+                        <td><a class="btn btn-outline-primary" href="{{ route('fees.edit', $version) }}"><i data-lucide="{{ $version->status === 'draft' ? 'pencil' : 'arrow-right' }}"></i> {{ $version->status === 'draft' ? 'Soạn / công bố' : 'Xem biểu phí' }}</a></td>
                 </tr>@empty<tr>
                         <td colspan="6">Chưa có biểu phí.</td>
                     </tr>

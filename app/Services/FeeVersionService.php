@@ -55,21 +55,34 @@ class FeeVersionService
         });
     }
 
-    public function publish(User $actor, FeeVersion $version, string $reason): void
+    public function publish(User $actor, FeeVersion $version, string $reason, ?int $replacesVersionId = null): void
     {
-        DB::transaction(function () use ($actor, $version, $reason) {
+        DB::transaction(function () use ($actor, $version, $reason, $replacesVersionId) {
             DB::table('business_locks')->where('name', 'fee-publication')->lockForUpdate()->first();
             $version = FeeVersion::lockForUpdate()->findOrFail($version->id);
             if ($version->status !== 'draft') {
                 throw ValidationException::withMessages(['reason' => 'Phiên bản đã được công bố.']);
             }
             $this->validateRules($version->rules->toArray());
+            $previous = $replacesVersionId ? FeeVersion::lockForUpdate()->findOrFail($replacesVersionId) : null;
+            if ($previous && ($previous->id === $version->id || $previous->status !== 'published'
+                || ! $version->active_from->isFuture() || ! $previous->active_from->lt($version->active_from)
+                || ($previous->active_until && ! $previous->active_until->gt($version->active_from)))) {
+                throw ValidationException::withMessages(['replaces_version_id' => 'Chỉ thay thế biểu phí đã công bố còn hiệu lực tại thời điểm bắt đầu mới trong tương lai.']);
+            }
             // Khoảng hiệu lực là [từ, đến); cho phép phiên bản sau bắt đầu đúng lúc bản trước kết thúc.
             $overlap = FeeVersion::where('status', 'published')->where('id', '!=', $version->id)
+                ->when($previous, fn ($q) => $q->whereKeyNot($previous->id))
                 ->when($version->active_until, fn ($q) => $q->where('active_from', '<', $version->active_until))
                 ->where(fn ($q) => $q->whereNull('active_until')->orWhere('active_until', '>', $version->active_from))->exists();
             if ($overlap) {
                 throw ValidationException::withMessages(['active_from' => 'Thời gian hiệu lực trùng một biểu phí đã công bố.']);
+            }
+            if ($previous) {
+                // Kết thúc bản cũ và công bố bản mới cùng commit, không tạo khoảng trống giữa hai mức phí.
+                $before = ['active_from' => $previous->active_from->toDateTimeString(), 'active_until' => $previous->active_until?->toDateTimeString()];
+                $previous->update(['active_until' => $version->active_from]);
+                $this->audit->record($actor, $previous, 'fee.superseded', $before, ['active_until' => $previous->active_until->toDateTimeString()], $reason.' · Thay bằng '.$version->name);
             }
             $version->status = 'published';
             $version->published_by = $actor->id;

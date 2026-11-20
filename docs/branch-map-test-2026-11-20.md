@@ -120,3 +120,21 @@ Màn hình mặc định cuối cùng là chọn tay, thay cho mở sẵn tuyế
 - Desktop, 390px và 320px không tràn ngang. Ảnh `manual-points-result.jpg` và `manual-points-mobile.jpg` nằm ở D:/codex-work/quanlivanchuyen-map-check. Dùng tọa độ công khai tổng hợp, không đọc vị trí thiết bị người dùng.
 - PHPUnit cuối: **261 test, 3.312 assertion đạt**, 87,13 giây. Bốn test JavaScript, Pint, cú pháp JavaScript, Vite build và diff check đạt. Không thêm migration.
 - Để xử lý ổ C đầy, thư viện sinh tự động `vendor` và `node_modules` hiện nằm dưới D:/codex-work/quanlivanchuyen-map-check; đường dẫn cũ trong project là junction. Không xóa thư mục đích này khi dọn bằng chứng. Composer autoload đã tái tạo với COMPOSER_VENDOR_DIR trỏ tới thư mục vendor trên D; không thay composer.json, lockfile, .env hoặc php.ini hệ thống. Cache kiểm thử vẫn ở D như ghi trên. Preview cổng 8001 trả trang đăng nhập 200; fixture 8002 dừng sau kiểm tra.
+
+## Rà soát luồng, tải dữ liệu và UI/UX
+
+Đã sửa việc không thể thay biểu phí đã công bố có thời hạn mở: bản nháp có ngày bắt đầu trong tương lai được chọn bản hiện hành cần thay thế. Service kết thúc bản cũ và công bố bản mới trong cùng transaction, khóa công bố và ghi lịch sử; từ chối thay ngược thời gian, chọn sai bản hoặc chồng lấn bản khác. Lỗi ghi audit rollback cả hai bản. Quy tắc phí cũ và snapshot đơn giữ nguyên.
+
+Trung tâm vận hành chỉ tải danh sách và số đếm cần cho tab đang mở. Tab kho nhận bỏ truy vấn danh sách vận đơn không hiển thị. Bộ lọc mã đơn, kho, vị trí và giữ kiện nay áp dụng cả hồ sơ sai lệch. Giao diện gom nút tiêu đề thành nhóm có xuống dòng; tổng quan shipper có số nhiệm vụ lấy/giao/hoàn và liên kết đúng bộ lọc. Nhiệm vụ thu hồi chỉ rõ bàn giao về kho và bỏ số tiền dự kiến cần thu.
+
+| Bước | Kết quả |
+| --- | --- |
+| 1. Phạm vi | PASS: kiểm tra luồng biểu phí, vận hành, tồn kho, shipper và các màn hình tạo đơn, tài chính, báo cáo liên quan |
+| 2. Môi trường | PASS: PHPUnit dùng `quanlivanchuyen_testing`; browser dùng database mới `quanlivanchuyen_uiqa_20261120` với DemoWebsiteSeeder/DemoFinanceSeeder, cookie và server 8002 riêng. Migration trên database sạch thành công; PHP 8.3/MySQL 3308, cache và file tạm trên D |
+| 3. Ca kiểm thử | PASS: thay biểu phí và ranh giới hiệu lực, rollback, phân quyền, tab chỉ tải dữ liệu hiển thị, lọc hồ sơ sai lệch, nhiệm vụ thu hồi, số nhiệm vụ đúng phạm vi, nháp thiếu/đủ thông tin và gửi duyệt |
+| 4. Tĩnh/build | PASS: `php vendor/bin/pint --test`, `npm run build`, `git diff --check` |
+| 5. Tự động | PASS: `php artisan test --compact` đạt **267 test, 3.380 assertion**, 87,66 giây; `node --test tests/JavaScript/shipper-position.test.mjs` đạt **4 test**. Hai test demo cũ đã được cập nhật để kiểm tra phân quyền ở từng tab sau thay đổi tải dữ liệu; không bỏ assertion về phạm vi kho |
+| 6. Trình duyệt | PASS: công bố biểu phí qua modal và đọc lại danh sách thấy bản cũ kết thúc đúng ngày bản mới bắt đầu; đổi tab/hàng đợi vận hành và trạng thái rỗng; tìm một mã vận đơn tồn kho trả 2 kiện và đúng 1 hồ sơ sai lệch. Tạo nháp thiếu thông tin bị khóa gửi duyệt; sửa đủ thông tin, xem COD 500.000đ + cước 32.000đ = 532.000đ rồi gửi duyệt thành công. Kiểm tra tài chính có dữ liệu, báo cáo vận hành, tổng quan và nhiệm vụ shipper. Desktop 1280px, mobile 390px/320px không tràn ngang ở các trang đã đo; không có lỗi/warning console trong lượt QA |
+| 7. Bằng chứng/giới hạn | PASS trong phạm vi: ảnh `shipper-tasks-fixed-desktop.jpg`, `shipper-dashboard-320.jpg`, `fee-publication-result.jpg`, `order-submitted-mobile.jpg` trong D:/codex-work/quanlivanchuyen-map-check. Đã đóng tab/server 8002 và xóa đúng database QA mới tạo; giữ preview 8001 và database verify trước đó |
+
+Đây là kiểm tra các luồng chính cùng bộ test hiện có, không phải kiểm thử mọi tổ hợp UI hoặc tải đồng thời. Không kiểm GPS phần cứng, gọi điện hay dẫn đường ngoài thực tế; không thực hiện giao dịch tiền thật. Không thêm migration hoặc dependency trong đợt sửa này.

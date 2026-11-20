@@ -200,9 +200,12 @@ class DemoShippingSeederTest extends DatabaseTestCase
             ->assertViewHas('items', fn ($items) => $items->isEmpty())
             ->assertViewHas('discrepancies', fn ($items) => $items->isEmpty());
         $this->get(route('logistics.index', ['warehouse_id' => $ownWarehouse->id]))->assertOk()
-            ->assertViewHas('tasks', fn ($tasks) => $tasks->isEmpty())
+            ->assertViewHas('tasks', null)
             ->assertViewHas('waiting', fn ($orders) => $orders->isEmpty())
             ->assertViewHas('warehouses', fn ($warehouses) => $warehouses->count() === 2 && $warehouses->keys()->diff($foreignWarehouseIds)->isEmpty());
+        $this->get(route('logistics.index', ['view' => 'tasks', 'warehouse_id' => $ownWarehouse->id]))->assertOk()
+            ->assertViewHas('tasks', fn ($tasks) => $tasks->isEmpty())
+            ->assertViewHas('waiting', null);
         $stocktake = Stocktake::firstOrFail();
         $this->get(route('stocktakes.show', $stocktake))->assertForbidden();
         $this->postJson(route('stocktakes.approve', $stocktake), ['reason' => 'Thử duyệt kiểm kê của kho khác'])->assertForbidden();
