@@ -12,37 +12,42 @@
             :options="['' => 'Tất cả vị trí'] +
                 $locations->mapWithKeys(fn($l) => [$l->id => $l->warehouse->name . ' / ' . $l->code])->all()" :value="$filters['location_id'] ?? ''" />
         <div class="form-check mb-2"><input id="hold-filter" name="hold" value="1" class="form-check-input"
-                type="checkbox" @checked($filters['hold'] ?? false)><label class="form-check-label" for="hold-filter">Chỉ kiện đang
-                giữ</label></div><button class="btn btn-primary"><i data-lucide="search"></i> Lọc</button>
+                type="checkbox" @checked($filters['hold'] ?? false)><label class="form-check-label" for="hold-filter">Chỉ đơn đang bị
+                khóa vận chuyển</label></div><button class="btn btn-primary"><i data-lucide="search"></i> Lọc</button>
     </form>
     <section class="work-section">
-        <div class="d-flex justify-content-between">
-            <h2>Kiện đang tại kho</h2><small>{{ $items->total() }} kiện</small>
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+            <h2>Kiện đang tại kho</h2><small>{{ $items->total() }} kiện / {{ $orderCount }} vận đơn</small>
         </div>
-        <div class="table-responsive">
-            <table class="table align-middle">
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Danh sách kiện tại kho">
+            <table class="table align-middle inventory-table">
                 <thead>
                     <tr>
                         <th>Vận đơn / kiện</th>
-                        <th>Vị trí</th>
+                        <th>Kho / vị trí</th>
                         <th>Cân thực tế</th>
                         <th>Tình trạng</th>
-                        <th>Giữ kiện</th>
+                        <th>Khóa vận chuyển</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($items as $item)
                         <tr>
-                            <td><a class="logistics-code"
-                                    href="{{ route('logistics.order', $item->order) }}">{{ $item->order->tracking_code }}</a><small
+                            <td>@if ($item->source_url)<a class="logistics-code"
+                                    href="{{ $item->source_url }}">{{ $item->order->tracking_code }}</a>@else<span class="logistics-code">{{ $item->order->tracking_code }}</span>@endif<small
                                     class="d-block">Kiện #{{ $item->parcel_number }}</small></td>
-                            <td>{{ $item->location?->code }}</td>
-                            <td>{{ number_format($item->actual_weight_grams) }} g</td>
+                            <td>{{ $item->warehouse->name }}<small class="d-block text-secondary">{{ $item->location?->code ?? 'Chưa xếp vị trí' }}</small></td>
+                            <td>{{ $item->actual_weight_grams === null ? 'Chưa cân' : number_format($item->actual_weight_grams) . ' g' }}</td>
                             <td>{{ $item->condition === 'damaged' ? 'Hư hỏng' : 'Nguyên vẹn' }}</td>
                             <td>
-                                @if ($item->hold_count)
-                                    <span class="status-badge bg-danger-subtle text-danger">{{ $item->hold_count }} sai
-                                    lệch</span>@else<span class="text-secondary small">Không</span>
+                                @if ($item->order->dispatch_discrepancies_count)
+                                    <span class="status-badge bg-danger-subtle text-danger">{{ $item->order->dispatch_discrepancies_count }} sai lệch trên đơn</span>
+                                @endif
+                                @if ($item->order->dispatch_incidents_count)
+                                    <span class="status-badge bg-danger-subtle text-danger">Sự cố khóa đơn</span>
+                                @endif
+                                @if (! $item->order->dispatch_discrepancies_count && ! $item->order->dispatch_incidents_count)
+                                    <span class="text-secondary small">Không</span>
                                 @endif
                             </td>
                     </tr>@empty<tr>

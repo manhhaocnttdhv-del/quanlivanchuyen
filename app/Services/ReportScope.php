@@ -14,22 +14,32 @@ class ReportScope
 {
     public function __construct(private ReportPolicy $policy) {}
 
-    public function orders(User $user, string $type)
+    public function orders(User $user, string $type, string $warehouseColumn = 'orders.warehouse_id')
     {
         abort_unless($this->policy->view($user, $type), 403);
         $query = Order::whereNotNull('submitted_at');
         if (! $user->hasRole('admin')) {
             $this->policy->staff($user, $type)
-                ? $query->whereIn('orders.warehouse_id', $user->warehouses()->select('warehouses.id'))
+                ? $query->whereIn($warehouseColumn, $user->warehouses()->select('warehouses.id'))
                 : $query->whereHas('shop', fn ($q) => $q->where('user_id', $user->id));
         }
 
         return $query;
     }
 
-    public function filterOrders($query, array $filters, string $shipperColumn = 'orders.assigned_shipper_id'): void
+    public function inventoryOrders(User $user)
     {
-        foreach (['warehouse_id', 'shop_id', 'area_id'] as $field) {
+        // Mot don chi dem mot lan tai moi kho dang thuc giu kien, ke ca moi nhan mot phan.
+        $stock = DB::table('warehouse_items')->where('holder_type', 'warehouse')->select('order_id', 'warehouse_id')->distinct();
+
+        return $this->orders($user, 'operations', 'inventory_stock.warehouse_id')
+            ->joinSub($stock, 'inventory_stock', fn ($join) => $join->on('inventory_stock.order_id', '=', 'orders.id'));
+    }
+
+    public function filterOrders($query, array $filters, string $shipperColumn = 'orders.assigned_shipper_id', string $warehouseColumn = 'orders.warehouse_id'): void
+    {
+        $query->when($filters['warehouse_id'] ?? null, fn ($q, $id) => $q->where($warehouseColumn, $id));
+        foreach (['shop_id', 'area_id'] as $field) {
             $query->when($filters[$field] ?? null, fn ($q, $id) => $q->where('orders.'.$field, $id));
         }
         $query->when($filters['shipper_id'] ?? null, fn ($q, $id) => $q->where($shipperColumn, $id));
@@ -38,10 +48,18 @@ class ReportScope
     public function choices(User $user, string $type): array
     {
         $orders = $this->orders($user, $type);
+        if ($type === 'operations' && ! $user->hasRole('admin') && $this->policy->staff($user, $type)) {
+            $visibleIds = (clone $orders)->select('orders.id')->union($this->inventoryOrders($user)->select('orders.id'));
+            $orders = Order::whereIn('orders.id', $visibleIds);
+        }
         $warehouses = Warehouse::query();
         if (! $user->hasRole('admin')) {
-            $warehouses->whereIn('id', $this->policy->staff($user, $type)
-                ? $user->warehouses()->select('warehouses.id') : (clone $orders)->select('warehouse_id'));
+            $warehouseIds = $this->policy->staff($user, $type)
+                ? $user->warehouses()->select('warehouses.id') : (clone $orders)->select('warehouse_id');
+            if ($type === 'operations' && ! $this->policy->staff($user, $type)) {
+                $warehouseIds->union($this->inventoryOrders($user)->select('inventory_stock.warehouse_id'));
+            }
+            $warehouses->whereIn('id', $warehouseIds);
         }
 
         return [

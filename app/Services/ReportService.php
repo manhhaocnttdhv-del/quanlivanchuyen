@@ -10,6 +10,7 @@ use App\Models\Receivable;
 use App\Models\Reconciliation;
 use App\Models\User;
 use App\Policies\ReportPolicy;
+use App\Policies\WarehouseTransferPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -42,10 +43,15 @@ class ReportService
             }
             $categoryLabels = $this->categoryLabels($type, $filters['ledger']);
             $canOpenOrders = $user->hasRole('admin') || $user->shop !== null || $user->hasPermission('orders.review');
+            $warehouseIds = $type === 'operations' ? $user->warehouses()->pluck('warehouses.id') : collect();
+            $canOpenTransfers = app(WarehouseTransferPolicy::class)->viewAny($user);
             $staff = $type === 'finance' && $this->policy->staff($user, 'finance');
             foreach ($rows as $row) {
                 $row->category_label = $categoryLabels[$row->category] ?? $row->category;
-                $row->source_url = $this->sourceUrl($type, $filters['ledger'], $row, $canOpenOrders, $staff);
+                $canOpenOrder = $canOpenOrders && ($type !== 'operations' || $user->hasRole('admin')
+                    || $row->shop_id === $user->shop?->id
+                    || ($user->hasPermission('orders.review') && $warehouseIds->contains($row->responsible_warehouse_id)));
+                $row->source_url = $this->sourceUrl($type, $filters['ledger'], $row, $canOpenOrder, $staff, $canOpenTransfers);
             }
             $groups = $summary['groups']->map(fn ($row) => (array) $row)->map(function ($row) use ($categoryLabels) {
                 if (isset($row['category'])) {
@@ -81,10 +87,11 @@ class ReportService
         };
     }
 
-    private function sourceUrl(string $type, string $ledger, object $row, bool $canOpenOrders, bool $staff): ?string
+    private function sourceUrl(string $type, string $ledger, object $row, bool $canOpenOrders, bool $staff, bool $canOpenTransfers): ?string
     {
         if ($type === 'operations') {
-            return $canOpenOrders ? route('orders.show', $row->order_id) : null;
+            return $canOpenOrders ? route('orders.show', $row->order_id)
+                : ($canOpenTransfers && ! empty($row->transfer_id) ? route('transfers.show', $row->transfer_id) : null);
         }
         if ($ledger === 'reconciliations' && ! $staff && $row->category !== 'approved') {
             return null;
