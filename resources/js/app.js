@@ -103,6 +103,8 @@ $(function () {
                 document.querySelector('[data-map-load-error]').hidden = false;
                 document.querySelector('[data-gps-start]').disabled = true;
                 document.querySelector('[data-preview-play]').disabled = true;
+                document.querySelector('[data-preview-reset]').disabled = true;
+                document.querySelector('[data-preview-fit]').disabled = true;
             });
     }
     $('[data-notification-counter]').each((_, element) => {

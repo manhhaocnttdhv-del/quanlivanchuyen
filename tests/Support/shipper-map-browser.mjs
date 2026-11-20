@@ -11,7 +11,7 @@ const fixture = await build({
     stdin: {
         contents: `
             import { setupShipperMap } from './resources/js/shipper-map.js';
-            import { createIcons, LocateFixed, Navigation, Square, Play, Pause, Maximize2 } from 'lucide';
+            import { createIcons, LocateFixed, Navigation, Square, Play, Pause, Maximize2, RotateCcw } from 'lucide';
             let success, failure, watchCount = 0, clearCount = 0;
             Object.defineProperty(navigator, 'geolocation', { value: {
                 watchPosition(onPosition, onError) { success = onPosition; failure = onError; document.querySelector('#watches').textContent = ++watchCount; return watchCount; },
@@ -29,7 +29,7 @@ const fixture = await build({
                 success({ coords: { latitude: second ? 10.7765 : 10.7758, longitude: second ? 106.6997 : 106.7005, accuracy: 8, speed: 4 }, timestamp: Date.now() });
             }));
             document.querySelectorAll('[data-error]').forEach(button => button.addEventListener('click', () => failure?.({ code: Number(button.dataset.error) })));
-            createIcons({ icons: { LocateFixed, Navigation, Square, Play, Pause, Maximize2 } });
+            createIcons({ icons: { LocateFixed, Navigation, Square, Play, Pause, Maximize2, RotateCcw } });
             setupShipperMap();
         `,
         resolveDir: process.cwd(),

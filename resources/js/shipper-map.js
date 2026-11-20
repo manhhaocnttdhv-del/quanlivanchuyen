@@ -27,11 +27,13 @@ export function setupShipperMap() {
         html: `<span class="shipper-marker-body">${createElement(symbol, { 'aria-hidden': 'true' }).outerHTML}</span>`,
         iconSize: [size, size], iconAnchor: [size / 2, size / 2],
     });
-    const planned = L.polyline([], { color: '#78878c', weight: 6, opacity: 0.6 });
+    const planned = L.polyline([], { color: '#2475aa', weight: 6, opacity: 0.85 });
     const travelled = L.polyline([], { color: '#087f73', weight: 6 });
     const start = L.marker([0, 0], { icon: icon(Warehouse, 'start'), title: 'Điểm xuất phát mẫu', keyboard: false });
-    const end = L.marker([0, 0], { icon: icon(Flag, 'end'), title: 'Điểm giao mẫu', keyboard: false });
-    const shipper = L.marker([0, 0], { icon: icon(Truck, 'courier', 48), keyboard: false, zIndexOffset: 1000 });
+    const end = L.marker([0, 0], { icon: icon(Flag, 'end'), title: 'Điểm nhận mẫu', keyboard: false })
+        .bindTooltip('Điểm nhận mẫu', { permanent: true, direction: 'top', offset: [0, -20] });
+    const shipper = L.marker([0, 0], { icon: icon(Truck, 'courier', 48), keyboard: false, zIndexOffset: 1000 })
+        .bindTooltip('Shipper mẫu', { permanent: true, direction: 'bottom', offset: [0, 26] });
     const accuracy = L.circle([0, 0], { radius: 0, color: '#087f73', weight: 1, fillOpacity: 0.08, interactive: false });
     const previewLayers = [planned, travelled, start, end];
     let source = 'idle';
@@ -74,6 +76,8 @@ export function setupShipperMap() {
         shipper.setLatLng(next);
         if (!map.hasLayer(shipper)) shipper.addTo(map);
         const marker = shipper.getElement();
+        const label = source === 'preview' ? 'Shipper mẫu' : 'Vị trí thiết bị';
+        if (shipper.getTooltip().getContent() !== label) shipper.setTooltipContent(label);
         marker.setAttribute('role', 'img');
         marker.setAttribute('aria-label', source === 'preview' ? 'Shipper trên tuyến mẫu' : 'Vị trí shipper');
         marker.dataset.moving = String(moving);
@@ -106,9 +110,9 @@ export function setupShipperMap() {
         lastTick = null;
         field('play-icon').hidden = false;
         field('pause-icon').hidden = true;
-        field('preview-label').textContent = source === 'preview' && previewElapsed < previewDuration ? 'Tiếp tục tuyến mẫu' : 'Xem tuyến mẫu';
+        field('preview-label').textContent = source === 'preview' && previewElapsed > 0 && previewElapsed < previewDuration ? 'Tiếp tục mô phỏng' : 'Chạy mô phỏng';
         if (source === 'preview') {
-            status(previewElapsed >= previewDuration ? 'Đã đến điểm mẫu' : 'Tuyến mẫu · Tạm dừng', 'preview');
+            status(previewElapsed >= previewDuration ? 'Đã đến điểm nhận mẫu' : previewElapsed > 0 ? 'Mô phỏng · Tạm dừng' : 'Sẵn sàng · Tuyến mẫu', 'preview');
             if (position) place(position);
         }
     }
@@ -149,10 +153,11 @@ export function setupShipperMap() {
         position = null;
         latestGpsPosition = null;
         source = 'gps';
-        field('preview-label').textContent = 'Xem tuyến mẫu';
+        field('preview-label').textContent = 'Chạy mô phỏng';
         field('gps-metrics').hidden = true;
         field('preview-remaining').hidden = true;
         field('preview-fit').disabled = true;
+        field('preview-reset').disabled = true;
         field('location-error').hidden = true;
         if (!window.isSecureContext || !navigator.geolocation) {
             gpsError({ code: 2 });
@@ -210,7 +215,7 @@ export function setupShipperMap() {
         else previewFrame = requestAnimationFrame(previewTick);
     }
 
-    function beginPreview(reload = false) {
+    function preparePreview(reload = false) {
         stopGps();
         map.removeLayer(accuracy);
         field('gps-metrics').hidden = true;
@@ -228,17 +233,35 @@ export function setupShipperMap() {
             start.setLatLng(points[0]);
             end.setLatLng(points.at(-1));
             previewLayers.forEach((layer) => layer.addTo(map));
-            setFollow(true);
             map.setView(points[0], 16, { animate: false });
         }
-        previewRunning = true;
-        lastTick = null;
-        field('play-icon').hidden = true;
-        field('pause-icon').hidden = false;
-        field('preview-label').textContent = 'Tạm dừng tuyến mẫu';
-        field('location-detail').textContent = 'Dữ liệu mẫu';
+        field('location-detail').textContent = 'Chưa dùng vị trí thiết bị';
         field('preview-remaining').hidden = false;
         field('preview-fit').disabled = false;
+        field('preview-reset').disabled = false;
+    }
+
+    function fitPreview() {
+        setFollow(false);
+        map.fitBounds(planned.getBounds(), { paddingTopLeft: [45, 70], paddingBottomRight: [45, 45], maxZoom: 16, animate: false });
+    }
+
+    function resetPreview() {
+        pausePreview();
+        preparePreview(true);
+        renderPreview();
+        pausePreview();
+        fitPreview();
+    }
+
+    function beginPreview() {
+        preparePreview();
+        previewRunning = true;
+        lastTick = null;
+        setFollow(true);
+        field('play-icon').hidden = true;
+        field('pause-icon').hidden = false;
+        field('preview-label').textContent = 'Tạm dừng mô phỏng';
         status('Đang di chuyển · Tuyến mẫu', 'preview');
         renderPreview();
         previewFrame = requestAnimationFrame(previewTick);
@@ -255,13 +278,10 @@ export function setupShipperMap() {
     map.on('zoomend', () => { if (follow && position) map.panTo(position, { animate: false }); });
     field('preview-play').addEventListener('click', () => previewRunning ? pausePreview() : beginPreview());
     field('preview-route').addEventListener('change', () => {
-        pausePreview();
-        if (source === 'preview') beginPreview(true);
+        resetPreview();
     });
-    field('preview-fit').addEventListener('click', () => {
-        setFollow(false);
-        map.fitBounds(planned.getBounds(), { padding: [35, 35], maxZoom: 16, animate: false });
-    });
+    field('preview-reset').addEventListener('click', resetPreview);
+    field('preview-fit').addEventListener('click', fitPreview);
     root.querySelectorAll('[data-map-mode]').forEach((button) => button.addEventListener('click', () => {
         const tracking = button.dataset.mapMode === 'shipper';
         if (!tracking) { pausePreview(); stopGps('GPS đã tạm dừng'); }
@@ -295,8 +315,8 @@ export function setupShipperMap() {
     }).observe(canvas);
     const region = Object.hasOwn(routes, root.dataset.demoArea) ? root.dataset.demoArea : 'HN';
     field('preview-route').value = region;
-    const [lng, lat] = routes[region].coordinates[0];
-    map.setView([lat, lng], 14, { animate: false });
+    // Hiện sẵn hai điểm mẫu; chỉ đọc GPS khi người dùng chủ động chọn.
+    resetPreview();
     field('gps-start').disabled = false;
     field('preview-play').disabled = false;
 }
